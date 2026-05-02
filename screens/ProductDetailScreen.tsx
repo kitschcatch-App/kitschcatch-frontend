@@ -7,24 +7,25 @@ import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import { styles } from './ProductDetailScreen.styles';
-import NavHomeIcon from '../assets/nav_home.svg';
-import NavSearchIcon from '../assets/nav_search.svg';
-import NavChatIcon from '../assets/nav_chat.svg';
-import NavProfileIcon from '../assets/nav_profile.svg';
 import HeartIcon from '../assets/heart.svg';
+import BottomNav from '../components/BottomNav';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
 
-const ProductDetailScreen = ({ route, navigation }: any) => {
+type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
+
+const ProductDetailScreen = ({ route, navigation }: Props) => {
   const insets = useSafeAreaInsets(); // 기기의 안전 영역(상태바 등) 높이를 가져옵니다.
 
   // 이전 화면(ProductList)에서 넘겨준 파라미터 받기
-  const { productId, productName, productPrice, productImageUrl } = route.params || {};
+  const { productId, productName, productPrice, productImageUrl } = route.params;
 
   // UI 구성을 위한 임시 상품 데이터 (추후 실제 API 데이터로 교체하세요)
   const mockProductDetail = {
     id: productId,
-    name: productName || '상품명을 불러올 수 없습니다.',
-    price: productPrice || 0,
-    imageUrl: productImageUrl || 'https://example.com/image.jpg', // 실제 이미지가 없으면 회색 배경으로 표시
+    name: productName,
+    price: productPrice,
+    imageUrl: productImageUrl,
     description: '상품설명\n상품설명\n상품설명\n상품설명\n상품설명\n상품설명\n상품설명\n상품설명\n상품설명\n상품설명\n상품설명',
   };
 
@@ -76,25 +77,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-      {/* 하단 네비게이션 바 */}
-      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProductList')}>
-          <NavHomeIcon width={24} height={24} />
-          <Text style={styles.navText}>홈</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <NavSearchIcon width={24} height={24} />
-          <Text style={styles.navText}>상품검색</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <NavChatIcon width={23} height={23} />
-          <Text style={styles.navText}>채팅목록</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <NavProfileIcon width={28} height={28} />
-          <Text style={styles.navText}>회원정보</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav />
     </View>
   );
 };
