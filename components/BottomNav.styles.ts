@@ -1,0 +1,30 @@
+/**
+ * 스타일: 하단 네비게이션 바 스타일 (BottomNav.styles)
+ * 역할: BottomNav 컴포넌트에서 사용하는 UI 스타일을 정의하는 파일입니다.
+ */
+import { StyleSheet } from 'react-native';
+import { colors } from '../styles/colors';
+import { typography } from '../styles/typography';
+
+export const styles = StyleSheet.create({
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: '#00ff0000',
+    paddingTop: 5,
+    paddingHorizontal: 40,
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navText: {
+    fontSize: 10,
+    color: colors.black,
+    fontFamily: typography.M,
+    marginTop: 4,
+  },
+});

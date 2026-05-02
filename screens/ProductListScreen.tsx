@@ -17,11 +17,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import SearchIcon from '../assets/search.svg';
-import NavSearchIcon from '../assets/nav_search.svg';
 import AddIcon from '../assets/registration.svg';
-import NavHomeIcon from '../assets/nav_home.svg';
-import NavChatIcon from '../assets/nav_chat.svg';
-import NavProfileIcon from '../assets/nav_profile.svg';
+import BottomNav from '../components/BottomNav';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
 
 import { styles } from './ProductListScreen.styles';
 
@@ -55,7 +54,9 @@ const fetchProductsAPI = (): Promise<Product[]> => {
   });
 };
 
-const ProductListScreen = ({ navigation }: any) => {
+type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
+
+const ProductListScreen = ({ navigation }: Props) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,7 +208,7 @@ const ProductListScreen = ({ navigation }: any) => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
         
         {/* 1. 상단 헤더: 백 버튼 & 검색창 */}
@@ -287,25 +288,7 @@ const ProductListScreen = ({ navigation }: any) => {
         <AddIcon width={22} height={22} />
       </TouchableOpacity>
 
-      {/* 4. 하단 네비게이션 바 */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <NavHomeIcon width={24} height={24} />
-          <Text style={styles.navText}>홈</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <NavSearchIcon width={24} height={24} />
-          <Text style={styles.navText}>상품검색</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <NavChatIcon width={23} height={23} />
-          <Text style={styles.navText}>채팅목록</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <NavProfileIcon width={28} height={28} />
-          <Text style={styles.navText}>회원정보</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav />
     </SafeAreaView>
   );
 };

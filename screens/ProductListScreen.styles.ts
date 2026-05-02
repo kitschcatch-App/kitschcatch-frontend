@@ -35,7 +35,7 @@ export const styles = StyleSheet.create({
     borderColor: colors.black,
     borderRadius: 10,
     height: 40,
-    width: 282,
+    flex: 1,
     marginLeft: 8,
   },
   searchInput: {
@@ -134,7 +134,8 @@ export const styles = StyleSheet.create({
     color: colors.black,
     fontFamily: typography.SB,
     marginBottom: 8, 
-    marginTop: -50, 
+    alignItems: 'flex-start',
+
   },
   productPrice: {
     fontSize: 14,
@@ -142,37 +143,15 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
   },
   productSeparator: {
-    width: 350,
+    width: '100%',
     height: 2,
     backgroundColor: '#DBDBDB',
     alignSelf: 'center',
   },
-  // 하단 네비게이션 바 스타일
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: '#00ff0000',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    marginBottom: 10,
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navText: {
-    fontSize: 10,
-    color: colors.black,
-    fontFamily: typography.M,
-    marginTop: 4,
-  },
   // 상품 등록 버튼
   floatingButton: {
     position: 'absolute',
-    bottom: 105, // 화면 하단에서의 위치
+    bottom: 85, // 화면 하단에서의 위치
     right: 20, // 화면 오른쪽 여백
     display: 'flex',
     flexDirection: 'row',

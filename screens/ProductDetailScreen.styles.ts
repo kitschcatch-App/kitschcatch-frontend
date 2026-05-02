@@ -54,7 +54,7 @@ export const styles = StyleSheet.create({
     color: colors.black,
   },
   productSeparator: {
-    width: 350,
+    width: '90%',
     height: 2,
     backgroundColor: '#DBDBDB',
     alignSelf: 'center',
@@ -128,27 +128,5 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: typography.SB,
     color: colors.black,
-  },
-  // 하단 네비게이션 바 스타일
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: '#00ff0000',
-    paddingTop: 14,
-    paddingHorizontal: 40,
-    marginBottom: 10,
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navText: {
-    fontSize: 10,
-    color: colors.black,
-    fontFamily: typography.M,
-    marginTop: 4,
   },
 });
