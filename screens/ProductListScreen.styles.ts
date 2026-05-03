@@ -15,11 +15,13 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
+  topSpacer: {
+    width: '100%',
+  },
   // 헤더 스타일
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 44,
     marginBottom: 10,
   },
   backButton: {

@@ -3,8 +3,8 @@
  * 역할: 판매자와 1:1 채팅을 진행하는 화면입니다.
  */
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ImageBackground, ScrollView, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, TouchableOpacity, Image, ImageBackground, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import PlusIcon from '../assets/plus.svg';
 import SendIcon from '../assets/send.svg';
@@ -24,6 +24,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
   // 스크롤 뷰 참조 (새 메시지 전송 시 자동 스크롤을 위해 사용)
   const scrollViewRef = useRef<ScrollView>(null);
   const hasReplied = useRef(false); // 상대방이 이미 답장을 했는지 여부 추적
+  const insets = useSafeAreaInsets(); // 상단 안전 영역 크기 가져오기
 
   // 메시지 전송 핸들러
   const handleSendMessage = () => {
@@ -54,25 +55,34 @@ const ChatScreen = ({ route, navigation }: Props) => {
     }
   };
 
-  // KST(한국 표준시) 기준 오늘 날짜 문자열 생성 함수
-  const getKSTDateString = () => {
+  // KST(한국 표준시) 기준 Date 객체 반환 헬퍼 함수
+  const getKSTDate = () => {
     const now = new Date();
     const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
-    const kstTime = new Date(utc + 9 * 60 * 60 * 1000); // UTC 시간에 9시간(밀리초 변환) 더하기
+    return new Date(utc + 9 * 60 * 60 * 1000); // UTC 시간에 9시간(밀리초 변환) 더하기
+  };
+
+  // KST(한국 표준시) 기준 오늘 날짜 문자열 생성 함수
+  const getKSTDateString = () => {
+    const kstTime = getKSTDate();
     return `${kstTime.getFullYear()}년 ${kstTime.getMonth() + 1}월 ${kstTime.getDate()}일`;
   };
 
   // KST(한국 표준시) 기준 현재 시간 문자열 생성 함수 (예: 오후 2:30)
   const getKSTTimeString = () => {
-    const now = new Date();
-    const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
-    const kstTime = new Date(utc + 9 * 60 * 60 * 1000);
+    const kstTime = getKSTDate();
     return kstTime.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
-  }
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* 상단 공백 컨테이너 */}
+        <View style={[styles.topSpacer, { height: Math.max(insets.top, 65) }]} />
+
         {/* 헤더 영역 */}
         <View style={styles.headerContainer}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -154,12 +164,13 @@ const ChatScreen = ({ route, navigation }: Props) => {
             placeholder="메시지 입력"
             value={inputText}
             onChangeText={setInputText}
+            multiline
           />
           <TouchableOpacity style={styles.iconButton} onPress={handleSendMessage}>
             <SendIcon width={24} height={24} />
           </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

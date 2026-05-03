@@ -10,11 +10,13 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  topSpacer: {
+    width: '100%',
+  },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center', // 닉네임과 응답시간을 가운데 정렬
-    marginTop: 44, 
     paddingHorizontal: 20,
     position: 'relative',
   },
