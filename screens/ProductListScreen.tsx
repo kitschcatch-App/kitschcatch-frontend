@@ -14,7 +14,7 @@ import {
   Modal,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import SearchIcon from '../assets/search.svg';
 import AddIcon from '../assets/registration.svg';
@@ -77,6 +77,7 @@ const ProductListScreen = ({ navigation }: Props) => {
 
   const sortBtnRef = useRef<View>(null);
   const priceBtnRef = useRef<View>(null);
+  const insets = useSafeAreaInsets();
 
   const openModal = (
     ref: React.RefObject<any>,
@@ -208,9 +209,12 @@ const ProductListScreen = ({ navigation }: Props) => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <View style={styles.container}>
         
+        {/* 상단 공백 컨테이너 */}
+        <View style={[styles.topSpacer, { height: Math.max(insets.top, 68) }]} />
+
         {/* 1. 상단 헤더: 백 버튼 & 검색창 */}
         <View style={styles.headerContainer}>
           <TouchableOpacity 
