@@ -7,6 +7,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ProductListScreen from '../screens/ProductListScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
+import ChatScreen from '../screens/ChatScreen';
 
 export type RootStackParamList = {
   ProductList: undefined;
@@ -14,6 +15,11 @@ export type RootStackParamList = {
     productId: string;
     productName: string;
     productPrice: number;
+    productImageUrl: string;
+  };
+  Chat: {
+    sellerName: string;
+    productName: string;
     productImageUrl: string;
   };
 };
@@ -26,6 +32,7 @@ const RootNavigator = () => {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="ProductList" component={ProductListScreen} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Chat" component={ChatScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

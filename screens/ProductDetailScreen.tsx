@@ -112,7 +112,14 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           <TouchableOpacity style={styles.wishButton}>
             <HeartIcon width={24} height={24} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.chatButton}>
+          <TouchableOpacity 
+            style={styles.chatButton} 
+            onPress={() => navigation.navigate('Chat', { 
+              sellerName: '졸린코끼리',
+              productName: mockProductDetail.name,
+              productImageUrl: mockProductDetail.imageUrl
+            })}
+          >
             <Text style={styles.chatButtonText}>채팅하기</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.buyButton}>
