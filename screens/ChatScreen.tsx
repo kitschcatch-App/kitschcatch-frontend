@@ -55,23 +55,23 @@ const ChatScreen = ({ route, navigation }: Props) => {
     }
   };
 
-  // KST(한국 표준시) 기준 Date 객체 반환 헬퍼 함수
-  const getKSTDate = () => {
-    const now = new Date();
-    const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
-    return new Date(utc + 9 * 60 * 60 * 1000); // UTC 시간에 9시간(밀리초 변환) 더하기
-  };
-
   // KST(한국 표준시) 기준 오늘 날짜 문자열 생성 함수
   const getKSTDateString = () => {
-    const kstTime = getKSTDate();
-    return `${kstTime.getFullYear()}년 ${kstTime.getMonth() + 1}월 ${kstTime.getDate()}일`;
+    return new Date().toLocaleDateString('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   };
-
-  // KST(한국 표준시) 기준 현재 시간 문자열 생성 함수 (예: 오후 2:30)
+  // KST(한국 표준시) 기준 현재 시간 문자열 생성 함수
   const getKSTTimeString = () => {
-    const kstTime = getKSTDate();
-    return kstTime.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return new Date().toLocaleTimeString('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
   };
 
   return (
@@ -165,6 +165,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
             value={inputText}
             onChangeText={setInputText}
             multiline
+            blurOnSubmit={false}
           />
           <TouchableOpacity style={styles.iconButton} onPress={handleSendMessage}>
             <SendIcon width={24} height={24} />
