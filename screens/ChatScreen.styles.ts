@@ -125,7 +125,7 @@ export const styles = StyleSheet.create({
     color: colors.black,
   },
   messageTime: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: typography.M,
     color: colors.gray01,
     marginBottom: 4,

@@ -104,7 +104,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chatButton: {
-    flex: 0.9,
+    flex: 1,
     backgroundColor: colors.gray02,
     paddingVertical: 10,
     borderRadius: 10,
