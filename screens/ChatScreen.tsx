@@ -30,6 +30,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
   const handleSendMessage = () => {
     if (inputText.trim().length === 0) return;
 
+    //   제안 사항
     const newMessage = {
       id: Date.now().toString(),
       text: inputText.trim(),
@@ -46,7 +47,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
       setTimeout(() => {
         const replyMessage = {
           id: (Date.now() + 1).toString(),
-          text: '네, 안녕하세요! 구매 가능합니다.',
+          text: '안녕하세요',
           time: getKSTTimeString(),
           sender: 'them' as const,
         };
@@ -68,9 +69,9 @@ const ChatScreen = ({ route, navigation }: Props) => {
   const getKSTTimeString = () => {
     return new Date().toLocaleTimeString('ko-KR', {
       timeZone: 'Asia/Seoul',
-      hour: 'numeric',
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true,
+      hour12: false,
     });
   };
 
@@ -99,7 +100,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
         <View style={styles.productInfoContainer}>
           <Image source={{ uri: productImageUrl }} style={styles.productImage} />
           <Text style={styles.productName} numberOfLines={2}>{productName}</Text>
-          {/* 만약 상품 이름이 길면 몇줄까지 표시할건지...? */}
+          {/* 상품 이름이 길면 몇줄까지 표시할건지 */}
         </View>
 
         {/* 채팅 내용 영역 */}

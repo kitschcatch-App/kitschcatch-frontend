@@ -7,6 +7,7 @@ export const colors = {
   white: '#FFFFFF',
   gray01: '#858585',
   gray02: '#EEEEEE',
-  main01: '#00D0A7',
+  main01: '#80E9D7',
   main02: '#00A37C',
+  main03: '#46C9B226',
 } as const;

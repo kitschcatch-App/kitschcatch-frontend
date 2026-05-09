@@ -8,6 +8,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ProductListScreen from '../screens/ProductListScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ChatScreen from '../screens/ChatScreen';
+import PaymentScreen from '../screens/PaymentScreen';
 
 export type RootStackParamList = {
   ProductList: undefined;
@@ -22,6 +23,12 @@ export type RootStackParamList = {
     productName: string;
     productImageUrl: string;
   };
+  Payment: {
+    productId: string;
+    productName: string;
+    productPrice: number;
+    productImageUrl: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -33,6 +40,7 @@ const RootNavigator = () => {
         <Stack.Screen name="ProductList" component={ProductListScreen} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Chat" component={ChatScreen} />
+        <Stack.Screen name="Payment" component={PaymentScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

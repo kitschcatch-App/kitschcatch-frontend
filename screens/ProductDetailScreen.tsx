@@ -122,7 +122,15 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           >
             <Text style={styles.chatButtonText}>채팅하기</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.buyButton}>
+          <TouchableOpacity 
+            style={styles.buyButton}
+            onPress={() => navigation.navigate('Payment', {
+              productId: mockProductDetail.id,
+              productName: mockProductDetail.name,
+              productPrice: mockProductDetail.price,
+              productImageUrl: mockProductDetail.imageUrl
+            })}
+          >
             <Text style={styles.buyButtonText}>결제하기</Text>
           </TouchableOpacity>
         </View>

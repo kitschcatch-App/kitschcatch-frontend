@@ -6,4 +6,5 @@ export const typography = {
   M: 'Pretendard-Medium',
   SB: 'Pretendard-SemiBold',
   R: 'Pretendard-Regular',
+  B: 'Pretendard-Bold',
 } as const;

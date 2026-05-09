@@ -61,12 +61,10 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
     borderRadius: 10,
-    height: 35,
-    width: 74,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     backgroundColor: colors.main01,
-    borderColor: colors.main01,
   },
   dropdownButtonWide: {
     width: 105,
@@ -90,13 +88,11 @@ export const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: colors.white,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#00ff0000', //투명
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 4, //그림자
+    elevation: 4,
   },
   modalOptionButton: {
     width: '100%',
@@ -116,7 +112,7 @@ export const styles = StyleSheet.create({
   },
   productCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start', // 안의 요소들을 위쪽 기준으로 정렬합니다.
     backgroundColor: colors.white,
     paddingVertical: 10,
   },
@@ -129,15 +125,13 @@ export const styles = StyleSheet.create({
   productInfo: {
     flex: 1,
     marginLeft: 16,
-    justifyContent: 'center',
   },
   productName: {
     fontSize: 16,
     color: colors.black,
     fontFamily: typography.SB,
     marginBottom: 8, 
-    alignItems: 'flex-start',
-
+    paddingVertical: 10,
   },
   productPrice: {
     fontSize: 14,
