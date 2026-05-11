@@ -143,4 +143,7 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     color: colors.black,
   },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
 });

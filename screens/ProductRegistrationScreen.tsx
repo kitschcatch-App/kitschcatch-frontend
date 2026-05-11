@@ -3,7 +3,7 @@
  * 역할: 사용자가 판매할 상품의 정보를 입력하고 등록하는 화면입니다.
  */
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ExitIcon from '../assets/exit.svg'; // exit.svg 파일이 assets 폴더에 있다고 가정합니다.
 import CameraIcon from '../assets/camera.svg';
@@ -14,6 +14,28 @@ import CommonInput from '../components/CommonInput';
 import CommonDropdown from '../components/CommonDropdown';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductRegistration'>;
+
+// 한글 드롭다운 옵션을 API 명세서에 맞는 영문으로 변환하는 매핑 객체
+const CONDITION_MAP: Record<string, string> = {
+  '새상품': 'NEW',
+  '사용감 적음': 'LIKE_NEW',
+  '사용감 있음': 'USED',
+  '사용감 많음': 'HEAVILY_USED',
+};
+const CATEGORY_MAP: Record<string, string> = {
+  '애니 / 만화': 'ANIME_MANGA',
+  '게임': 'GAME',
+  '굿즈': 'GOODS',
+  '코스프레': 'COSPLAY',
+  '서적': 'BOOK',
+  '음반 / 영상': 'MEDIA',
+  '기타': 'ETC',
+};
+const STATUS_MAP: Record<string, string> = {
+  '판매중': 'ON_SALE',
+  '예약중': 'RESERVED',
+  '판매완료': 'SOLD_OUT',
+};
 
 const ProductRegistrationScreen = ({ navigation }: Props) => {
   const insets = useSafeAreaInsets(); // 상단 안전 영역 크기 가져오기
@@ -27,6 +49,7 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   const [selectedStatus, setSelectedStatus] = useState('판매상태 선택');
   const [isStatusExpanded, setStatusExpanded] = useState(false);
   const [isPolicyAgreed, setIsPolicyAgreed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const CONDITION_OPTIONS = ['새상품', '사용감 적음', '사용감 있음', '사용감 많음'];
   const CATEGORY_OPTIONS = ['애니 / 만화', '게임', '굿즈', '코스프레', '서적', '음반 / 영상', '기타'];
@@ -59,6 +82,67 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   const handleSelectStatus = (option: string) => {
     setSelectedStatus(option);
     setStatusExpanded(false);
+  };
+
+  // 상품 등록 API 호출 핸들러
+  const handleSubmit = async () => {
+    // 1. 유효성 검사
+    if (!productName || !productPrice || !productDescription) {
+      Alert.alert('알림', '필수 입력 항목을 모두 채워주세요.');
+      return;
+    }
+    if (selectedCondition === '사용감 선택' || selectedCategory === '카테고리 선택' || selectedStatus === '판매상태 선택') {
+      Alert.alert('알림', '드롭다운 항목을 모두 선택해주세요.');
+      return;
+    }
+    if (!isPolicyAgreed) {
+      Alert.alert('알림', '운영 정책에 동의해주세요.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    // 2. API 명세서에 맞춘 데이터 구성 (배열 안의 객체 형태)
+    const requestData = [{
+      postid: Date.now().toString(), // TODO: 실제 연동 시 백엔드에서 자동 생성되거나 규칙에 맞게 변경
+      sellerId: "sasukezzang", // TODO: 실제 연동 시 로그인된 유저 ID 사용
+      title: productName,
+      description: productDescription,
+      price: productPrice, // 명세서 요구대로 콤마가 포함된 문자열 전송
+      imageURL: "string", // TODO: 이미지 업로드 로직 구현 후 실제 URL 반영
+      productCategory: CATEGORY_MAP[selectedCategory] || "ETC",
+      productCondition: CONDITION_MAP[selectedCondition] || "USED",
+      productStatus: STATUS_MAP[selectedStatus] || "ON_SALE"
+    }];
+
+    try {
+      // [테스트용] 실제 API 호출 대신 가상 백엔드 통신을 시뮬레이션합니다.
+      console.log('가상 백엔드로 전송된 데이터:', JSON.stringify(requestData, null, 2));
+      
+      // 네트워크 지연 1초 시뮬레이션
+      await new Promise<void>(resolve => setTimeout(() => resolve(), 1000)); 
+      
+      // 항상 성공 응답이 온다고 가정
+      const response = { ok: true };
+
+      // 실제 API 연동 시 아래 주석을 해제하고 위 가상 로직을 지워주세요.
+      // const response = await fetch('http://10.0.2.2:8080/api/post', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(requestData),
+      // });
+
+      if (response.ok) {
+        Alert.alert('성공', '상품이 성공적으로 등록되었습니다.', [{ text: '확인', onPress: () => navigation.goBack() }]);
+      } else {
+        Alert.alert('오류', '상품 등록에 실패했습니다. (서버 응답 오류)');
+      }
+    } catch (error) {
+      console.error('API 연동 에러:', error);
+      Alert.alert('오류', '네트워크 연결 상태를 확인해주세요.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -193,8 +277,16 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
         </View>
 
         {/* 상품 등록 버튼 */}
-        <TouchableOpacity style={styles.submitButton}>
-          <Text style={styles.submitButtonText}>상품등록</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator/>
+          ) : (
+            <Text style={styles.submitButtonText}>상품등록</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
