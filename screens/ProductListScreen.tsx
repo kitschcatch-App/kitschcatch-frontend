@@ -287,7 +287,10 @@ const ProductListScreen = ({ navigation }: Props) => {
       </View>
 
       {/* 플로팅 상품등록 버튼 */}
-      <TouchableOpacity style={styles.floatingButton}>
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => navigation.navigate('ProductRegistration')}
+      >
         <Text style={styles.floatingButtonText}>상품등록</Text>
         <AddIcon width={22} height={22} />
       </TouchableOpacity>

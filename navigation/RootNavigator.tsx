@@ -9,9 +9,11 @@ import ProductListScreen from '../screens/ProductListScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ChatScreen from '../screens/ChatScreen';
 import PaymentScreen from '../screens/PaymentScreen';
+import ProductRegistrationScreen from '../screens/ProductRegistrationScreen';
 
 export type RootStackParamList = {
   ProductList: undefined;
+  ProductRegistration: undefined;
   ProductDetail: {
     productId: string;
     productName: string;
@@ -41,6 +43,7 @@ const RootNavigator = () => {
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Payment" component={PaymentScreen} />
+        <Stack.Screen name="ProductRegistration" component={ProductRegistrationScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
