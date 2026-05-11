@@ -3,13 +3,15 @@
  * 역할: 사용자가 판매할 상품의 정보를 입력하고 등록하는 화면입니다.
  */
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ExitIcon from '../assets/exit.svg'; // exit.svg 파일이 assets 폴더에 있다고 가정합니다.
 import CameraIcon from '../assets/camera.svg';
 import { styles } from './ProductRegistrationScreen.styles';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import CommonInput from '../components/CommonInput';
+import CommonDropdown from '../components/CommonDropdown';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductRegistration'>;
 
@@ -100,126 +102,79 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
         </View>
 
         {/* 상품명 입력 레이아웃 */}
-        <View style={styles.productNameLayout}>
-          <Text style={styles.inputLabel}>상품명</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="상품명을 입력해주세요"
-            value={productName}
-            onChangeText={setProductName}
-            maxLength={50}
-            multiline
-          />
-          <Text style={[styles.charCounter, productName.length >= 50 && styles.charCounterMax]}>
-            {`${productName.length}/50`}
-          </Text>
-          {productName.length >= 50 && (
-            <Text style={styles.warningText}>상품명은 50자 이하로 입력해주세요</Text>
-          )}
-        </View>
+        <CommonInput
+          label="상품명"
+          placeholder="상품명을 입력해주세요"
+          value={productName}
+          onChangeText={setProductName}
+          maxLength={50}
+          multiline
+          showCharCount
+          currentLength={productName.length}
+          warningText={productName.length >= 50 ? '상품명은 50자 이하로 입력해주세요' : false}
+          containerStyle={styles.productNameLayout}
+        />
 
         {/* 상품 가격 입력 레이아웃 */}
-        <View style={styles.priceLayout}>
-          <Text style={styles.inputLabel}>가격</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="가격을 입력해주세요"
-            value={productPrice}
-            onChangeText={handlePriceChange}
-            keyboardType="numeric"
-          />
-          {isPriceOverLimit && (
-            <Text style={[styles.warningText]}>가격은 10억원 이하로 입력해주세요</Text>
-          )}
-        </View>
+        <CommonInput
+          label="가격"
+          placeholder="가격을 입력해주세요"
+          value={productPrice}
+          onChangeText={handlePriceChange}
+          keyboardType="numeric"
+          warningText={isPriceOverLimit ? '가격은 10억원 이하로 입력해주세요' : false}
+          containerStyle={styles.priceLayout}
+        />
 
         {/* 상품 설명 입력 레이아웃 */}
-        <View style={styles.descriptionLayout}>
-          <Text style={styles.inputLabel}>상품 설명</Text>
-          <TextInput
-            style={[styles.textInput]}
-            placeholder="상품 설명을 입력해주세요"
-            value={productDescription}
-            onChangeText={setProductDescription}
-            maxLength={1500}
-            multiline
-          />
-          <Text style={[styles.charCounter, productDescription.length >= 1500 && styles.charCounterMax]}>
-            {`${productDescription.length}/1500`}
-          </Text>
-          {productDescription.length >= 1500 && (
-            <Text style={styles.warningText}>설명은 1500자 이하로 입력해주세요</Text>
-          )}
-        </View>
+        <CommonInput
+          label="상품 설명"
+          placeholder="상품 설명을 입력해주세요"
+          value={productDescription}
+          onChangeText={setProductDescription}
+          maxLength={1500}
+          multiline
+          showCharCount
+          currentLength={productDescription.length}
+          warningText={productDescription.length >= 1500 ? '설명은 1500자 이하로 입력해주세요' : false}
+          containerStyle={styles.descriptionLayout}
+        />
 
         {/* 사용감 선택 레이아웃 */}
-        <View style={styles.conditionLayout}>
-          <Text style={styles.inputLabel}>사용감</Text>
-          <TouchableOpacity 
-            style={styles.conditionDropdownButton} 
-            onPress={() => setConditionExpanded(!isConditionExpanded)}
-          >
-            <Text style={[styles.conditionDropdownText, selectedCondition !== '사용감 선택' && styles.conditionDropdownTextSelected]}>
-              {selectedCondition}
-            </Text>
-            <Text style={styles.conditionDropdownIcon}>▼</Text>
-          </TouchableOpacity>
-          {isConditionExpanded && (
-            <View style={styles.dropdownContent}>
-              {CONDITION_OPTIONS.map((option) => (
-                <TouchableOpacity key={option} style={styles.dropdownOptionButton} onPress={() => handleSelectCondition(option)}>
-                  <Text style={[styles.dropdownOptionText]}>{option}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
+        <CommonDropdown
+          label="사용감"
+          value={selectedCondition}
+          options={CONDITION_OPTIONS}
+          placeholder="사용감 선택"
+          isExpanded={isConditionExpanded}
+          onToggle={() => setConditionExpanded(!isConditionExpanded)}
+          onSelect={handleSelectCondition}
+          containerStyle={styles.conditionLayout}
+        />
 
         {/* 카테고리 선택 레이아웃 */}
-        <View style={styles.categoryLayout}>
-          <Text style={styles.inputLabel}>카테고리</Text>
-          <TouchableOpacity 
-            style={styles.conditionDropdownButton} 
-            onPress={() => setCategoryExpanded(!isCategoryExpanded)}
-          >
-            <Text style={[styles.conditionDropdownText, selectedCategory !== '카테고리 선택' && styles.conditionDropdownTextSelected]}>
-              {selectedCategory}
-            </Text>
-            <Text style={styles.conditionDropdownIcon}>▼</Text>
-          </TouchableOpacity>
-          {isCategoryExpanded && (
-            <View style={styles.dropdownContent}>
-              {CATEGORY_OPTIONS.map((option) => (
-                <TouchableOpacity key={option} style={styles.dropdownOptionButton} onPress={() => handleSelectCategory(option)}>
-                  <Text style={[styles.dropdownOptionText]}>{option}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
+        <CommonDropdown
+          label="카테고리"
+          value={selectedCategory}
+          options={CATEGORY_OPTIONS}
+          placeholder="카테고리 선택"
+          isExpanded={isCategoryExpanded}
+          onToggle={() => setCategoryExpanded(!isCategoryExpanded)}
+          onSelect={handleSelectCategory}
+          containerStyle={styles.categoryLayout}
+        />
 
         {/* 판매상태 선택 레이아웃 */}
-        <View style={styles.statusLayout}>
-          <Text style={styles.inputLabel}>판매상태</Text>
-          <TouchableOpacity 
-            style={styles.conditionDropdownButton} 
-            onPress={() => setStatusExpanded(!isStatusExpanded)}
-          >
-            <Text style={[styles.conditionDropdownText, selectedStatus !== '판매상태 선택' && styles.conditionDropdownTextSelected]}>
-              {selectedStatus}
-            </Text>
-            <Text style={styles.conditionDropdownIcon}>▼</Text>
-          </TouchableOpacity>
-          {isStatusExpanded && (
-            <View style={styles.dropdownContent}>
-              {STATUS_OPTIONS.map((option) => (
-                <TouchableOpacity key={option} style={styles.dropdownOptionButton} onPress={() => handleSelectStatus(option)}>
-                  <Text style={[styles.dropdownOptionText]}>{option}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
+        <CommonDropdown
+          label="판매상태"
+          value={selectedStatus}
+          options={STATUS_OPTIONS}
+          placeholder="판매상태 선택"
+          isExpanded={isStatusExpanded}
+          onToggle={() => setStatusExpanded(!isStatusExpanded)}
+          onSelect={handleSelectStatus}
+          containerStyle={styles.statusLayout}
+        />
 
         {/* 운영정책 동의 레이아웃 */}
         <View style={styles.policyLayout}>
