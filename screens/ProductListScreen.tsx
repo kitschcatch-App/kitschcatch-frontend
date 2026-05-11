@@ -24,34 +24,11 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 
 import { styles } from './ProductListScreen.styles';
 
-// 테스트용 임시 상품 데이터
-// 나중에 API 서비스 파일(예: src/services/productApi.ts)로 분리.
 type Product = {
   id: string;
   name: string;
   price: number;
   imageUrl: string;
-};
-
-const MOCK_PRODUCTS = [
-  { id: '1', name: '귀멸의 칼날 탄지로 넨도로이드 풀박스 상태 S급', price: 35000, imageUrl: 'https://example.com/image1.jpg' },
-  { id: '2', name: '주술회전 룩업 옷코츠 유타', price: 80000, imageUrl: 'https://example.com/image2.jpg' },
-  { id: '3', name: '장송의 프리렌 포스터', price: 15000, imageUrl: 'https://example.com/image3.jpg' },
-  { id: '4', name: '하이큐 아크릴 스탠드', price: 25000, imageUrl: 'https://example.com/image4.jpg' },
-  { id: '5', name: '나의 히어로 아카데미아 바쿠고 카츠키 피규어 ', price: 100000, imageUrl: 'https://example.com/image5.jpg' },
-  { id: '6', name: '에반게리온 룩업 이카리 신지', price: 40000, imageUrl: 'https://example.com/image6.jpg' },
-];
-
-// 실제 API 호출을 시뮬레이션하는 함수입니다.
-// TODO: 백엔드 연결 시 이 부분을 실제 API 호출 로직(fetch, axios 등)으로 교체하세요.
-const fetchProductsAPI = (): Promise<Product[]> => {
-  console.log('Fetching products...');
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log('Products fetched!');
-      resolve(MOCK_PRODUCTS);
-    }, 1000); // 네트워크 지연을 시뮬레이션하기 위해 1초 딜레이
-  });
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
@@ -114,9 +91,93 @@ const ProductListScreen = ({ navigation }: Props) => {
       try {
         setLoading(true);
         setError(null);
-        // API를 통해 상품 목록을 가져옵니다.
-        const fetchedProducts = await fetchProductsAPI();
-        setProducts(fetchedProducts);
+        
+        // [테스트용] 실제 API 호출 대신 가상 백엔드 통신을 시뮬레이션합니다.
+        // 네트워크 지연 1초 시뮬레이션
+        await new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
+        
+        // 가상 백엔드 응답 데이터
+        const data = [
+          {
+            posts: [
+              {
+                postId: 105,
+                title: "헌터헌터 클로로 누들스토퍼",
+                price: 650000,
+                status: "ON_SALE",
+                thumbnailUrl: "https://picsum.photos/id/101/150/150", // 임시 이미지 URL
+                createdAt: "2026-04-13T16:00:00"
+              },
+              {
+                postId: 104,
+                title: "귀멸의 칼날 무한성편 포스터",
+                price: 15000,
+                status: "ON_SALE",
+                thumbnailUrl: "https://picsum.photos/id/102/150/150", // 임시 이미지 URL
+                createdAt: "2026-04-13T15:55:00"
+              },
+              {
+                postId: 103,
+                title: "주술회전 고죠 사토루 피규어",
+                price: 85000,
+                status: "ON_SALE",
+                thumbnailUrl: "https://picsum.photos/id/103/150/150",
+                createdAt: "2026-04-13T15:50:00"
+              },
+              {
+                postId: 102,
+                title: "에반게리온 초호기 프라모델",
+                price: 120000,
+                status: "ON_SALE",
+                thumbnailUrl: "https://picsum.photos/id/104/150/150",
+                createdAt: "2026-04-13T15:45:00"
+              },
+              {
+                postId: 101,
+                title: "포켓몬스터 피카츄 인형",
+                price: 25000,
+                status: "ON_SALE",
+                thumbnailUrl: "https://picsum.photos/id/106/150/150",
+                createdAt: "2026-04-13T15:40:00"
+              },
+              {
+                postId: 100,
+                title: "원피스 루피 수배서 포스터",
+                price: 10000,
+                status: "ON_SALE",
+                thumbnailUrl: "https://picsum.photos/id/107/150/150",
+                createdAt: "2026-04-13T15:35:00"
+              },
+              {
+                postId: 99,
+                title: "나루토 질풍전 만화책 전권 세트",
+                price: 150000,
+                status: "ON_SALE",
+                thumbnailUrl: "https://picsum.photos/id/108/150/150",
+                createdAt: "2026-04-13T15:30:00"
+              }
+            ],
+            nextCursor: 104,
+            hasNext: true
+          }
+        ];
+
+        // 실제 API 연동 시 아래 주석을 해제하고 위 가상 로직을 지워주세요.
+        // const response = await fetch('http://10.0.2.2:8080/api/post/');
+        // if (!response.ok) {
+        //   throw new Error(`서버 에러: ${response.status}`);
+        // }
+        // const data = await response.json();
+        
+        // API 응답 데이터 매핑 (응답이 배열로 오고 그 안의 posts 객체를 순회)
+        const mappedProducts: Product[] = data[0].posts.map((post: any) => ({
+          id: post.postId.toString(),
+          name: post.title,
+          price: post.price,
+          imageUrl: post.thumbnailUrl,
+        }));
+        
+        setProducts(mappedProducts);
       } catch (e) {
         console.error(e);
         setError('상품을 불러오는 데 실패했습니다. 다시 시도해주세요.');
