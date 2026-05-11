@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   topSpacer: {
     width: '100%',
@@ -25,31 +25,27 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   backButton: {
-    marginRight: 1,
-    marginLeft: 1, 
     marginBottom: 7,
     marginTop: 7,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.black,
-    borderRadius: 10,
-    height: 40,
+    borderRadius: 8,
     flex: 1,
-    marginLeft: 8,
+    backgroundColor: colors.gray02,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    marginHorizontal: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: colors.black,
     padding: 0, // 안드로이드 기본 패딩 제거
-    marginLeft: 8,
+    fontFamily: typography.M,
   },
   searchIcon: {
-    padding: 8,
-    marginLeft: 0,
   },
   // 필터 스타일
   filterContainer: {
@@ -78,7 +74,7 @@ export const styles = StyleSheet.create({
   divider: {
     height: 9,
     backgroundColor: colors.gray02,
-    marginHorizontal: -20, 
+    marginHorizontal: -16, 
   },
   // 모달 스타일
   modalOverlay: {
@@ -148,7 +144,7 @@ export const styles = StyleSheet.create({
   floatingButton: {
     position: 'absolute',
     bottom: 85, // 화면 하단에서의 위치
-    right: 20, // 화면 오른쪽 여백
+    right: 16, // 화면 오른쪽 여백
     display: 'flex',
     flexDirection: 'row',
     padding: 10,

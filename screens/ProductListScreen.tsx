@@ -221,7 +221,7 @@ const ProductListScreen = ({ navigation }: Props) => {
             style={styles.backButton} 
             onPress={() => navigation?.goBack()}
           >
-            <BackIcon width={24} height={24} />
+            <BackIcon width={20} height={20} />
           </TouchableOpacity>
           
           <View style={styles.searchContainer}>
@@ -230,11 +230,12 @@ const ProductListScreen = ({ navigation }: Props) => {
               value={searchQuery}
               onChangeText={setSearchQuery}
               underlineColorAndroid="transparent"
+              placeholder="상품을 검색해보세요"
             />
           </View>
 
           <TouchableOpacity style={styles.searchIcon}>
-            <SearchIcon width={24} height={24} />
+            <SearchIcon width={20} height={20} />
           </TouchableOpacity>
         </View>
 
