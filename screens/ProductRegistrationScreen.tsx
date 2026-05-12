@@ -12,6 +12,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import CommonInput from '../components/CommonInput';
 import CommonDropdown from '../components/CommonDropdown';
+import { productAPI } from '../api/apiClient';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductRegistration'>;
 
@@ -104,8 +105,7 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
 
     // 2. API 명세서에 맞춘 데이터 구성 (배열 안의 객체 형태)
     const requestData = [{
-      postid: Date.now().toString(), // TODO: 실제 연동 시 백엔드에서 자동 생성되거나 규칙에 맞게 변경
-      sellerId: "sasukezzang", // TODO: 실제 연동 시 로그인된 유저 ID 사용
+      userId: "sasukezzang", // TODO: 실제 연동 시 로그인된 유저 ID 사용
       title: productName,
       description: productDescription,
       price: productPrice, // 명세서 요구대로 콤마가 포함된 문자열 전송
@@ -116,30 +116,19 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
     }];
 
     try {
-      // [테스트용] 실제 API 호출 대신 가상 백엔드 통신을 시뮬레이션합니다.
-      console.log('가상 백엔드로 전송된 데이터:', JSON.stringify(requestData, null, 2));
-      
-      // 네트워크 지연 1초 시뮬레이션
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 1000)); 
-      
-      // 항상 성공 응답이 온다고 가정
-      const response = { ok: true };
+      // 모듈화된 axios API 호출
+      const response = await productAPI.createPost(requestData);
 
-      // 실제 API 연동 시 아래 주석을 해제하고 위 가상 로직을 지워주세요.
-      // const response = await fetch('http://10.0.2.2:8080/api/post', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(requestData),
-      // });
-
-      if (response.ok) {
+      if (response.status === 200 || response.status === 201) {
         Alert.alert('성공', '상품이 성공적으로 등록되었습니다.', [{ text: '확인', onPress: () => navigation.goBack() }]);
       } else {
         Alert.alert('오류', '상품 등록에 실패했습니다. (서버 응답 오류)');
       }
     } catch (error) {
       console.error('API 연동 에러:', error);
-      Alert.alert('오류', '네트워크 연결 상태를 확인해주세요.');
+      // [테스트용] 백엔드 미연결 시 가상 통신 성공 시뮬레이션 폴백
+      console.log('가상 백엔드로 전송된 데이터:', JSON.stringify(requestData, null, 2));
+      Alert.alert('성공(가상)', '상품이 성공적으로 등록되었습니다.', [{ text: '확인', onPress: () => navigation.goBack() }]);
     } finally {
       setIsLoading(false);
     }

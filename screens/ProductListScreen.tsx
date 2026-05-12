@@ -21,6 +21,8 @@ import AddIcon from '../assets/registration.svg';
 import BottomNav from '../components/BottomNav';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import axios from 'axios';
+import { productAPI } from '../api/apiClient';
 
 import { styles } from './ProductListScreen.styles';
 
@@ -87,17 +89,36 @@ const ProductListScreen = ({ navigation }: Props) => {
   }
 
   useEffect(() => {
+    // 화면을 벗어날 때 진행 중인 API 요청을 취소하기 위한 컨트롤러
+    const abortController = new AbortController();
+
     const loadProducts = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // [테스트용] 실제 API 호출 대신 가상 백엔드 통신을 시뮬레이션합니다.
-        // 네트워크 지연 1초 시뮬레이션
-        await new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
+        // 모듈화된 axios API 호출
+        const response = await productAPI.getPostList({
+          signal: abortController.signal,
+        });
+        const data = response.data;
         
-        // 가상 백엔드 응답 데이터
-        const data = [
+        // API 응답 데이터 매핑 (응답이 배열로 오고 그 안의 posts 객체를 순회)
+        const mappedProducts: Product[] = data[0].posts.map((post: any) => ({
+          id: post.postId.toString(),
+          name: post.title,
+          price: post.price,
+          imageUrl: post.thumbnailUrl,
+        }));
+        
+        setProducts(mappedProducts);
+      } catch (error: any) {
+        if (axios.isCancel(error)) return;
+        
+        console.error('상품 목록 불러오기 실패:', error);
+        
+        // [테스트용] 백엔드 미연결 시 가상 데이터로 폴백
+        const fallbackData = [
           {
             posts: [
               {
@@ -105,7 +126,7 @@ const ProductListScreen = ({ navigation }: Props) => {
                 title: "헌터헌터 클로로 누들스토퍼",
                 price: 650000,
                 status: "ON_SALE",
-                thumbnailUrl: "https://picsum.photos/id/101/150/150", // 임시 이미지 URL
+                thumbnailUrl: "https://picsum.photos/id/101/150/150", 
                 createdAt: "2026-04-13T16:00:00"
               },
               {
@@ -113,7 +134,7 @@ const ProductListScreen = ({ navigation }: Props) => {
                 title: "귀멸의 칼날 무한성편 포스터",
                 price: 15000,
                 status: "ON_SALE",
-                thumbnailUrl: "https://picsum.photos/id/102/150/150", // 임시 이미지 URL
+                thumbnailUrl: "https://picsum.photos/id/102/150/150", 
                 createdAt: "2026-04-13T15:55:00"
               },
               {
@@ -139,54 +160,30 @@ const ProductListScreen = ({ navigation }: Props) => {
                 status: "ON_SALE",
                 thumbnailUrl: "https://picsum.photos/id/106/150/150",
                 createdAt: "2026-04-13T15:40:00"
-              },
-              {
-                postId: 100,
-                title: "원피스 루피 수배서 포스터",
-                price: 10000,
-                status: "ON_SALE",
-                thumbnailUrl: "https://picsum.photos/id/107/150/150",
-                createdAt: "2026-04-13T15:35:00"
-              },
-              {
-                postId: 99,
-                title: "나루토 질풍전 만화책 전권 세트",
-                price: 150000,
-                status: "ON_SALE",
-                thumbnailUrl: "https://picsum.photos/id/108/150/150",
-                createdAt: "2026-04-13T15:30:00"
               }
             ],
             nextCursor: 104,
             hasNext: true
           }
         ];
-
-        // 실제 API 연동 시 아래 주석을 해제하고 위 가상 로직을 지워주세요.
-        // const response = await fetch('http://10.0.2.2:8080/api/post/');
-        // if (!response.ok) {
-        //   throw new Error(`서버 에러: ${response.status}`);
-        // }
-        // const data = await response.json();
         
-        // API 응답 데이터 매핑 (응답이 배열로 오고 그 안의 posts 객체를 순회)
-        const mappedProducts: Product[] = data[0].posts.map((post: any) => ({
+        const mappedProducts: Product[] = fallbackData[0].posts.map((post: any) => ({
           id: post.postId.toString(),
           name: post.title,
           price: post.price,
           imageUrl: post.thumbnailUrl,
         }));
-        
         setProducts(mappedProducts);
-      } catch (e) {
-        console.error(e);
-        setError('상품을 불러오는 데 실패했습니다. 다시 시도해주세요.');
       } finally {
         setLoading(false);
       }
     };
 
     loadProducts();
+
+    return () => {
+      abortController.abort();
+    };
   }, []); // 컴포넌트가 마운트될 때 한 번만 실행됩니다.
 
   // 가격 정렬 상태에 따라 상품 목록을 정렬합니다.

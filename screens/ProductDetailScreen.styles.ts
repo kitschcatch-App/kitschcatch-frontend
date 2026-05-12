@@ -34,7 +34,9 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.gray02,
   },
   infoContainer: {
-    padding: 20,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 5,
   },
   productName: {
     fontSize: 16,
@@ -59,6 +61,42 @@ export const styles = StyleSheet.create({
     backgroundColor: '#DBDBDB',
     alignSelf: 'center',
     marginBottom: 10,
+  },
+  // 메타 정보 스타일
+  metaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 15,
+    marginBottom: 0, // 하단 마진 제거
+  },
+  metaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaIcon: {
+    marginRight: 4,
+  },
+  metaText: {
+    fontSize: 11,
+    fontFamily: typography.M,
+    color: colors.gray01,
+    marginRight: 8,
+  },
+  metaTime: {
+    fontSize: 11,
+    fontFamily: typography.M,
+    color: colors.gray01,
+  },
+  metaTag: {
+    fontSize: 11,
+    fontFamily: typography.M,
+    color: colors.gray01,
+    marginRight: 6,
   },
   // 판매자 정보 스타일
   sellerContainer: {
