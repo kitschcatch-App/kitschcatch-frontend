@@ -39,21 +39,23 @@ export const styles = StyleSheet.create({
     paddingBottom: 5,
   },
   productName: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: typography.SB,
     color: colors.black,
     marginBottom: 10,
   },
   productPrice: {
-    fontSize: 14,
-    fontFamily: typography.M,
+    fontSize: 18,
+    fontFamily: typography.SB,
     color: colors.black,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   productDescription: {
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.black,
+    marginBottom: 15,
+    
   },
   productSeparator: {
     width: '90%',
@@ -166,5 +168,10 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: typography.SB,
     color: colors.black,
+  },
+  divider: {
+    width: '100%',
+    height: 8,
+    backgroundColor: colors.main03,
   },
 });

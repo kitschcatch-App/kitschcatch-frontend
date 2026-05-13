@@ -7,4 +7,5 @@ export const typography = {
   SB: 'Pretendard-SemiBold',
   R: 'Pretendard-Regular',
   B: 'Pretendard-Bold',
+  EB: 'Pretendard-ExtraBold',
 } as const;

@@ -86,7 +86,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           ...prev,
           id: post.postid?.toString() || post.postId?.toString() || prev.id,
           name: post.title || prev.name,
-          price: priceNumber || prev.price,
+          price: priceNumber !== undefined ? priceNumber : prev.price,
           imageUrl: post.imageURL || prev.imageUrl,
           description: post.description || '상세 설명이 없습니다.',
           sellerName: post.sellerId || '알 수 없음',
@@ -101,7 +101,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
         // [테스트용] 백엔드 미연결 시 제공된 명세서 기준 가상 데이터로 폴백
         setProductDetail(prev => ({
           ...prev,
-          description: "질풍전에 나오는 선인 모드 나루토 피규어입니다. 일본 애니메이트에서 구매했습니다.",
+          description: "귀멸의 칼날 피규어 무이치로 판매상태 좋습니다. \n직거래 택배거래 둘 다 가능\n택배는 편의점 반값택배로 보내드려요.",
           sellerName: "졸린코끼리",
           category: "FIGURE",
           condition: "LIKE_NEW",
@@ -195,6 +195,9 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* 1. 상품 이미지 (화면의 약 60%) */}
           <Image source={{ uri: productDetail.imageUrl }} style={styles.productImage} />
+
+          {/* 구분선 */}
+          <View style={styles.divider} />
           
           {/* 2. 상품 정보 영역 */}
           <View style={styles.infoContainer}>

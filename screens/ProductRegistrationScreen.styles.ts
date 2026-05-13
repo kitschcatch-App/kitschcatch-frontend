@@ -67,6 +67,31 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
     color: colors.sub01,
   },
+  imageWrapper: {
+    width: 130,
+    height: 130,
+  },
+  selectedImage: {
+    width: 130,
+    height: 130,
+    borderRadius: 10,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: colors.white,
+    fontSize: 11,
+    fontFamily: typography.M,
+  },
 
   // 상품명 입력
   productNameLayout: {
@@ -78,7 +103,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   descriptionLayout: {
-    paddingBottom: 20, // 하단 여백 추가
+    paddingBottom: 20,
     paddingTop: 20,
   },
   conditionLayout: {
@@ -128,6 +153,22 @@ export const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     backgroundColor: colors.main02,
+  },
+  toastOverlay: {
+    position: 'absolute',
+    bottom: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: colors.gray01,
+    borderRadius: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  toastText: {
+    color: colors.white,
+    fontSize: 14,
+    fontFamily: typography.SB,
   },
   // 상품 등록 버튼
   submitButton: {

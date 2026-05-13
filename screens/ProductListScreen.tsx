@@ -2,7 +2,7 @@
  * 화면: 상품 목록 화면 (ProductListScreen)
  * 역할: 상품 검색, 정렬(최신순, 가격순 등) 필터링, 전체 상품 리스트 출력 및 네비게이션을 담당하는 메인 화면 컴포넌트입니다.
  */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,16 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
-  Modal,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import SearchIcon from '../assets/search.svg';
 import AddIcon from '../assets/registration.svg';
 import BottomNav from '../components/BottomNav';
+import FilterIcon from '../assets/filter.svg';
+import KitschcatchIcon from '../assets/kitschcatch.svg';
+import HeartIcon from '../assets/detail_heart.svg';
+import ChatIcon from '../assets/detail_chat.svg';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import axios from 'axios';
@@ -31,6 +33,8 @@ type Product = {
   name: string;
   price: number;
   imageUrl: string;
+  heartCount?: number;
+  chatCount?: number;
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
@@ -41,52 +45,7 @@ const ProductListScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 드롭다운 상태 관리
-  const [sortType, setSortType] = useState('최신순');
-  const [priceSort, setPriceSort] = useState('가격 낮은 순');
-
-  // --- 모달 상태 관리 ---
-  const [isModalVisible, setModalVisible] = useState(false);
-  const [modalData, setModalData] = useState<{
-    options: string[];
-    currentValue: string;
-    onSelect: (value: string) => void;
-    layout?: { top: number; left: number; width: number; height: number };
-  } | null>(null);
-
-  const sortBtnRef = useRef<View>(null);
-  const priceBtnRef = useRef<View>(null);
   const insets = useSafeAreaInsets();
-
-  const openModal = (
-    ref: React.RefObject<any>,
-    options: string[],
-    currentValue: string,
-    onSelect: (value: string) => void,
-    modalHeight: number
-  ) => {
-    ref.current?.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
-      setModalData({
-        options,
-        currentValue,
-        onSelect,
-        layout: { top: pageY + height - 19, left: pageX, width, height: modalHeight },
-      });
-      setModalVisible(true);
-    });
-  };
-
-  const handleSelectOption = (option: string) => {
-    if (modalData) {
-      modalData.onSelect(option);
-    }
-    setModalVisible(false);
-  };
-
-  const closeModal = () => {
-    setModalVisible(false);
-    setModalData(null);
-  }
 
   useEffect(() => {
     // 화면을 벗어날 때 진행 중인 API 요청을 취소하기 위한 컨트롤러
@@ -109,6 +68,8 @@ const ProductListScreen = ({ navigation }: Props) => {
           name: post.title,
           price: post.price,
           imageUrl: post.thumbnailUrl,
+          heartCount: post.heartCount || 0,
+          chatCount: post.chatCount || 0,
         }));
         
         setProducts(mappedProducts);
@@ -123,40 +84,40 @@ const ProductListScreen = ({ navigation }: Props) => {
             posts: [
               {
                 postId: 105,
-                title: "헌터헌터 클로로 누들스토퍼",
-                price: 650000,
+                title: "반프레스토 제일복권 귀멸의 칼날 파헤쳐진 대장장이 마을 B상 토키토 무이치로 피규어",
+                price: 120000,
                 status: "ON_SALE",
-                thumbnailUrl: "https://picsum.photos/id/101/150/150", 
+                thumbnailUrl: Image.resolveAssetSource(require('../assets/product_img.png')).uri, 
                 createdAt: "2026-04-13T16:00:00"
               },
               {
                 postId: 104,
-                title: "귀멸의 칼날 무한성편 포스터",
-                price: 15000,
+                title: "홀로라이브 제일복권 보탄 + 와타메 + 굿즈",
+                price: 160000,
                 status: "ON_SALE",
                 thumbnailUrl: "https://picsum.photos/id/102/150/150", 
                 createdAt: "2026-04-13T15:55:00"
               },
               {
                 postId: 103,
-                title: "주술회전 고죠 사토루 피규어",
-                price: 85000,
+                title: "상태 최상 미개봉) 스텔라이브 아카네 리제 봄빛데이트 빵떡 쿠션 굿즈",
+                price: 135000,
                 status: "ON_SALE",
                 thumbnailUrl: "https://picsum.photos/id/103/150/150",
                 createdAt: "2026-04-13T15:50:00"
               },
               {
                 postId: 102,
-                title: "에반게리온 초호기 프라모델",
-                price: 120000,
+                title: "주술회전 유타 D상 아크릴스탠드 개봉",
+                price: 11000,
                 status: "ON_SALE",
                 thumbnailUrl: "https://picsum.photos/id/104/150/150",
                 createdAt: "2026-04-13T15:45:00"
               },
               {
                 postId: 101,
-                title: "포켓몬스터 피카츄 인형",
-                price: 25000,
+                title: "에반게리온 초호기 프라모델",
+                price: 120000,
                 status: "ON_SALE",
                 thumbnailUrl: "https://picsum.photos/id/106/150/150",
                 createdAt: "2026-04-13T15:40:00"
@@ -172,6 +133,8 @@ const ProductListScreen = ({ navigation }: Props) => {
           name: post.title,
           price: post.price,
           imageUrl: post.thumbnailUrl,
+          heartCount: post.heartCount || 0,
+          chatCount: post.chatCount || 0,
         }));
         setProducts(mappedProducts);
       } finally {
@@ -186,17 +149,6 @@ const ProductListScreen = ({ navigation }: Props) => {
     };
   }, []); // 컴포넌트가 마운트될 때 한 번만 실행됩니다.
 
-  // 가격 정렬 상태에 따라 상품 목록을 정렬합니다.
-  const sortedProducts = useMemo(() => {
-    const sorted = [...products];
-    if (priceSort === '가격 낮은 순') {
-      sorted.sort((a, b) => a.price - b.price); // 오름차순 (낮은 가격순)
-    } else if (priceSort === '가격 높은 순') {
-      sorted.sort((a, b) => b.price - a.price); // 내림차순 (높은 가격순)
-    }
-    return sorted;
-  }, [products, priceSort]);
-
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
       style={styles.productCard}
@@ -209,61 +161,21 @@ const ProductListScreen = ({ navigation }: Props) => {
     >
       <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
       <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={2}>
+        <Text style={styles.productName} numberOfLines={1}>
           {item.name}
         </Text>
         <Text style={styles.productPrice}>
           {item.price.toLocaleString()}
           원
         </Text>
+      <View style={styles.productMetaContainer}>
+        <HeartIcon width={8} height={8} style={styles.metaIcon} />
+        <Text style={styles.metaText}>12</Text>
+        <ChatIcon width={8} height={8} style={styles.metaIcon} />
+        <Text style={styles.metaText}>3</Text>
+      </View>
       </View>
     </TouchableOpacity>
-  );
-
-  const renderSortModal = () => (
-    <Modal
-      transparent={true}
-      visible={isModalVisible}
-      animationType="fade"
-      onRequestClose={closeModal}
-    >
-      <TouchableWithoutFeedback onPress={closeModal}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <View 
-              style={[
-                styles.modalContent,
-                modalData?.layout && {
-                  position: 'absolute',
-                  top: modalData.layout.top,
-                  left: modalData.layout.left,
-                  width: modalData.layout.width,
-                  height: modalData.layout.height,
-                }
-              ]}
-            >
-              {modalData?.options.map((option) => (
-                <TouchableOpacity
-                  key={option}
-                  style={styles.modalOptionButton}
-                  onPress={() => handleSelectOption(option)}
-                >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      modalData?.currentValue === option &&
-                        styles.activeModalOptionText,
-                    ]}
-                  >
-                    {option}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
   );
 
   return (
@@ -272,6 +184,16 @@ const ProductListScreen = ({ navigation }: Props) => {
         
         {/* 상단 공백 컨테이너 */}
         <View style={[styles.topSpacer, { height: Math.max(insets.top, 68) }]} />
+
+        {/* 상단 로고 영역 */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../assets/logo.png')} 
+            style={{ marginLeft: -8, marginRight: 2, width: 39, height: 40 }} 
+            resizeMode="contain" 
+          />
+          <KitschcatchIcon style={{ marginTop: 8 }} />
+        </View>
 
         {/* 1. 상단 헤더: 백 버튼 & 검색창 */}
         <View style={styles.headerContainer}>
@@ -297,29 +219,14 @@ const ProductListScreen = ({ navigation }: Props) => {
           </TouchableOpacity>
         </View>
 
-        {/* 2. 필터 드롭다운 영역 */}
+        {/* 2. 필터 버튼 영역 */}
         <View style={styles.filterContainer}>
-          <View ref={sortBtnRef}>
-            <TouchableOpacity 
-              style={styles.dropdownButton}
-              onPress={() => openModal(sortBtnRef, ['최신순', '추천순'], sortType, setSortType, 70)}
-            >
-              <Text style={styles.dropdownText}>{sortType} ▼</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View ref={priceBtnRef}>
-            <TouchableOpacity 
-              style={[styles.dropdownButton, styles.dropdownButtonWide]}
-              onPress={() => openModal(priceBtnRef, ['가격 낮은 순', '가격 높은 순'], priceSort, setPriceSort, 70)}
-            >
-              <Text style={styles.dropdownText}>{priceSort} ▼</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.filterButton}>
+            <FilterIcon width={20} height={20} />
+            <Text style={styles.filterText}>필터</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* 회색 가로 구분선 */}
-        <View style={styles.divider} />
 
         {/* 3. 상품 목록 영역 */}
         {loading ? (
@@ -332,17 +239,15 @@ const ProductListScreen = ({ navigation }: Props) => {
           </View>
         ) : (
           <FlatList
-            data={sortedProducts}
+            data={products}
             keyExtractor={(item) => item.id}
             renderItem={renderProductItem}
             showsVerticalScrollIndicator={false}
-            ItemSeparatorComponent={() => <View style={styles.productSeparator} />}
-        
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.productListContent}
           />
         )}
-        
-        {/* 모달 렌더링 */}
-        {renderSortModal()}
       </View>
 
       {/* 플로팅 상품등록 버튼 */}

@@ -2,10 +2,10 @@
  * 화면: 상품 등록 화면 (ProductRegistrationScreen)
  * 역할: 사용자가 판매할 상품의 정보를 입력하고 등록하는 화면입니다.
  */
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Animated } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import ExitIcon from '../assets/exit.svg'; // exit.svg 파일이 assets 폴더에 있다고 가정합니다.
+import ExitIcon from '../assets/exit.svg';
 import CameraIcon from '../assets/camera.svg';
 import { styles } from './ProductRegistrationScreen.styles';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,6 +13,7 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import CommonInput from '../components/CommonInput';
 import CommonDropdown from '../components/CommonDropdown';
 import { productAPI } from '../api/apiClient';
+import { launchImageLibrary, Asset } from 'react-native-image-picker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductRegistration'>;
 
@@ -49,6 +50,8 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   const [isCategoryExpanded, setCategoryExpanded] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('판매상태 선택');
   const [isStatusExpanded, setStatusExpanded] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<Asset[]>([]);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
   const [isPolicyAgreed, setIsPolicyAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -85,6 +88,35 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
     setStatusExpanded(false);
   };
 
+  const showLimitToast = () => {
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1200),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const handlePickImage = async () => {
+    if (selectedImages.length >= 6) {
+      showLimitToast();
+      return;
+    }
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 6 - selectedImages.length,
+      quality: 0.8,
+    });
+    if (result.didCancel || result.errorCode || !result.assets) return;
+    if (result.assets.length > 6 - selectedImages.length) {
+      showLimitToast();
+    }
+    setSelectedImages(prev => [...prev, ...result.assets!].slice(0, 6));
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   // 상품 등록 API 호출 핸들러
   const handleSubmit = async () => {
     // 1. 유효성 검사
@@ -103,9 +135,9 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
 
     setIsLoading(true);
 
-    // 2. API 명세서에 맞춘 데이터 구성 (배열 안의 객체 형태)
+    // 2. 데이터 구성 (배열 안의 객체 형태)
     const requestData = [{
-      userId: "sasukezzang", // TODO: 실제 연동 시 로그인된 유저 ID 사용
+      sellerId: "sasukezzang", // TODO: 실제 연동 시 로그인된 유저 ID 사용
       title: productName,
       description: productDescription,
       price: productPrice, // 명세서 요구대로 콤마가 포함된 문자열 전송
@@ -136,7 +168,6 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
-      {/* 입력 요소가 많아지므로 ScrollView로 감싸서 스크롤이 가능하게 변경하는 것을 권장합니다. */}
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         
         {/* 상단 공백 컨테이너 */}
@@ -162,14 +193,25 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
             style={styles.photoScrollView}
             contentContainerStyle={styles.photoScrollContent}
           >
-            {/* 사진 등록 버튼 (첫 번째 컨테이너) */}
-            <TouchableOpacity style={styles.photoBox}>
+            {/* 사진 등록 버튼: 항상 표시, 6장일 때 탭하면 토스트 */}
+            <TouchableOpacity style={styles.photoBox} onPress={handlePickImage}>
               <CameraIcon width={20} height={18} />
-              <Text style={styles.photoCountText}>0/6</Text>
+              <Text style={styles.photoCountText}>{selectedImages.length}/6</Text>
             </TouchableOpacity>
-            
-            {[1, 2, 3, 4, 5].map((item) => (
-              <View key={item} style={styles.photoBox} />
+
+            {/* 선택된 이미지 썸네일 */}
+            {selectedImages.map((image, index) => (
+              <View key={index} style={styles.imageWrapper}>
+                <Image source={{ uri: image.uri }} style={styles.selectedImage} />
+                <TouchableOpacity style={styles.deleteButton} onPress={() => handleRemoveImage(index)}>
+                  <Text style={styles.deleteButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {/* 빈 슬롯 (남은 자리) */}
+            {Array.from({ length: Math.max(0, 5 - selectedImages.length) }).map((_, index) => (
+              <View key={`empty-${index}`} style={styles.photoBox} />
             ))}
           </ScrollView>
         </View>
@@ -278,6 +320,11 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* 최대 사진 수 초과 토스트 */}
+      <Animated.View style={[styles.toastOverlay, { opacity: toastOpacity }]} pointerEvents="none">
+        <Text style={styles.toastText}>사진은 최대 6장까지 선택 가능합니다.</Text>
+      </Animated.View>
     </SafeAreaView>
   );
 };
