@@ -11,6 +11,7 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
@@ -46,6 +47,17 @@ const ProductListScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFilterVisible, setIsFilterVisible] = useState(false); // 필터 모달 상태
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const CATEGORIES = ['애니', '게임', '굿즈', '코스프레', '서적', '음반 / 영상', '기타'];
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
+    );
+  };
 
   const insets = useSafeAreaInsets();
 
@@ -219,6 +231,31 @@ const ProductListScreen = ({ navigation }: Props) => {
           <TouchableOpacity style={styles.searchIcon}>
             <SearchIcon width={20} height={20} />
           </TouchableOpacity>
+        </View>
+
+        {/* 1-1. 카테고리 선택 영역 (가로 스크롤) */}
+        <View style={styles.categoryContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryScrollContent}
+          >
+            {CATEGORIES.map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={[
+                  styles.categoryButton,
+                  selectedCategories.includes(category) && styles.categoryButtonActive,
+                ]}
+                onPress={() => toggleCategory(category)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.categoryText, selectedCategories.includes(category) && styles.categoryTextActive]}>
+                  {category}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* 2. 필터 버튼 영역 */}

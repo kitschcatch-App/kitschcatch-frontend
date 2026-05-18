@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   backButton: {
     marginBottom: 7,
@@ -52,6 +52,37 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
   },
   searchIcon: {
+  },
+  // 카테고리 필터 스타일
+  categoryContainer: {
+    marginBottom: 10,
+    marginHorizontal: -16, // 화면 양끝까지 스와이프 되도록 부모 여백(padding 16) 상쇄
+  },
+  categoryScrollContent: {
+    gap: 5,
+    paddingHorizontal: 16, // 리스트 시작과 끝에 여백 추가
+  },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 40,
+    borderWidth: 1.5,
+    borderColor: colors.gray04,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryButtonActive: {
+    borderColor: colors.main01,
+    backgroundColor: `${colors.main01}26`, // 15% opacity
+  },
+  categoryText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
+  categoryTextActive: {
+    color: colors.sub02,
   },
   // 필터 스타일
   filterContainer: {
