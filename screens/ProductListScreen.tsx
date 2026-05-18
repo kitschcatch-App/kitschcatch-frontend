@@ -25,6 +25,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import axios from 'axios';
 import { productAPI } from '../api/apiClient';
+import FilterBottomSheet from '../components/FilterBottomSheet';
 
 import { styles } from './ProductListScreen.styles';
 
@@ -44,6 +45,7 @@ const ProductListScreen = ({ navigation }: Props) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFilterVisible, setIsFilterVisible] = useState(false); // 필터 모달 상태
 
   const insets = useSafeAreaInsets();
 
@@ -221,7 +223,10 @@ const ProductListScreen = ({ navigation }: Props) => {
 
         {/* 2. 필터 버튼 영역 */}
         <View style={styles.filterContainer}>
-          <TouchableOpacity style={styles.filterButton}>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setIsFilterVisible(true)}
+          >
             <FilterIcon width={20} height={20} />
             <Text style={styles.filterText}>필터</Text>
           </TouchableOpacity>
@@ -258,6 +263,12 @@ const ProductListScreen = ({ navigation }: Props) => {
         <Text style={styles.floatingButtonText}>상품등록</Text>
         <AddIcon width={22} height={22} />
       </TouchableOpacity>
+
+      {/* 필터 바텀 시트 컴포넌트 */}
+      <FilterBottomSheet 
+        visible={isFilterVisible} 
+        onClose={() => setIsFilterVisible(false)} 
+      />
 
       <BottomNav />
     </SafeAreaView>

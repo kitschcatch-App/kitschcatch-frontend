@@ -58,8 +58,8 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // 애니메이션 값 설정
-  const fadeAnim = useRef(new Animated.Value(0)).current; // 초기 투명도 0 (완전 투명)
-  const slideAnim = useRef(new Animated.Value(150)).current; // 하단에서 150px 아래에서 시작
+  const fadeAnim = useRef(new Animated.Value(0)).current; 
+  const slideAnim = useRef(new Animated.Value(150)).current; 
 
   // 상품 상세 API 호출
   useEffect(() => {
