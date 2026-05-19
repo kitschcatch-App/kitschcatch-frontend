@@ -37,6 +37,12 @@ const CATEGORY_DISPLAY_MAP: Record<string, string> = {
   'FIGURE': '피규어',
 };
 
+const STATUS_DISPLAY_MAP: Record<string, string> = {
+  'ON_SALE': '판매중',
+  'RESERVED': '예약중',
+  'SOLD_OUT': '판매완료',
+};
+
 const ProductDetailScreen = ({ route, navigation }: Props) => {
   const insets = useSafeAreaInsets(); // 기기의 안전 영역(상태바 등) 높이를 가져옵니다.
 
@@ -53,6 +59,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     sellerName: '불러오는 중...',
     category: '',
     condition: '',
+    status: '',
     createdAt: '',
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -92,6 +99,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           sellerName: post.sellerId || '알 수 없음',
           category: post.productCategory || 'ETC',
           condition: post.productCondition || 'USED',
+          status: post.productStatus || post.status || 'ON_SALE',
           createdAt: post.createdAt || new Date().toISOString(),
         }));
       } catch (error: any) {
@@ -105,6 +113,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           sellerName: "졸린코끼리",
           category: "FIGURE",
           condition: "LIKE_NEW",
+          status: "ON_SALE",
           createdAt: "2026-04-13T14:00:00",
         }));
       } finally {
@@ -201,6 +210,9 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           
           {/* 2. 상품 정보 영역 */}
           <View style={styles.infoContainer}>
+            {productDetail.status ? (
+              <Text style={styles.productStatus}>{STATUS_DISPLAY_MAP[productDetail.status] || productDetail.status}</Text>
+            ) : null}
             <Text style={styles.productName}>{productDetail.name}</Text>
             <Text style={styles.productPrice}>
               {Number(productDetail.price).toLocaleString()}원

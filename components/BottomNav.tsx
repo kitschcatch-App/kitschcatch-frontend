@@ -25,7 +25,7 @@ const BottomNav = () => {
         <Text style={styles.navText}>매장지도</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem}>
-        <NavSearchIcon width={20} height={20} />
+        <NavSearchIcon width={18} height={18} />
         <Text style={styles.navText}>상품검색</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProductList')}>
