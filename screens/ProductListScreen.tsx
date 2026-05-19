@@ -213,7 +213,7 @@ const ProductListScreen = ({ navigation }: Props) => {
         <View style={styles.headerContainer}>
           <TouchableOpacity 
             style={styles.backButton} 
-            onPress={() => navigation?.goBack()}
+            onPress={() => navigation.navigate('Login')}
           >
             <BackIcon width={20} height={20} />
           </TouchableOpacity>

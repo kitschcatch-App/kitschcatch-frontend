@@ -11,8 +11,12 @@ import ChatScreen from '../screens/ChatScreen';
 import PaymentScreen from '../screens/PaymentScreen';
 import ProductRegistrationScreen from '../screens/ProductRegistrationScreen';
 import ProductEditScreen from '../screens/ProductEditScreen';
+import SplashScreen from '../screens/SplashScreen';
+import LoginScreen from '../screens/LoginScreen';
 
 export type RootStackParamList = {
+  Splash: undefined;
+  Login: undefined;
   ProductList: undefined;
   ProductRegistration: undefined;
   ProductDetail: {
@@ -50,8 +54,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const RootNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="ProductList" component={ProductListScreen} />
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Payment" component={PaymentScreen} />
