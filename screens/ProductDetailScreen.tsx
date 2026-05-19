@@ -43,6 +43,9 @@ const STATUS_DISPLAY_MAP: Record<string, string> = {
   'SOLD_OUT': '판매완료',
 };
 
+// 인증 시스템 구현 전 임시 현재 유저 ID (TODO: 로그인 연동 후 auth context로 교체)
+const CURRENT_USER_ID = 'sasukezzang';
+
 const ProductDetailScreen = ({ route, navigation }: Props) => {
   const insets = useSafeAreaInsets(); // 기기의 안전 영역(상태바 등) 높이를 가져옵니다.
 
@@ -110,7 +113,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
         setProductDetail(prev => ({
           ...prev,
           description: "귀멸의 칼날 피규어 무이치로 판매상태 좋습니다. \n직거래 택배거래 둘 다 가능\n택배는 편의점 반값택배로 보내드려요.",
-          sellerName: "졸린코끼리",
+          sellerName: "sasukezzang", // 수정하기 버튼 테스트
           category: "FIGURE",
           condition: "LIKE_NEW",
           status: "ON_SALE",
@@ -265,32 +268,53 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
 
       {/* 하단 (아래에서 위로 슬라이드 애니메이션 적용) */}
       <Animated.View style={{ transform: [{ translateY: slideAnim }] }}>
-        {/* 4. 고정된 하단 액션 바 (채팅하기, 결제하기) */}
+        {/* 4. 고정된 하단 액션 바: 판매자면 수정하기, 구매자면 채팅하기 + 결제하기 */}
         <View style={styles.actionBar}>
-          <TouchableOpacity style={styles.wishButton}>
-            <HeartIcon width={24} height={24} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.chatButton} 
-            onPress={() => navigation.navigate('Chat', { 
-                sellerName: productDetail.sellerName,
-                productName: productDetail.name,
-                productImageUrl: productDetail.imageUrl
-            })}
-          >
-            <Text style={styles.chatButtonText}>채팅하기</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.buyButton}
-            onPress={() => navigation.navigate('Payment', {
-                productId: productDetail.id,
-                productName: productDetail.name,
-                productPrice: productDetail.price,
-                productImageUrl: productDetail.imageUrl
-            })}
-          >
-            <Text style={styles.buyButtonText}>결제하기</Text>
-          </TouchableOpacity>
+          {productDetail.sellerName === CURRENT_USER_ID ? (
+            <TouchableOpacity
+              style={styles.buyButton}
+              onPress={() => navigation.navigate('ProductEdit', {
+                postId: productDetail.id,
+                title: productDetail.name,
+                description: productDetail.description,
+                price: productDetail.price,
+                imageURL: productDetail.imageUrl,
+                productCategory: productDetail.category,
+                productCondition: productDetail.condition,
+                productStatus: productDetail.status,
+                sellerId: productDetail.sellerName,
+              })}
+            >
+              <Text style={styles.buyButtonText}>수정하기</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity style={styles.wishButton}>
+                <HeartIcon width={24} height={24} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.chatButton}
+                onPress={() => navigation.navigate('Chat', {
+                  sellerName: productDetail.sellerName,
+                  productName: productDetail.name,
+                  productImageUrl: productDetail.imageUrl,
+                })}
+              >
+                <Text style={styles.chatButtonText}>채팅하기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.buyButton}
+                onPress={() => navigation.navigate('Payment', {
+                  productId: productDetail.id,
+                  productName: productDetail.name,
+                  productPrice: productDetail.price,
+                  productImageUrl: productDetail.imageUrl,
+                })}
+              >
+                <Text style={styles.buyButtonText}>결제하기</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         <BottomNav />

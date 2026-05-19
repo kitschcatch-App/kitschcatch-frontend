@@ -27,6 +27,10 @@ export const productAPI = {
     apiClient.get(`/post/${productId}`, config),
 
   // 상품 등록
-  createPost: (data: any, config?: AxiosRequestConfig) => 
+  createPost: (data: any, config?: AxiosRequestConfig) =>
     apiClient.post('/post', data, config),
+
+  // 상품 수정
+  updatePost: (postId: string | number, data: any, config?: AxiosRequestConfig) =>
+    apiClient.patch(`/post/${postId}`, data, config),
 };

@@ -10,6 +10,7 @@ import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ChatScreen from '../screens/ChatScreen';
 import PaymentScreen from '../screens/PaymentScreen';
 import ProductRegistrationScreen from '../screens/ProductRegistrationScreen';
+import ProductEditScreen from '../screens/ProductEditScreen';
 
 export type RootStackParamList = {
   ProductList: undefined;
@@ -19,6 +20,17 @@ export type RootStackParamList = {
     productName: string;
     productPrice: number;
     productImageUrl: string;
+  };
+  ProductEdit: {
+    postId: string;
+    title: string;
+    description: string;
+    price: number;
+    imageURL: string;
+    productCategory: string;
+    productCondition: string;
+    productStatus: string;
+    sellerId: string;
   };
   Chat: {
     sellerName: string;
@@ -44,6 +56,7 @@ const RootNavigator = () => {
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="ProductRegistration" component={ProductRegistrationScreen} />
+        <Stack.Screen name="ProductEdit" component={ProductEditScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
