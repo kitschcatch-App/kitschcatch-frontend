@@ -28,10 +28,57 @@ export const styles = StyleSheet.create({
     marginBottom: 7,
     marginTop: 7,
   },
+  imageContainer: {
+    position: 'relative',
+  },
   productImage: {
     width: '100%',
     height: height * 0.5, // 화면 세로 길이의 약 60%를 차지
     backgroundColor: colors.gray02,
+  },
+  statusDropdownContainer: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    alignItems: 'flex-end', 
+    zIndex: 20, 
+  },
+  statusButton: {
+    backgroundColor: colors.main01,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusButtonText: {
+    fontSize: 16,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
+  dropdownList: {
+    position: 'absolute',
+    top: '100%',
+    marginTop: 6,
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    paddingVertical: 4,
+    minWidth: 85,
+  },
+  dropdownItem: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  dropdownItemActive: {
+    backgroundColor: colors.main03,
+    borderRadius: 8,
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
   },
   infoContainer: {
     paddingTop: 10,
