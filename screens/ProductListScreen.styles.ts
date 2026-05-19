@@ -13,142 +13,146 @@ export const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   topSpacer: {
     width: '100%',
+  },
+  // 로고 컨테이너
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
   },
   // 헤더 스타일
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   backButton: {
-    marginRight: 1,
-    marginLeft: 1, 
     marginBottom: 7,
     marginTop: 7,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.black,
-    borderRadius: 10,
-    height: 40,
+    borderRadius: 8,
     flex: 1,
-    marginLeft: 8,
+    backgroundColor: colors.gray02,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    marginHorizontal: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: colors.black,
     padding: 0, // 안드로이드 기본 패딩 제거
-    marginLeft: 8,
+    fontFamily: typography.M,
   },
   searchIcon: {
-    padding: 8,
-    marginLeft: 0,
+  },
+  // 카테고리 필터 스타일
+  categoryContainer: {
+    marginBottom: 10,
+    marginHorizontal: -16, // 화면 양끝까지 스와이프 되도록 부모 여백(padding 16) 상쇄
+  },
+  categoryScrollContent: {
+    gap: 5,
+    paddingHorizontal: 16, // 리스트 시작과 끝에 여백 추가
+  },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 40,
+    borderWidth: 1.5,
+    borderColor: colors.gray04,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryButtonActive: {
+    borderColor: colors.main01,
+    backgroundColor: `${colors.main01}26`, // 15% opacity
+  },
+  categoryText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
+  categoryTextActive: {
+    color: colors.sub02,
   },
   // 필터 스타일
   filterContainer: {
     flexDirection: 'row',
     marginBottom: 10,
-    gap: 10,
+    alignItems: 'center',
   },
-  dropdownButton: {
+  filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: colors.main01,
   },
-  dropdownButtonWide: {
-    width: 105,
-  },
-  dropdownText: {
+  filterText: {
     fontSize: 14,
     color: colors.black,
     fontFamily: typography.M,
-    textAlign: 'center',
+    marginLeft: 8,
   },
-  divider: {
-    height: 9,
-    backgroundColor: colors.gray02,
-    marginHorizontal: -20, 
+  productListContent: {
+    paddingBottom: 100, // 플로팅 버튼과 바텀 내비를 가리지 않도록 하단 여백 추가
   },
-  // 모달 스타일
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  modalContent: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  modalOptionButton: {
-    width: '100%',
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalOptionText: {
-    fontSize: 14,
-    fontFamily: typography.M,
-    color: colors.main02,
-  },
-  activeModalOptionText: {
-    fontSize: 14,
-    color: colors.main02,
-    fontFamily: typography.M,
+  row: {
+    justifyContent: 'space-between',
+    gap: 28,
+    marginBottom: 20,
   },
   productCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start', // 안의 요소들을 위쪽 기준으로 정렬합니다.
+    flex: 1,
     backgroundColor: colors.white,
-    paddingVertical: 10,
+    maxWidth: '48%', // 상품이 1개만 남았을 때 전체 너비를 차지하는 것을 방지
   },
   productImage: {
-    width: 120,
-    height: 120,
+    width: '100%',
     aspectRatio: 1, // 정사각형 비율
     backgroundColor: colors.gray02,
+    borderRadius: 8,
   },
   productInfo: {
-    flex: 1,
-    marginLeft: 16,
+    marginTop: 8,
   },
   productName: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.black,
-    fontFamily: typography.SB,
-    marginBottom: 8, 
-    paddingVertical: 10,
+    fontFamily: typography.M,
+    marginBottom: 4, 
   },
   productPrice: {
     fontSize: 14,
     color: colors.black,
-    fontFamily: typography.M,
+    fontFamily: typography.SB,
+    marginBottom: 4,
   },
-  productSeparator: {
-    width: '100%',
-    height: 2,
-    backgroundColor: '#DBDBDB',
-    alignSelf: 'center',
+  productMetaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  metaIcon: {
+    marginLeft: 8,
+    marginRight: 3,
+  },
+  metaText: {
+    fontSize: 11,
+    fontFamily: typography.M,
+    color: colors.gray01,
   },
   // 상품 등록 버튼
   floatingButton: {
     position: 'absolute',
     bottom: 85, // 화면 하단에서의 위치
-    right: 20, // 화면 오른쪽 여백
+    right: 16, // 화면 오른쪽 여백
     display: 'flex',
     flexDirection: 'row',
     padding: 10,

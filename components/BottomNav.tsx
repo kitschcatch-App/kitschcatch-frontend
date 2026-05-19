@@ -7,6 +7,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import NavHomeIcon from '../assets/nav_home.svg';
+import NavMapIcon from '../assets/nav_map.svg';
 import NavSearchIcon from '../assets/nav_search.svg';
 import NavChatIcon from '../assets/nav_chat.svg';
 import NavProfileIcon from '../assets/nav_profile.svg';
@@ -19,20 +20,24 @@ const BottomNav = () => {
 
   return (
     <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 14) }]}>
+      <TouchableOpacity style={styles.navItem}>
+        <NavMapIcon width={20} height={20} />
+        <Text style={styles.navText}>매장지도</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.navItem}>
+        <NavSearchIcon width={18} height={18} />
+        <Text style={styles.navText}>상품검색</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProductList')}>
-        <NavHomeIcon width={24} height={24} />
+        <NavHomeIcon width={20} height={20} />
         <Text style={styles.navText}>홈</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem}>
-        <NavSearchIcon width={24} height={24} />
-        <Text style={styles.navText}>상품검색</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.navItem}>
-        <NavChatIcon width={23} height={23} />
+        <NavChatIcon width={20} height={20} />
         <Text style={styles.navText}>채팅목록</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem}>
-        <NavProfileIcon width={28} height={28} />
+        <NavProfileIcon width={20} height={20} />
         <Text style={styles.navText}>회원정보</Text>
       </TouchableOpacity>
     </View>
