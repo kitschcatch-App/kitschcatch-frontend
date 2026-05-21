@@ -28,7 +28,7 @@ const PaymentScreen = ({ route, navigation }: Props) => {
   // 배송지 변경 바텀 시트 상태 관리
   const [isAddressSheetVisible, setIsAddressSheetVisible] = useState(false);
 
-  const shippingFee = 5000; // 예시 배송비
+  const shippingFee = 5000; 
   const totalPrice = productPrice + shippingFee;
 
   const MEMO_OPTIONS = [
@@ -173,7 +173,15 @@ const PaymentScreen = ({ route, navigation }: Props) => {
             </View>
 
             {/* 5. 결제하기 버튼 */}
-            <TouchableOpacity style={styles.payButton}>
+              <TouchableOpacity 
+                style={styles.payButton} 
+                onPress={() => navigation.navigate('PaymentComplete', {
+                  productName,
+                  productPrice,
+                  totalPrice,
+                  productImageUrl,
+                })}
+              >
               <Text style={styles.payButtonText}>결제하기</Text>
             </TouchableOpacity>
 

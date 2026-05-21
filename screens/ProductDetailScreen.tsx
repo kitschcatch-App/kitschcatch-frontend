@@ -107,10 +107,10 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           createdAt: post.createdAt || new Date().toISOString(),
         }));
       } catch (error: any) {
-        if (axios.isCancel(error)) return; // 사용자가 뒤로가기를 눌러 요청이 취소된 경우 무시
+        if (axios.isCancel(error)) return;
         
         console.error('상품 상세 정보 조회 실패:', error);
-        // [테스트용] 백엔드 미연결 시 제공된 명세서 기준 가상 데이터로 폴백
+        // [테스트용] 
         setProductDetail(prev => ({
           ...prev,
           description: "귀멸의 칼날 피규어 무이치로 판매상태 좋습니다. \n직거래 택배거래 둘 다 가능\n택배는 편의점 반값택배로 보내드려요.",
