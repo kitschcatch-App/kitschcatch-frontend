@@ -3,7 +3,7 @@
  * 역할: 판매자와 1:1 채팅을 진행하는 화면입니다.
  */
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ImageBackground, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import PlusIcon from '../assets/plus.svg';
@@ -11,6 +11,7 @@ import SendIcon from '../assets/send.svg';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { styles } from './ChatScreen.styles';
+import { colors } from '../styles/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
@@ -99,12 +100,12 @@ const ChatScreen = ({ route, navigation }: Props) => {
         {/* 상품 정보 영역 */}
         <View style={styles.productInfoContainer}>
           <Image source={{ uri: productImageUrl }} style={styles.productImage} />
-          <Text style={styles.productName} numberOfLines={2}>{productName}</Text>
+          <Text style={styles.productName} numberOfLines={1}>{productName}</Text>
           {/* 상품 이름이 길면 몇줄까지 표시할건지 */}
         </View>
 
         {/* 채팅 내용 영역 */}
-        <ImageBackground source={require('../assets/chat.png')} style={styles.chatBackground}>
+        <View style={[styles.chatBackground, { backgroundColor: colors.main03 }]}>
           <ScrollView 
             style={styles.chatScrollView}
             ref={scrollViewRef}
@@ -153,7 +154,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
               );
             })}
           </ScrollView>
-        </ImageBackground>
+        </View>
 
         {/* 하단 고정 채팅 입력 바 */}
         <View style={styles.inputContainer}>

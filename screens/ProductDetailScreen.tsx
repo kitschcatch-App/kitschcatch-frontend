@@ -114,7 +114,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
         setProductDetail(prev => ({
           ...prev,
           description: "귀멸의 칼날 피규어 무이치로 판매상태 좋습니다. \n직거래 택배거래 둘 다 가능\n택배는 편의점 반값택배로 보내드려요.",
-          sellerName: "sasukezzang", // 수정하기 버튼 테스트
+          sellerName: "졸린코끼리", // 수정하기 버튼 테스트
           category: "FIGURE",
           condition: "LIKE_NEW",
           status: "ON_SALE",
