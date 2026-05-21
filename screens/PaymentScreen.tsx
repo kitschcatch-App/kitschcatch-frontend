@@ -10,6 +10,7 @@ import { styles } from './PaymentScreen.styles';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { colors } from '../styles/colors';
+import AddressBottomSheet from '../components/AddressBottomSheet';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
@@ -23,6 +24,9 @@ const PaymentScreen = ({ route, navigation }: Props) => {
   
   // 결제 방법 상태 관리
   const [selectedPayment, setSelectedPayment] = useState('신용카드');
+  
+  // 배송지 변경 바텀 시트 상태 관리
+  const [isAddressSheetVisible, setIsAddressSheetVisible] = useState(false);
 
   const shippingFee = 5000; // 예시 배송비
   const totalPrice = productPrice + shippingFee;
@@ -72,7 +76,7 @@ const PaymentScreen = ({ route, navigation }: Props) => {
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionTitle}>배송지</Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => setIsAddressSheetVisible(true)}>
                   <Text style={styles.changeAddressText}>배송지 변경</Text>
                 </TouchableOpacity>
               </View>
@@ -175,6 +179,12 @@ const PaymentScreen = ({ route, navigation }: Props) => {
 
           </ScrollView>
         </View>
+
+        {/* 배송지 변경 바텀 시트 */}
+        <AddressBottomSheet 
+          visible={isAddressSheetVisible} 
+          onClose={() => setIsAddressSheetVisible(false)} 
+        />
 
       </View>
     </SafeAreaView>
