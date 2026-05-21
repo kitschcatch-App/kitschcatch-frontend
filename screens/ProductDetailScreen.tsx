@@ -66,6 +66,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     createdAt: '',
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isStatusExpanded, setStatusExpanded] = useState(false);
 
   // 애니메이션 값 설정
   const fadeAnim = useRef(new Animated.Value(0)).current; 
@@ -200,20 +201,69 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     return `${diffYears}년 전`;
   };
 
+  const isSeller = productDetail.sellerName === CURRENT_USER_ID;
+
   return (
     <View style={styles.container}>
       {/* 상단 (페이드 인 애니메이션 적용) */}
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* 1. 상품 이미지 (화면의 약 60%) */}
-          <Image source={{ uri: productDetail.imageUrl }} style={styles.productImage} />
+          {/* 1. 상품 이미지 및 상태 드롭다운 (화면의 약 60%) */}
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: productDetail.imageUrl }} style={styles.productImage} />
+
+            {/* 판매자용 상태 드롭다운 영역 (이미지 우측 하단) */}
+            {isSeller && (
+              <View style={styles.statusDropdownContainer}>
+                <TouchableOpacity 
+                  style={styles.statusButton} 
+                  onPress={() => setStatusExpanded(!isStatusExpanded)}
+                >
+                  <Text style={styles.statusButtonText}>{STATUS_DISPLAY_MAP[productDetail.status] || productDetail.status} ▼</Text>
+                </TouchableOpacity>
+                
+                {isStatusExpanded && (
+                  <View style={styles.dropdownList}>
+                    {['판매중', '예약중', '판매완료'].map((option) => (
+                      <TouchableOpacity
+                        key={option}
+                        style={styles.dropdownItem}
+                        onPress={async () => {
+                          const key = Object.keys(STATUS_DISPLAY_MAP).find(k => STATUS_DISPLAY_MAP[k] === option) || option;
+                          try {
+                            await productAPI.updatePost(productDetail.id, {
+                              postid: productDetail.id,
+                              sellerId: productDetail.sellerName,
+                              title: productDetail.name,
+                              description: productDetail.description,
+                              price: String(productDetail.price),
+                              imageURL: productDetail.imageUrl,
+                              productCategory: productDetail.category,
+                              productCondition: productDetail.condition,
+                              productStatus: key,
+                            });
+                          } catch (error) {
+                            console.error('상태 업데이트 실패:', error);
+                          }
+                          setProductDetail(prev => ({ ...prev, status: key }));
+                          setStatusExpanded(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownItemText}>{option}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
 
           {/* 구분선 */}
           <View style={styles.divider} />
           
           {/* 2. 상품 정보 영역 */}
           <View style={styles.infoContainer}>
-            {productDetail.status ? (
+            {!isSeller && productDetail.status ? (
               <Text style={styles.productStatus}>{STATUS_DISPLAY_MAP[productDetail.status] || productDetail.status}</Text>
             ) : null}
             <Text style={styles.productName}>{productDetail.name}</Text>

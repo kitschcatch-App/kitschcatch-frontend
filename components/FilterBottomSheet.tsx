@@ -7,12 +7,22 @@ import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, Animated
 import { styles } from './FilterBottomSheet.styles';
 import { colors } from '../styles/colors';
 
+export type FilterState = {
+  sort: string;
+  isOnSaleOnly: boolean;
+  minPrice: string;
+  maxPrice: string;
+  conditions: string[];
+};
+
 interface Props {
   visible: boolean;
   onClose: () => void;
+  filterState: FilterState;
+  onApply: (filters: FilterState) => void;
 }
 
-const FilterBottomSheet = ({ visible, onClose }: Props) => {
+const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) => {
   const sortOptions = ['추천순', '최신순', '가격 높은 순', '가격 낮은 순'];
   const [selectedSort, setSelectedSort] = useState('추천순');
   const [isOnSaleOnly, setIsOnSaleOnly] = useState(false);
@@ -48,6 +58,17 @@ const FilterBottomSheet = ({ visible, onClose }: Props) => {
       useNativeDriver: false,
     }).start();
   }, [isOnSaleOnly, toggleAnim]);
+
+  useEffect(() => {
+    if (visible) {
+      setSelectedSort(filterState.sort);
+      setIsOnSaleOnly(filterState.isOnSaleOnly);
+      setMinPrice(filterState.minPrice);
+      setMaxPrice(filterState.maxPrice);
+      setSelectedConditions(filterState.conditions);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   // 배경색 부드럽게 전환
   const toggleTrackColor = toggleAnim.interpolate({
@@ -170,7 +191,14 @@ const FilterBottomSheet = ({ visible, onClose }: Props) => {
               </View>
 
               {/* 선택완료 버튼 */}
-              <TouchableOpacity style={styles.submitButton} onPress={onClose} activeOpacity={0.8}>
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={() => {
+                  onApply({ sort: selectedSort, isOnSaleOnly, minPrice, maxPrice, conditions: selectedConditions });
+                  onClose();
+                }}
+                activeOpacity={0.8}
+              >
                 <Text style={styles.submitButtonText}>선택완료</Text>
               </TouchableOpacity>
             </View>

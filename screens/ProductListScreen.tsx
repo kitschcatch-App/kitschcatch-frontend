@@ -2,7 +2,7 @@
  * 화면: 상품 목록 화면 (ProductListScreen)
  * 역할: 상품 검색, 정렬(최신순, 가격순 등) 필터링, 전체 상품 리스트 출력 및 네비게이션을 담당하는 메인 화면 컴포넌트입니다.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -26,7 +26,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import axios from 'axios';
 import { productAPI } from '../api/apiClient';
-import FilterBottomSheet from '../components/FilterBottomSheet';
+import FilterBottomSheet, { FilterState } from '../components/FilterBottomSheet';
 
 import { styles } from './ProductListScreen.styles';
 
@@ -37,6 +37,10 @@ type Product = {
   imageUrl: string;
   heartCount?: number;
   chatCount?: number;
+  status?: string;
+  category?: string;
+  condition?: string;
+  createdAt?: string;
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
@@ -48,6 +52,13 @@ const ProductListScreen = ({ navigation }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [isFilterVisible, setIsFilterVisible] = useState(false); // 필터 모달 상태
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [filterState, setFilterState] = useState<FilterState>({
+    sort: '추천순',
+    isOnSaleOnly: false,
+    minPrice: '',
+    maxPrice: '',
+    conditions: [],
+  });
 
   const CATEGORIES = ['애니', '게임', '굿즈', '코스프레', '서적', '음반 / 영상', '기타'];
 
@@ -84,6 +95,10 @@ const ProductListScreen = ({ navigation }: Props) => {
           imageUrl: post.thumbnailUrl,
           heartCount: post.heartCount || 0,
           chatCount: post.chatCount || 0,
+          status: post.status,
+          category: post.category,
+          condition: post.condition,
+          createdAt: post.createdAt,
         }));
         
         setProducts(mappedProducts);
@@ -101,7 +116,9 @@ const ProductListScreen = ({ navigation }: Props) => {
                 title: "반프레스토 제일복권 귀멸의 칼날 파헤쳐진 대장장이 마을 B상 토키토 무이치로 피규어",
                 price: 120000,
                 status: "ON_SALE",
-                thumbnailUrl: Image.resolveAssetSource(require('../assets/product_img.png')).uri, 
+                category: "애니",
+                condition: "새 상품",
+                thumbnailUrl: Image.resolveAssetSource(require('../assets/product_img.png')).uri,
                 createdAt: "2026-04-13T16:00:00"
               },
               {
@@ -109,7 +126,9 @@ const ProductListScreen = ({ navigation }: Props) => {
                 title: "홀로라이브 제일복권 보탄 + 와타메 + 굿즈",
                 price: 160000,
                 status: "ON_SALE",
-                thumbnailUrl: "https://picsum.photos/id/102/150/150", 
+                category: "굿즈",
+                condition: "사용감 적음",
+                thumbnailUrl: "https://picsum.photos/id/102/150/150",
                 createdAt: "2026-04-13T15:55:00"
               },
               {
@@ -117,6 +136,8 @@ const ProductListScreen = ({ navigation }: Props) => {
                 title: "상태 최상 미개봉) 스텔라이브 아카네 리제 봄빛데이트 빵떡 쿠션 굿즈",
                 price: 135000,
                 status: "ON_SALE",
+                category: "굿즈",
+                condition: "새 상품",
                 thumbnailUrl: "https://picsum.photos/id/103/150/150",
                 createdAt: "2026-04-13T15:50:00"
               },
@@ -125,6 +146,8 @@ const ProductListScreen = ({ navigation }: Props) => {
                 title: "주술회전 유타 D상 아크릴스탠드 개봉",
                 price: 11000,
                 status: "ON_SALE",
+                category: "애니",
+                condition: "사용감 있음",
                 thumbnailUrl: "https://picsum.photos/id/104/150/150",
                 createdAt: "2026-04-13T15:45:00"
               },
@@ -133,6 +156,8 @@ const ProductListScreen = ({ navigation }: Props) => {
                 title: "에반게리온 초호기 프라모델",
                 price: 120000,
                 status: "ON_SALE",
+                category: "애니",
+                condition: "사용감 적음",
                 thumbnailUrl: "https://picsum.photos/id/106/150/150",
                 createdAt: "2026-04-13T15:40:00"
               }
@@ -149,6 +174,10 @@ const ProductListScreen = ({ navigation }: Props) => {
           imageUrl: post.thumbnailUrl,
           heartCount: post.heartCount || 0,
           chatCount: post.chatCount || 0,
+          status: post.status,
+          category: post.category,
+          condition: post.condition,
+          createdAt: post.createdAt,
         }));
         setProducts(mappedProducts);
       } finally {
@@ -162,6 +191,47 @@ const ProductListScreen = ({ navigation }: Props) => {
       abortController.abort();
     };
   }, []); // 컴포넌트가 마운트될 때 한 번만 실행됩니다.
+
+  const filteredProducts = useMemo(() => {
+    let result = [...products];
+
+    if (filterState.isOnSaleOnly) {
+      result = result.filter((p) => p.status === 'ON_SALE');
+    }
+
+    if (selectedCategories.length > 0) {
+      result = result.filter(
+        (p) => p.category && selectedCategories.includes(p.category)
+      );
+    }
+
+    const min = filterState.minPrice ? parseInt(filterState.minPrice.replace(/,/g, ''), 10) : null;
+    const max = filterState.maxPrice ? parseInt(filterState.maxPrice.replace(/,/g, ''), 10) : null;
+    if (min !== null) result = result.filter((p) => p.price >= min);
+    if (max !== null) result = result.filter((p) => p.price <= max);
+
+    if (filterState.conditions.length > 0) {
+      result = result.filter(
+        (p) => !p.condition || filterState.conditions.includes(p.condition)
+      );
+    }
+
+    switch (filterState.sort) {
+      case '최신순':
+        result.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+        break;
+      case '가격 높은 순':
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case '가격 낮은 순':
+        result.sort((a, b) => a.price - b.price);
+        break;
+      default:
+        break;
+    }
+
+    return result;
+  }, [products, filterState, selectedCategories]);
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
@@ -213,7 +283,7 @@ const ProductListScreen = ({ navigation }: Props) => {
         <View style={styles.headerContainer}>
           <TouchableOpacity 
             style={styles.backButton} 
-            onPress={() => navigation?.goBack()}
+            onPress={() => navigation.navigate('Login')}
           >
             <BackIcon width={20} height={20} />
           </TouchableOpacity>
@@ -281,7 +351,7 @@ const ProductListScreen = ({ navigation }: Props) => {
           </View>
         ) : (
           <FlatList
-            data={products}
+            data={filteredProducts}
             keyExtractor={(item) => item.id}
             renderItem={renderProductItem}
             showsVerticalScrollIndicator={false}
@@ -302,9 +372,11 @@ const ProductListScreen = ({ navigation }: Props) => {
       </TouchableOpacity>
 
       {/* 필터 바텀 시트 컴포넌트 */}
-      <FilterBottomSheet 
-        visible={isFilterVisible} 
-        onClose={() => setIsFilterVisible(false)} 
+      <FilterBottomSheet
+        visible={isFilterVisible}
+        onClose={() => setIsFilterVisible(false)}
+        filterState={filterState}
+        onApply={(filters) => setFilterState(filters)}
       />
 
       <BottomNav />
