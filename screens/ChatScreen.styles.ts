@@ -130,6 +130,16 @@ export const styles = StyleSheet.create({
     color: colors.gray01,
     marginBottom: 4,
   },
+  imageMessageBubble: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 15,
+  },
   tailIconMe: {
     position: 'absolute',
     bottom: -2,
@@ -161,15 +171,18 @@ export const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    // paddingHorizontal: 5,
     paddingVertical: 10,
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.gray02,
     marginBottom: 14,
   },
-  iconButton: {
-    padding: 8,
+  plusButton: {
+    marginLeft: 8,
+  },
+  sendButton: {
+    marginRight: 8,
   },
   textInput: {
     flex: 1,
@@ -181,5 +194,26 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.black,
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)', // 어두운 반투명 배경
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 15,
+  },
+  modalCloseText: {
+    color: colors.white,
+    fontSize: 28,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
   },
 });
