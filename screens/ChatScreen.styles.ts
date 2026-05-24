@@ -130,6 +130,16 @@ export const styles = StyleSheet.create({
     color: colors.gray01,
     marginBottom: 4,
   },
+  imageMessageBubble: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 15,
+  },
   tailIconMe: {
     position: 'absolute',
     bottom: -2,
@@ -161,15 +171,18 @@ export const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    // paddingHorizontal: 5,
     paddingVertical: 10,
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.gray02,
     marginBottom: 14,
   },
-  iconButton: {
-    padding: 8,
+  plusButton: {
+    marginLeft: 8,
+  },
+  sendButton: {
+    marginRight: 8,
   },
   textInput: {
     flex: 1,

@@ -12,6 +12,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { styles } from './ChatScreen.styles';
 import { colors } from '../styles/colors';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
@@ -20,29 +21,15 @@ const ChatScreen = ({ route, navigation }: Props) => {
 
   // 상태 관리: 입력 텍스트와 메시지 리스트
   const [inputText, setInputText] = useState('');
-  const [messages, setMessages] = useState<{ id: string; text: string; time: string; sender: 'me' | 'them' }[]>([]);
+  const [messages, setMessages] = useState<{ id: string; text?: string; imageUrl?: string; time: string; sender: 'me' | 'them' }[]>([]);
 
   // 스크롤 뷰 참조 (새 메시지 전송 시 자동 스크롤을 위해 사용)
   const scrollViewRef = useRef<ScrollView>(null);
   const hasReplied = useRef(false); // 상대방이 이미 답장을 했는지 여부 추적
   const insets = useSafeAreaInsets(); // 상단 안전 영역 크기 가져오기
 
-  // 메시지 전송 핸들러
-  const handleSendMessage = () => {
-    if (inputText.trim().length === 0) return;
-
-    //   제안 사항
-    const newMessage = {
-      id: Date.now().toString(),
-      text: inputText.trim(),
-      time: getKSTTimeString(),
-      sender: 'me' as const,
-    };
-
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    setInputText(''); // 전송 후 입력창 초기화
-
-    // 상대방 메시지 임시 데이터
+  // 상대방 답장 시뮬레이션
+  const simulateReply = () => {
     if (!hasReplied.current) {
       hasReplied.current = true;
       setTimeout(() => {
@@ -55,6 +42,48 @@ const ChatScreen = ({ route, navigation }: Props) => {
         setMessages((prevMessages) => [...prevMessages, replyMessage]);
       }, 1000); // 1초 뒤에 답장 시뮬레이션
     }
+  };
+
+  // 메시지 전송 핸들러
+  const handleSendMessage = () => {
+    if (inputText.trim().length === 0) return;
+
+    const newMessage = {
+      id: Date.now().toString(),
+      text: inputText.trim(),
+      time: getKSTTimeString(),
+      sender: 'me' as const,
+    };
+
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    setInputText(''); // 전송 후 입력창 초기화
+
+    simulateReply();
+  };
+
+  // 사진 선택 핸들러
+  const handlePickImage = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1, // 한 번에 보낼 이미지 수
+      quality: 0.8,
+    });
+
+    if (result.didCancel || result.errorCode || !result.assets || result.assets.length === 0) {
+      return;
+    }
+
+    const imageUri = result.assets[0].uri;
+
+    const newMessage = {
+      id: Date.now().toString(),
+      imageUrl: imageUri, // 이미지 URI를 추가
+      time: getKSTTimeString(),
+      sender: 'me' as const,
+    };
+
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    simulateReply();
   };
 
   // KST(한국 표준시) 기준 오늘 날짜 문자열 생성 함수
@@ -127,12 +156,16 @@ const ChatScreen = ({ route, navigation }: Props) => {
               const nextMessage = arr[index + 1];
               const showTime = !nextMessage || nextMessage.time !== msg.time || nextMessage.sender !== msg.sender;
 
+              // 이미지 메시지일 경우 적용할 특수 스타일
+              const isImage = !!msg.imageUrl;
+              const bubbleStyle = isImage ? styles.imageMessageBubble : {};
+
               if (msg.sender === 'them') {
                 return (
                   <View key={msg.id} style={styles.messageRowThem}>
-                    <View style={styles.messageBubbleThem}>
-                      <Text style={styles.messageTextMe}>{msg.text}</Text>
-                      <View style={styles.tailIconThem} />
+                    <View style={[styles.messageBubbleThem, bubbleStyle]}>
+                      {isImage ? <Image source={{ uri: msg.imageUrl }} style={styles.messageImage} /> : <Text style={styles.messageTextMe}>{msg.text}</Text>}
+                      {!isImage && <View style={styles.tailIconThem} />}
                     </View>
                     <Text style={[styles.messageTime, { opacity: showTime ? 1 : 0, marginLeft: 6 }]}>
                       {msg.time}
@@ -146,9 +179,9 @@ const ChatScreen = ({ route, navigation }: Props) => {
                   <Text style={[styles.messageTime, { opacity: showTime ? 1 : 0 }]}>
                     {msg.time}
                   </Text>
-                  <View style={styles.messageBubbleMe}>
-                    <Text style={styles.messageTextMe}>{msg.text}</Text>
-                    <View style={styles.tailIconMe} />
+                  <View style={[styles.messageBubbleMe, bubbleStyle]}>
+                    {isImage ? <Image source={{ uri: msg.imageUrl }} style={styles.messageImage} /> : <Text style={styles.messageTextMe}>{msg.text}</Text>}
+                    {!isImage && <View style={styles.tailIconMe} />}
                   </View>
                 </View>
               );
@@ -158,8 +191,8 @@ const ChatScreen = ({ route, navigation }: Props) => {
 
         {/* 하단 고정 채팅 입력 바 */}
         <View style={styles.inputContainer}>
-          <TouchableOpacity style={styles.iconButton}>
-            <PlusIcon width={24} height={24} />
+          <TouchableOpacity style={styles.plusButton} onPress={handlePickImage}>
+            <PlusIcon width={28} height={28} />
           </TouchableOpacity>
           <TextInput 
             style={styles.textInput}
@@ -169,7 +202,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
             multiline
             blurOnSubmit={false}
           />
-          <TouchableOpacity style={styles.iconButton} onPress={handleSendMessage}>
+          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
             <SendIcon width={24} height={24} />
           </TouchableOpacity>
         </View>
