@@ -27,5 +27,17 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+
+      <!-- 카카오 로그인 완료 후 앱으로 돌아오기 위한 커스텀 탭 설정 -->
+      <activity 
+        android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+        android:exported="true">
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:host="oauth" android:scheme="kakao2472e15347fc541648612cf605476e86" />
+        </intent-filter>
+      </activity>
     </application>
 </manifest>
