@@ -7,16 +7,40 @@ import { styles } from './LoginScreen.styles';
 import KitschcatchIcon from '../assets/kitschcatch.svg';
 import KakaoIcon from '../assets/kakao.svg';
 import Svg, { Ellipse, Defs, RadialGradient, Stop } from 'react-native-svg';
+import { login, getProfile as getKakaoProfile } from '@react-native-seoul/kakao-login';
+import { authAPI } from '../api/apiClient';
 
 const { width } = Dimensions.get('window');
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 const LoginScreen = ({ navigation }: Props) => {
-  const handleKakaoLogin = () => {
-    // TODO: 실제 카카오 로그인 API 연동
-    // 임시로 로그인 성공 시 메인 화면(상품 목록)으로 이동하도록 구현
-    navigation.replace('ProductList');
+  const handleKakaoLogin = async () => {
+    try {
+      // 1. 카카오 로그인 수행 및 토큰 발급
+      const token = await login();
+      console.log('카카오 로그인 토큰:', token);
+      
+      // 2. 백엔드로 카카오 액세스 토큰 전송 (백엔드 API가 준비되면 주석 해제하여 사용하세요)
+      /*
+      const response = await authAPI.loginWithKakao(token.accessToken);
+      console.log('백엔드 로그인 성공:', response.data);
+      
+      // 3. 백엔드에서 받은 앱 자체 토큰(JWT)을 기기에 저장 (나중에 AsyncStorage 설치 후 사용)
+      // await AsyncStorage.setItem('userToken', response.data.token);
+      */
+
+      // 4. 모든 처리가 완료되면 메인 화면으로 이동
+      navigation.replace('ProductList');
+    } catch (err: any) {
+      if (err.message && err.message.includes('user cancelled')) {
+        console.log('사용자가 카카오 로그인을 취소했습니다.');
+        // 사용자가 취소한 경우 별도 처리 없이 조용히 넘어갑니다.
+      } else {
+        console.error('카카오 로그인 에러:', err);
+        // TODO: 실제 에러 발생 시 사용자에게 알림(Alert 등) 띄우기
+      }
+    }
   };
 
   return (

@@ -16,6 +16,13 @@ export const apiClient = axios.create({
   },
 });
 
+// 인증(로그인/회원가입) 관련 API
+export const authAPI = {
+  // 백엔드에 카카오 액세스 토큰을 보내서 로그인/회원가입 요청
+  loginWithKakao: (kakaoAccessToken: string) =>
+    apiClient.post('/auth/kakao', { accessToken: kakaoAccessToken }),
+};
+
 // 도메인별 API 함수 모듈화 (예: 상품 관련)
 export const productAPI = {
   // 상품 목록 조회
