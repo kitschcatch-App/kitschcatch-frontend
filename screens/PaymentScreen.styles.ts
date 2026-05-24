@@ -65,6 +65,11 @@ export const styles = StyleSheet.create({
     color: colors.black,
     marginLeft: 10,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   sectionContentRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -81,20 +86,24 @@ export const styles = StyleSheet.create({
     color: colors.black,
     marginLeft: 10,
   },
+  infoName: {
+    fontSize: 14,
+    fontFamily: typography.SB,
+    color: colors.black,
+    marginLeft: 10,
+  },
+  infoTel: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.gray01,
+    marginLeft: 10,
+  },
   addressText: {
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.black,
     marginLeft: 10,
     marginRight: 40,
-  },
-  addressMemo: {
-    fontSize: 14,
-    fontFamily: typography.M,
-    color: colors.black,
-    marginLeft: 10,
-    marginBottom: 5,
-    marginTop: 15,
   },
   memoDropdownButton: {
     flexDirection: 'row',
@@ -108,6 +117,7 @@ export const styles = StyleSheet.create({
     marginLeft: 10,
     marginRight: 10,
     marginBottom: 10,
+    marginTop: 10,
   },
   memoDropdownText: {
     fontSize: 12,
@@ -119,24 +129,41 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
     color: colors.main02,
   },
-  editButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 10,
+  memoDropdownList: {
     borderWidth: 0.7,
     borderColor: colors.gray01,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginLeft: 10,
     marginRight: 10,
+    backgroundColor: colors.white,
   },
-  editButtonText: {
+  memoDropdownOption: {
+    paddingVertical: 6,
+    justifyContent: 'center',
+  },
+  memoDropdownOptionText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.gray01,
+  },
+  activeMemoOptionText: {
+    color: colors.main02,
+    fontFamily: typography.M,
+  },
+  changeAddressText: {
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.gray01,
+    marginRight: 10,
   },
   payButton: {
     backgroundColor: colors.main01,
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
+    marginTop: 10,
   },
   payButtonText: {
     color: colors.black,
@@ -144,23 +171,38 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
   },
   productInfoContainer: {
+    backgroundColor: colors.white,
+    paddingHorizontal: 15,
+    paddingVertical: 20,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  productInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    marginTop: 15,
+    marginLeft: 10,
   },
   productImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.gray02,
+    width: 66,
+    height: 66,
+    borderRadius: 8,
+  },
+  productDetails: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: 'center',
+    gap: 5,
   },
   productName: {
-    marginLeft: 10,
-    fontSize: 18,
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.gray01,
+  },
+  productPrice: {
+    fontSize: 16,
     fontFamily: typography.SB,
     color: colors.black,
-    flex: 1,
   },
   paymentMethodContainer: {
     marginTop: 20,
@@ -177,10 +219,10 @@ export const styles = StyleSheet.create({
     gap: 44,
   },
   paymentMethodButton: {
-    width: 82,
+    width: 77,
     height: 44,
     paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
@@ -193,14 +235,17 @@ export const styles = StyleSheet.create({
     borderColor: colors.main01,
   },
   paymentMethodText: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: typography.M,
+    color: colors.gray01,
+  },
+  paymentMethodTextActive: {
     color: colors.black,
   },
   // 최종 결제 금액
   paymentDetailsContainer: {
-    marginTop: 20,
-    gap: 15,
+    marginTop: 15,
+    gap: 10,
     paddingHorizontal: 10,
   },
   paymentDetailRow: {
@@ -220,7 +265,7 @@ export const styles = StyleSheet.create({
   },
   paymentDivider: {
     height: 1,
-    backgroundColor: colors.gray02,
+    backgroundColor: colors.gray04,
     marginVertical: 10,
     marginHorizontal: 10,
   },
@@ -232,39 +277,7 @@ export const styles = StyleSheet.create({
   },
   totalPaymentLabel: {
     fontSize: 20,
-    fontFamily: typography.B,
+    fontFamily: typography.SB,
     color: colors.main02,
-  },
-  totalPaymentValue: {
-    fontSize: 20,
-    fontFamily: typography.B,
-    color: colors.main02,
-  },
-  // 모달 스타일
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  modalContent: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderWidth: 0.7,
-    borderColor: colors.gray01,
-  },
-  modalOptionButton: {
-    paddingVertical: 3,
-    justifyContent: 'center',
-  },
-  modalOptionText: {
-    fontSize: 12,
-    fontFamily: typography.M,
-    color: colors.gray01,
-  },
-//   제안 사항
-  activeModalOptionText: {
-    color: colors.main02,
-    fontFamily: typography.M,
   },
 });

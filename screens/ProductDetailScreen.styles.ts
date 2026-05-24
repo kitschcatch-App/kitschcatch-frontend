@@ -121,7 +121,7 @@ export const styles = StyleSheet.create({
   productSeparator: {
     width: '90%',
     height: 2,
-    backgroundColor: '#DBDBDB',
+    backgroundColor: colors.gray04,
     alignSelf: 'center',
     marginBottom: 10,
   },

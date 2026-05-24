@@ -13,6 +13,7 @@ import ProductRegistrationScreen from '../screens/ProductRegistrationScreen';
 import ProductEditScreen from '../screens/ProductEditScreen';
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
+import PaymentCompleteScreen from '../screens/PaymentCompleteScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -47,6 +48,12 @@ export type RootStackParamList = {
     productPrice: number;
     productImageUrl: string;
   };
+  PaymentComplete: {
+    productName: string;
+    productPrice: number;
+    totalPrice: number;
+    productImageUrl: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -63,6 +70,7 @@ const RootNavigator = () => {
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="ProductRegistration" component={ProductRegistrationScreen} />
         <Stack.Screen name="ProductEdit" component={ProductEditScreen} />
+        <Stack.Screen name="PaymentComplete" component={PaymentCompleteScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
