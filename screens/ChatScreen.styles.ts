@@ -195,4 +195,25 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
     color: colors.black,
   },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)', // 어두운 반투명 배경
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 15,
+  },
+  modalCloseText: {
+    color: colors.white,
+    fontSize: 28,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+  },
 });

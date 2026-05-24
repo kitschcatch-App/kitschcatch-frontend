@@ -3,7 +3,7 @@
  * 역할: 판매자와 1:1 채팅을 진행하는 화면입니다.
  */
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import PlusIcon from '../assets/plus.svg';
@@ -22,6 +22,8 @@ const ChatScreen = ({ route, navigation }: Props) => {
   // 상태 관리: 입력 텍스트와 메시지 리스트
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<{ id: string; text?: string; imageUrl?: string; time: string; sender: 'me' | 'them' }[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // 스크롤 뷰 참조 (새 메시지 전송 시 자동 스크롤을 위해 사용)
   const scrollViewRef = useRef<ScrollView>(null);
@@ -164,7 +166,13 @@ const ChatScreen = ({ route, navigation }: Props) => {
                 return (
                   <View key={msg.id} style={styles.messageRowThem}>
                     <View style={[styles.messageBubbleThem, bubbleStyle]}>
-                      {isImage ? <Image source={{ uri: msg.imageUrl }} style={styles.messageImage} /> : <Text style={styles.messageTextMe}>{msg.text}</Text>}
+                      {isImage ? (
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}>
+                          <Image source={{ uri: msg.imageUrl }} style={styles.messageImage} />
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.messageTextMe}>{msg.text}</Text>
+                      )}
                       {!isImage && <View style={styles.tailIconThem} />}
                     </View>
                     <Text style={[styles.messageTime, { opacity: showTime ? 1 : 0, marginLeft: 6 }]}>
@@ -180,7 +188,13 @@ const ChatScreen = ({ route, navigation }: Props) => {
                     {msg.time}
                   </Text>
                   <View style={[styles.messageBubbleMe, bubbleStyle]}>
-                    {isImage ? <Image source={{ uri: msg.imageUrl }} style={styles.messageImage} /> : <Text style={styles.messageTextMe}>{msg.text}</Text>}
+                    {isImage ? (
+                      <TouchableOpacity activeOpacity={0.8} onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}>
+                        <Image source={{ uri: msg.imageUrl }} style={styles.messageImage} />
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={styles.messageTextMe}>{msg.text}</Text>
+                    )}
                     {!isImage && <View style={styles.tailIconMe} />}
                   </View>
                 </View>
@@ -207,6 +221,18 @@ const ChatScreen = ({ route, navigation }: Props) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* 이미지 전체 화면 모달 */}
+      <Modal visible={modalVisible} transparent={true} animationType="fade" onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalBackground}>
+          <TouchableOpacity style={styles.modalCloseButton} onPress={() => setModalVisible(false)}>
+            <Text style={styles.modalCloseText}>✕</Text>
+          </TouchableOpacity>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
