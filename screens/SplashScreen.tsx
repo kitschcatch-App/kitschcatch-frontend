@@ -3,6 +3,7 @@ import { View, Image, StyleSheet, Dimensions, Animated } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { colors } from '../styles/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -14,25 +15,42 @@ const SplashScreen = ({ navigation }: Props) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // 1. 화면이 켜지면 0.5초 동안 로고가 서서히 나타남 (Fade In)
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+    let isMounted = true;
+    let timer: ReturnType<typeof setTimeout>;
 
-    // 2. 2초 동안 띄워둔 후, 0.5초 동안 로고가 서서히 사라짐 (Fade Out)
-    const timer = setTimeout(() => {
+    const checkAndNavigate = async () => {
+      // AsyncStorage에서 토큰 존재 여부 확인 → 있으면 메인, 없으면 로그인
+      const token = await AsyncStorage.getItem('accessToken');
+
+      if (!isMounted) return;
+
+      // 1. 화면이 켜지면 0.5초 동안 로고가 서서히 나타남 (Fade In)
       Animated.timing(fadeAnim, {
-        toValue: 0,
+        toValue: 1,
         duration: 500,
         useNativeDriver: true,
-      }).start(() => {
-        navigation.replace('Login'); 
-      });
-    }, 2000);
+      }).start();
 
-    return () => clearTimeout(timer); 
+      // 2. 2초 동안 띄워둔 후, 0.5초 동안 로고가 서서히 사라짐 (Fade Out)
+      timer = setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }).start(() => {
+          if (isMounted) {
+            navigation.replace(token ? 'ProductList' : 'Login');
+          }
+        });
+      }, 2000);
+    };
+
+    checkAndNavigate();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [navigation, fadeAnim]);
 
   return (

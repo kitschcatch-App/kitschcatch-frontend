@@ -13,34 +13,26 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import CommonInput from '../components/CommonInput';
 import CommonDropdown from '../components/CommonDropdown';
 import { productAPI } from '../api/apiClient';
+import { MOCK_PRESIGNED_URLS, MOCK_CREATE_POST, mockDelay } from '../api/mockData';
+import { useMockMode } from '../contexts/MockModeContext';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductRegistration'>;
 
-// 한글 드롭다운 옵션을 API 명세서에 맞는 영문으로 변환하는 매핑 객체
+// 한글 드롭다운 옵션을 백엔드 ProductCondition enum 값으로 변환하는 매핑 객체
 const CONDITION_MAP: Record<string, string> = {
   '새상품': 'NEW',
   '사용감 적음': 'LIKE_NEW',
   '사용감 있음': 'USED',
-  '사용감 많음': 'HEAVILY_USED',
-};
-const CATEGORY_MAP: Record<string, string> = {
-  '애니 / 만화': 'ANIME_MANGA',
-  '게임': 'GAME',
-  '굿즈': 'GOODS',
-  '코스프레': 'COSPLAY',
-  '서적': 'BOOK',
-  '음반 / 영상': 'MEDIA',
-  '기타': 'ETC',
-};
-const STATUS_MAP: Record<string, string> = {
-  '판매중': 'ON_SALE',
-  '예약중': 'RESERVED',
-  '판매완료': 'SOLD_OUT',
+  '사용감 많음': 'DAMAGED',
 };
 
+// 명세서 4.1: 백엔드는 한글 라벨 값으로 직렬화/역직렬화합니다.
+// 예시: "productCategory": "굿즈" → 변환 없이 한글 그대로 전송해야 합니다.
+
 const ProductRegistrationScreen = ({ navigation }: Props) => {
-  const insets = useSafeAreaInsets(); // 상단 안전 영역 크기 가져오기
+  const insets = useSafeAreaInsets();
+  const { isMockMode } = useMockMode();
   const [productName, setProductName] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [productDescription, setProductDescription] = useState('');
@@ -48,16 +40,13 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   const [isConditionExpanded, setConditionExpanded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('카테고리 선택');
   const [isCategoryExpanded, setCategoryExpanded] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState('판매상태 선택');
-  const [isStatusExpanded, setStatusExpanded] = useState(false);
   const [selectedImages, setSelectedImages] = useState<Asset[]>([]);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const [isPolicyAgreed, setIsPolicyAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const CONDITION_OPTIONS = ['새상품', '사용감 적음', '사용감 있음', '사용감 많음'];
-  const CATEGORY_OPTIONS = ['애니 / 만화', '게임', '굿즈', '코스프레', '서적', '음반 / 영상', '기타'];
-  const STATUS_OPTIONS = ['판매중', '예약중', '판매완료'];
+  const CATEGORY_OPTIONS = ['애니/만화', '게임', '굿즈', '코스프레', '서적', '음반/영상', '기타'];
 
   // 가격 입력 시 콤마 자동 생성 핸들러
   const handlePriceChange = (text: string) => {
@@ -81,11 +70,6 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   const handleSelectCategory = (option: string) => {
     setSelectedCategory(option);
     setCategoryExpanded(false);
-  };
-
-  const handleSelectStatus = (option: string) => {
-    setSelectedStatus(option);
-    setStatusExpanded(false);
   };
 
   const showLimitToast = () => {
@@ -117,14 +101,14 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  // 상품 등록 API 호출 핸들러
+  // 상품 등록 핸들러 (Mock / Real 모드 공통)
   const handleSubmit = async () => {
-    // 1. 유효성 검사
+    // ── 공통 유효성 검사 ────────────────────────────────────────────────────
     if (!productName || !productPrice || !productDescription) {
       Alert.alert('알림', '필수 입력 항목을 모두 채워주세요.');
       return;
     }
-    if (selectedCondition === '사용감 선택' || selectedCategory === '카테고리 선택' || selectedStatus === '판매상태 선택') {
+    if (selectedCondition === '사용감 선택' || selectedCategory === '카테고리 선택') {
       Alert.alert('알림', '드롭다운 항목을 모두 선택해주세요.');
       return;
     }
@@ -132,35 +116,89 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
       Alert.alert('알림', '운영 정책에 동의해주세요.');
       return;
     }
+    if (selectedImages.length === 0) {
+      Alert.alert('알림', '상품 사진을 1장 이상 등록해주세요.');
+      return;
+    }
 
     setIsLoading(true);
 
-    // 2. 데이터 구성 (배열 안의 객체 형태)
-    const requestData = [{
-      sellerId: "sasukezzang", // TODO: 실제 연동 시 로그인된 유저 ID 사용
-      title: productName,
-      description: productDescription,
-      price: productPrice, // 명세서 요구대로 콤마가 포함된 문자열 전송
-      imageURL: "string", // TODO: 이미지 업로드 로직 구현 후 실제 URL 반영
-      productCategory: CATEGORY_MAP[selectedCategory] || "ETC",
-      productCondition: CONDITION_MAP[selectedCondition] || "USED",
-      productStatus: STATUS_MAP[selectedStatus] || "ON_SALE"
-    }];
-
     try {
-      // 모듈화된 axios API 호출
-      const response = await productAPI.createPost(requestData);
-
-      if (response.status === 200 || response.status === 201) {
-        Alert.alert('성공', '상품이 성공적으로 등록되었습니다.', [{ text: '확인', onPress: () => navigation.goBack() }]);
+      if (isMockMode) {
+        // ── Mock 모드: 가상 데이터로 등록 시뮬레이션 ──────────────────────
+        await mockDelay(600 + Math.random() * 400);
+        // Presigned URL 발급 시뮬레이션 (실제 업로드 없음)
+        const mockImageKeys = selectedImages.map((_, i) =>
+          MOCK_PRESIGNED_URLS.data.data.images[0]?.imageKey ?? `products/mock-key-${i}.jpg`
+        );
+        console.log('[Mock] 등록 데이터:', {
+          title: productName,
+          price: productPrice,
+          productCategory: selectedCategory,
+          productCondition: CONDITION_MAP[selectedCondition],
+          imageKeys: mockImageKeys,
+          mockPostId: MOCK_CREATE_POST.data.data.id,
+        });
+        Alert.alert(
+          '🧪 Mock 등록 성공',
+          `"${productName}" 상품이 가상으로 등록되었습니다.\n(Mock ID: ${MOCK_CREATE_POST.data.data.id})`,
+          [{ text: '확인', onPress: () => navigation.goBack() }],
+        );
       } else {
-        Alert.alert('오류', '상품 등록에 실패했습니다. (서버 응답 오류)');
+        // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
+        // 1. Presigned URL 발급
+        const requestPayload = selectedImages.map((img, index) => ({
+          originalFileName: img.fileName || `image_${Date.now()}_${index}.jpg`,
+          contentType: img.type || 'image/jpeg',
+        }));
+        const presignedRes = await productAPI.getPresignedUrls(requestPayload);
+        if (!presignedRes.data?.success) {
+          throw new Error('Presigned URL 발급에 실패했습니다.');
+        }
+        const presignedDataList = presignedRes.data.data.images;
+
+        // 2. S3 이미지 업로드 (병렬)
+        const uploadedImageKeys = await Promise.all(
+          selectedImages.map(async (image, index) => {
+            const { uploadUrl, imageKey } = presignedDataList[index];
+            const response = await fetch(image.uri!);
+            const blob = await response.blob();
+            const uploadRes = await fetch(uploadUrl, {
+              method: 'PUT',
+              body: blob,
+              headers: { 'Content-Type': image.type || 'image/jpeg' },
+            });
+            if (!uploadRes.ok) throw new Error('S3 이미지 업로드 실패');
+            return imageKey;
+          }),
+        );
+
+        // 3. 상품 등록
+        const requestData = {
+          title: productName,
+          description: productDescription,
+          price: Number(productPrice.replace(/,/g, '')),
+          productCategory: selectedCategory,
+          productCondition: CONDITION_MAP[selectedCondition] || 'NEW',
+          imageKeys: uploadedImageKeys,
+        };
+        const response = await productAPI.createPost(requestData);
+        if (response.data?.success) {
+          Alert.alert('성공', '상품이 성공적으로 등록되었습니다.', [
+            { text: '확인', onPress: () => navigation.goBack() },
+          ]);
+        } else {
+          Alert.alert('오류', '상품 등록에 실패했습니다. (서버 응답 오류)');
+        }
       }
-    } catch (error) {
-      console.error('API 연동 에러:', error);
-      // [테스트용] 백엔드 미연결 시 가상 통신 성공 시뮬레이션 폴백
-      console.log('가상 백엔드로 전송된 데이터:', JSON.stringify(requestData, null, 2));
-      Alert.alert('성공(가상)', '상품이 성공적으로 등록되었습니다.', [{ text: '확인', onPress: () => navigation.goBack() }]);
+    } catch (error: any) {
+      const errorData = error.response?.data
+        ? (typeof error.response.data === 'object'
+            ? JSON.stringify(error.response.data, null, 2)
+            : error.response.data)
+        : error.message ?? '알 수 없는 오류';
+      console.error('상품 등록 에러:', errorData);
+      Alert.alert('오류', `상품 등록 중 문제가 발생했습니다.\n\n${errorData}`);
     } finally {
       setIsLoading(false);
     }
@@ -175,10 +213,19 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
 
         {/* 헤더 영역 */}
         <View style={styles.headerContainer}>
-          {/* 왼쪽 공간을 차지하여 제목을 중앙에 맞추기 위한 빈 View */}
           <View style={styles.headerIconPlaceholder} />
-          
-          <Text style={styles.headerTitle}>상품등록</Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.headerTitle}>상품등록</Text>
+            {isMockMode && (
+              <View style={{
+                backgroundColor: 'rgba(70,201,178,0.85)',
+                paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+              }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: '#fff' }}>🧪 Mock</Text>
+              </View>
+            )}
+          </View>
 
           <TouchableOpacity style={styles.exitButton} onPress={() => navigation.goBack()}>
             <ExitIcon width={20} height={20} />
@@ -277,18 +324,6 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
           onToggle={() => setCategoryExpanded(!isCategoryExpanded)}
           onSelect={handleSelectCategory}
           containerStyle={styles.categoryLayout}
-        />
-
-        {/* 판매상태 선택 레이아웃 */}
-        <CommonDropdown
-          label="판매상태"
-          value={selectedStatus}
-          options={STATUS_OPTIONS}
-          placeholder="판매상태 선택"
-          isExpanded={isStatusExpanded}
-          onToggle={() => setStatusExpanded(!isStatusExpanded)}
-          onSelect={handleSelectStatus}
-          containerStyle={styles.statusLayout}
         />
 
         {/* 운영정책 동의 레이아웃 */}

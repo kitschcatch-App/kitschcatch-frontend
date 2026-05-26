@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -7,8 +7,9 @@ import { styles } from './LoginScreen.styles';
 import KitschcatchIcon from '../assets/kitschcatch.svg';
 import KakaoIcon from '../assets/kakao.svg';
 import Svg, { Ellipse, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { login, getProfile as getKakaoProfile } from '@react-native-seoul/kakao-login';
+import { login } from '@react-native-seoul/kakao-login';
 import { authAPI } from '../api/apiClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -16,31 +17,57 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 const LoginScreen = ({ navigation }: Props) => {
   const handleKakaoLogin = async () => {
+    // 백엔드 연동 전 임시로 바로 메인 화면(ProductList)으로 넘어가게 처리
+    // Mock 데이터의 판매자 정보(id: 42)와 일치하도록 내 ID를 임시 저장
+    await AsyncStorage.setItem('userId', '42');
+    navigation.replace('ProductList');
+    /*
     try {
-      // 1. 카카오 로그인 수행 및 토큰 발급
-      const token = await login();
-      console.log('카카오 로그인 토큰:', token);
-      
-      // 2. 백엔드로 카카오 액세스 토큰 전송 (백엔드 API가 준비되면 주석 해제하여 사용하세요)
-      /*
-      const response = await authAPI.loginWithKakao(token.accessToken);
-      console.log('백엔드 로그인 성공:', response.data);
-      
-      // 3. 백엔드에서 받은 앱 자체 토큰(JWT)을 기기에 저장 (나중에 AsyncStorage 설치 후 사용)
-      // await AsyncStorage.setItem('userToken', response.data.token);
-      */
+      // Step 1: 서버에서 카카오 OIDC 검증용 Nonce 발급
+      console.log('[Login] Step 1: Nonce 발급 요청');
+      const nonceRes = await authAPI.getNonce();
+      const nonce: string = nonceRes.data.data.nonce;
+      console.log('[Login] Step 1 완료 - nonce:', nonce);
 
-      // 4. 모든 처리가 완료되면 메인 화면으로 이동
+      // Step 2: Nonce를 포함하여 카카오 로그인 → ID Token 발급
+      // 라이브러리 타입 정의에 nonce 파라미터가 누락되어 있어 타입 단언으로 우회
+      console.log('[Login] Step 2: 카카오 SDK 로그인 요청');
+      const kakaoToken = await (login as (params: { nonce: string }) => Promise<{ idToken: string }>)({ nonce });
+      const idToken = kakaoToken.idToken;
+      console.log('[Login] Step 2 완료 - idToken 존재 여부:', !!idToken);
+
+      if (!idToken) {
+        // 카카오 앱 설정에서 "OpenID Connect 활성화"가 꺼져 있으면 idToken이 없을 수 있음
+        throw new Error('카카오 ID Token을 받지 못했습니다. 카카오 개발자 콘솔에서 OpenID Connect 활성화를 확인하세요.');
+      }
+
+      // Step 3: 백엔드로 ID Token + Nonce 전송 → 앱 JWT(Access/Refresh Token) 발급
+      console.log('[Login] Step 3: 백엔드 로그인 요청 (mobile-login)');
+      const response = await authAPI.loginWithKakao(idToken, nonce);
+      const { accessToken, refreshToken } = response.data.data;
+
+      // Step 4: 발급받은 토큰을 기기에 저장
+      await AsyncStorage.setItem('accessToken', accessToken);
+      await AsyncStorage.setItem('refreshToken', refreshToken);
+      await AsyncStorage.setItem('userId', String(response.data.data.user.id));
+      console.log('[Login] 로그인 성공');
+
+      // Step 5: 메인 화면으로 이동
       navigation.replace('ProductList');
     } catch (err: any) {
-      if (err.message && err.message.includes('user cancelled')) {
-        console.log('사용자가 카카오 로그인을 취소했습니다.');
-        // 사용자가 취소한 경우 별도 처리 없이 조용히 넘어갑니다.
+      if (err.message?.includes('user cancelled')) {
+        // 사용자가 직접 취소한 경우 → 조용히 처리
+        console.log('[Login] 사용자가 카카오 로그인을 취소했습니다.');
       } else {
-        console.error('카카오 로그인 에러:', err);
-        // TODO: 실제 에러 발생 시 사용자에게 알림(Alert 등) 띄우기
+        // AxiosError인 경우 서버 응답 바디(에러 코드 등)까지 출력
+        const serverError = err.response?.data;
+        console.error('[Login] 카카오 로그인 에러:', err.message);
+        console.error('[Login] HTTP 상태 코드:', err.response?.status);
+        console.error('[Login] 서버 에러 응답:', JSON.stringify(serverError, null, 2));
+        Alert.alert('로그인 오류', '로그인 중 문제가 발생했습니다.\n잠시 후 다시 시도해주세요.');
       }
     }
+    */
   };
 
   return (
@@ -66,6 +93,15 @@ const LoginScreen = ({ navigation }: Props) => {
         <TouchableOpacity style={styles.kakaoButton} onPress={handleKakaoLogin} activeOpacity={0.8}>
           <KakaoIcon width={26} height={24} style={styles.kakaoIcon} />
           <Text style={styles.kakaoButtonText}>카카오 로그인하기</Text>
+        </TouchableOpacity>
+
+        {/* 개발자 전용: API 테스트 화면 진입 버튼 */}
+        <TouchableOpacity
+          style={styles.devTestButton}
+          onPress={() => navigation.navigate('ApiTest')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.devTestButtonText}>🛠 API 연동 테스트</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
