@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import WebView from 'react-native-webview';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
@@ -139,6 +139,7 @@ const PaymentScreen = ({ route, navigation }: Props) => {
       let orderName: string;
       let successUrl: string;
       let failUrl: string;
+      let paymentAmount: number;
 
       if (isMockMode) {
         await mockDelay();
@@ -150,6 +151,7 @@ const PaymentScreen = ({ route, navigation }: Props) => {
         orderName = pd.orderName;
         successUrl = pd.successUrl;
         failUrl = pd.failUrl;
+        paymentAmount = pd.amount;
       } else {
         const res = await paymentAPI.createPayment({ orderId, method: method.backendEnum });
         const pd = res.data.data;
@@ -159,23 +161,11 @@ const PaymentScreen = ({ route, navigation }: Props) => {
         orderName = pd.orderName;
         successUrl = pd.successUrl;
         failUrl = pd.failUrl;
+        paymentAmount = pd.amount;
       }
 
-      // [3단계] 토스페이먼츠 결제창 열기
-      if (isMockMode) {
-        // 목 모드: WebView 없이 바로 결제 완료로 이동
-        await mockDelay();
-        navigation.navigate('PaymentComplete', {
-          productName,
-          productPrice,
-          totalPrice,
-          productImageUrl,
-          pgOrderId,
-        });
-        return;
-      }
-
-      const html = buildTossHtml(clientKey, pgOrderId, productPrice, orderName, successUrl, failUrl, method.tossMethod);
+      // [3단계] 토스페이먼츠 결제창 열기 (mock/real 모두 WebView 사용)
+      const html = buildTossHtml(clientKey, pgOrderId, paymentAmount, orderName, successUrl, failUrl, method.tossMethod);
       setWebViewPayment({
         html,
         paymentId,
@@ -194,9 +184,29 @@ const PaymentScreen = ({ route, navigation }: Props) => {
     if (!webViewPayment) return true;
     const { url } = request;
 
+    // 딥링크(toss://, kakaobank://, intent:// 등) → 외부 앱으로 위임
+    if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('about:') && !url.startsWith('javascript:')) {
+      Linking.openURL(url).catch(() => {});
+      return false;
+    }
+
     if (url && url.startsWith(webViewPayment.successUrlBase)) {
       setWebViewPayment(null);
       setIsLoading(true);
+
+      // mock 모드: confirmPayment API 호출 없이 바로 완료 화면으로 이동
+      if (isMockMode) {
+        navigation.navigate('PaymentComplete', {
+          productName,
+          productPrice,
+          totalPrice,
+          productImageUrl,
+          pgOrderId: webViewPayment.pgOrderId,
+        });
+        setIsLoading(false);
+        return false;
+      }
+
       const paymentKey = parseQueryParam(url, 'paymentKey') || '';
       paymentAPI.confirmPayment(webViewPayment.paymentId, { paymentKey })
         .then(() => {
@@ -214,13 +224,15 @@ const PaymentScreen = ({ route, navigation }: Props) => {
     }
 
     if (url && url.startsWith(webViewPayment.failUrlBase)) {
+      const code = parseQueryParam(url, 'code') || '';
+      const message = parseQueryParam(url, 'message') || '결제가 취소되었거나 실패했습니다.';
       setWebViewPayment(null);
-      Alert.alert('결제 실패', '결제가 취소되었거나 실패했습니다.');
+      Alert.alert('결제 실패', `[${code}] ${message}`);
       return false;
     }
 
     return true;
-  }, [webViewPayment, navigation, productName, productPrice, totalPrice, productImageUrl]);
+  }, [webViewPayment, navigation, productName, productPrice, totalPrice, productImageUrl, isMockMode]);
 
   if (webViewPayment) {
     return (
@@ -236,10 +248,20 @@ const PaymentScreen = ({ route, navigation }: Props) => {
             </View>
           </View>
           <WebView
-            source={{ html: webViewPayment.html }}
+            source={{ html: webViewPayment.html, baseUrl: 'https://tosspayments.com' }}
             onShouldStartLoadWithRequest={handleShouldStartLoad}
             javaScriptEnabled
             domStorageEnabled
+            originWhitelist={['*']}
+            injectedJavaScript={`
+              (function() {
+                window.open = function(url) {
+                  if (url) window.location.href = url;
+                  return window;
+                };
+              })();
+            `}
+            onError={() => {}}
             style={{ flex: 1 }}
           />
         </View>
