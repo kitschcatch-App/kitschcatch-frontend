@@ -3,7 +3,7 @@
  * 역할: 상품 목록에서 선택한 특정 상품의 상세 정보(이미지, 가격, 설명, 판매자 정보 등)와 하단 액션 바를 보여주는 컴포넌트입니다.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import { styles } from './ProductDetailScreen.styles';
@@ -82,7 +82,8 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   });
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isStatusExpanded, setStatusExpanded] = useState(false);
+  const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
+  const [tempStatus, setTempStatus] = useState<string>('');
 
   // 애니메이션 값 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -165,6 +166,28 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     loadCurrentUser();
   }, []);
 
+  const openStatusModal = () => {
+    setTempStatus(productDetail.status);
+    setIsStatusModalVisible(true);
+  };
+
+  const handleStatusSubmit = async () => {
+    if (tempStatus !== productDetail.status) {
+      try {
+        if (isMockMode) {
+          await mockDelay(400 + Math.random() * 300);
+          console.log(`[Mock] 판매상태 수정 완료: ${productDetail.status} -> ${tempStatus}`);
+        } else {
+          await productAPI.updatePost(productDetail.id, { productStatus: tempStatus });
+        }
+        setProductDetail(prev => ({ ...prev, status: tempStatus }));
+      } catch (error) {
+        console.error('상태 업데이트 실패:', error);
+      }
+    }
+    setIsStatusModalVisible(false);
+  };
+
   // ProductDetailScreen -> ProductListScreen으로 이동 시 애니메이션 적용
   const handleGoBack = () => {
     Animated.parallel([
@@ -238,42 +261,6 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                 <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff' }}>🧪 Mock</Text>
               </View>
             )}
-
-            {/* 판매자용 상태 드롭다운 영역 (이미지 우측 하단) */}
-            {isSeller && (
-              <View style={styles.statusDropdownContainer}>
-                <TouchableOpacity
-                  style={styles.statusButton}
-                  onPress={() => setStatusExpanded(!isStatusExpanded)}
-                >
-                  <Text style={styles.statusButtonText}>{STATUS_DISPLAY_MAP[productDetail.status] || productDetail.status} ▼</Text>
-                </TouchableOpacity>
-
-                {isStatusExpanded && (
-                  <View style={styles.dropdownList}>
-                    {['판매중', '예약중', '판매완료'].map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={styles.dropdownItem}
-                        onPress={async () => {
-                          const key = Object.keys(STATUS_DISPLAY_MAP).find(k => STATUS_DISPLAY_MAP[k] === option) || option;
-                          try {
-                            // PATCH: 변경할 필드만 전송
-                            await productAPI.updatePost(productDetail.id, { productStatus: key });
-                          } catch (error) {
-                            console.error('상태 업데이트 실패:', error);
-                          }
-                          setProductDetail(prev => ({ ...prev, status: key }));
-                          setStatusExpanded(false);
-                        }}
-                      >
-                        <Text style={styles.dropdownItemText}>{option}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
           </View>
 
           {/* 구분선 */}
@@ -339,23 +326,31 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
         {/* 4. 고정된 하단 액션 바: 판매자면 수정하기, 구매자면 채팅하기 + 결제하기 */}
         <View style={styles.actionBar}>
           {isSeller ? (
-            <TouchableOpacity
-              style={styles.buyButton}
-              onPress={() => navigation.navigate('ProductEdit', {
-                postId: productDetail.id,
-                title: productDetail.name,
-                description: productDetail.description,
-                price: productDetail.price,
-                imageURL: productDetail.imageUrl,
-                imageKeys: productDetail.imageKeys,
-                productCategory: productDetail.category,
-                productCondition: productDetail.condition,
-                productStatus: productDetail.status,
-                sellerId: productDetail.sellerId?.toString() || '',
-              })}
-            >
-              <Text style={styles.buyButtonText}>수정하기</Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={[styles.buyButton, { flex: 1, marginHorizontal: 0 }]}
+                onPress={openStatusModal}
+              >
+                <Text style={styles.buyButtonText}>판매상태 수정</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.buyButton, { flex: 1, marginHorizontal: 0 }]}
+                onPress={() => navigation.navigate('ProductEdit', {
+                  postId: productDetail.id,
+                  title: productDetail.name,
+                  description: productDetail.description,
+                  price: productDetail.price,
+                  imageURL: productDetail.imageUrl,
+                  imageKeys: productDetail.imageKeys,
+                  productCategory: productDetail.category,
+                  productCondition: productDetail.condition,
+                  productStatus: productDetail.status,
+                  sellerId: productDetail.sellerId?.toString() || '',
+                })}
+              >
+                <Text style={styles.buyButtonText}>상품정보 수정</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <>
               <TouchableOpacity style={styles.wishButton}>
@@ -388,6 +383,42 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
 
         <BottomNav />
       </Animated.View>
+
+      {/* 상태 수정 모달 */}
+      <Modal
+        visible={isStatusModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsStatusModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>판매상태</Text>
+            <View style={styles.modalOptionsRow}>
+              {['ON_SALE', 'RESERVED', 'SOLD_OUT'].map((statusKey) => (
+                <TouchableOpacity
+                  key={statusKey}
+                  style={[
+                    styles.modalOptionBtn,
+                    tempStatus === statusKey && styles.modalOptionBtnActive
+                  ]}
+                  onPress={() => setTempStatus(statusKey)}
+                >
+                  <Text style={[
+                    styles.modalOptionText,
+                    tempStatus === statusKey && styles.modalOptionTextActive
+                  ]}>
+                    {STATUS_DISPLAY_MAP[statusKey]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleStatusSubmit}>
+              <Text style={styles.modalSubmitText}>선택완료</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
