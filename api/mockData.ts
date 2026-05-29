@@ -146,7 +146,8 @@ export const getMockPostDetail = (productId: string | number) => ({
           imageKey: `products/mock-detail-key-${productId}.jpg`,
         },
       ],
-      seller: { id: 42, nickname: '졸린코끼리' },
+      seller: { id: 52, nickname: '김민영' },
+      //테스트
       createdAt: '2026-05-25T10:00:00',
     },
   },

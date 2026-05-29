@@ -47,6 +47,12 @@ type Product = {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
 
+const STATUS_DISPLAY_MAP: Record<string, string> = {
+  'ON_SALE': '판매중',
+  'RESERVED': '예약중',
+  'SOLD_OUT': '판매완료',
+};
+
 const ProductListScreen = ({ navigation }: Props) => {
   const { isMockMode, toggleMockMode } = useMockMode();
   const [searchQuery, setSearchQuery] = useState('');
@@ -178,7 +184,26 @@ const ProductListScreen = ({ navigation }: Props) => {
         productImageUrl: item.imageUrl
       })}
     >
-      <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+      <View>
+        <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+        {item.status && (
+          <View
+            style={[
+              styles.statusBadge,
+              item.status === 'SOLD_OUT' ? styles.statusBadgeSoldOut : styles.statusBadgeActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.statusBadgeText,
+                item.status === 'SOLD_OUT' ? styles.statusBadgeText : undefined,
+              ]}
+            >
+              {STATUS_DISPLAY_MAP[item.status] || item.status}
+            </Text>
+          </View>
+        )}
+      </View>
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={1}>
           {item.name}

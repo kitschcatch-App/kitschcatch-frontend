@@ -268,9 +268,16 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
 
           {/* 2. 상품 정보 영역 */}
           <View style={styles.infoContainer}>
-            {!isSeller && productDetail.status ? (
-              <Text style={styles.productStatus}>{STATUS_DISPLAY_MAP[productDetail.status] || productDetail.status}</Text>
-            ) : null}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              {!isSeller && productDetail.status ? (
+                <Text style={styles.productStatus}>{STATUS_DISPLAY_MAP[productDetail.status] || productDetail.status}</Text>
+              ) : <View />}
+              {!isSeller && (
+                <TouchableOpacity style={styles.wishButton}>
+                  <HeartIcon width={25} height={25} />
+                </TouchableOpacity>
+              )}
+            </View>
             <Text style={styles.productName}>{productDetail.name}</Text>
             <Text style={styles.productPrice}>
               {Number(productDetail.price).toLocaleString()}원
@@ -352,10 +359,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
               </TouchableOpacity>
             </View>
           ) : (
-            <>
-              <TouchableOpacity style={styles.wishButton}>
-                <HeartIcon width={24} height={24} />
-              </TouchableOpacity>
+            <View style={{ flex: 1, flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity
                 style={styles.chatButton}
                 onPress={() => navigation.navigate('Chat', {
@@ -377,7 +381,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
               >
                 <Text style={styles.buyButtonText}>결제하기</Text>
               </TouchableOpacity>
-            </>
+            </View>
           )}
         </View>
 

@@ -141,6 +141,25 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.gray02,
     borderRadius: 8,
   },
+  statusBadge: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusBadgeActive: {
+    backgroundColor: colors.main01,
+  },
+  statusBadgeSoldOut: {
+    backgroundColor: colors.gray04,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
   productInfo: {
     marginTop: 8,
   },
