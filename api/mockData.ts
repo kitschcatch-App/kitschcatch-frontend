@@ -208,3 +208,56 @@ export const getMockUpdatePost = (postId: string | number) => ({
     },
   },
 });
+
+// ─── 주문 생성 ──────────────────────────────────────────────────────────────
+
+export const getMockCreateOrder = (postId: number, amount: number) => ({
+  status: 201,
+  data: {
+    success: true,
+    data: {
+      id: 100,
+      postId,
+      userId: 5,
+      amount,
+      orderStatus: 'PENDING',
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  },
+});
+
+// ─── 결제 생성 ──────────────────────────────────────────────────────────────
+
+export const getMockCreatePayment = (orderId: number, method: string, amount: number) => ({
+  status: 201,
+  data: {
+    success: true,
+    data: {
+      paymentId: 1,
+      orderId,
+      pgOrderId: `KC-PAY-mock-${Date.now()}`,
+      amount,
+      method,
+      status: 'READY',
+      orderName: '[Mock] 키치캐치 상품',
+      clientKey: 'test_ck_mockClientKey',
+      successUrl: 'https://kitschatch.mock/payment/success',
+      failUrl: 'https://kitschatch.mock/payment/fail',
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  },
+});
+
+// ─── 결제 승인 ──────────────────────────────────────────────────────────────
+
+export const MOCK_CONFIRM_PAYMENT = {
+  status: 200,
+  data: {
+    success: true,
+    data: null,
+  },
+};

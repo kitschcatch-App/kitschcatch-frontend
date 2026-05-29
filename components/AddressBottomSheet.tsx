@@ -3,9 +3,16 @@ import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, ScrollVi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from './AddressBottomSheet.styles';
 
+export interface SelectedAddress {
+  name: string;
+  phone: string;
+  address: string;
+}
+
 interface Props {
   visible: boolean;
   onClose: () => void;
+  onSelect: (address: SelectedAddress) => void;
 }
 
 const DUMMY_ADDRESSES = [
@@ -24,7 +31,7 @@ const DUMMY_ADDRESSES = [
   }
 ];
 
-const AddressBottomSheet = ({ visible, onClose }: Props) => {
+const AddressBottomSheet = ({ visible, onClose, onSelect }: Props) => {
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState('1');
 
@@ -77,7 +84,15 @@ const AddressBottomSheet = ({ visible, onClose }: Props) => {
                 ))}
               </ScrollView>
 
-              <TouchableOpacity style={styles.submitButton} onPress={onClose} activeOpacity={0.8}>
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={() => {
+                  const item = DUMMY_ADDRESSES.find(a => a.id === selectedId)!;
+                  onSelect({ name: item.name, phone: item.phone, address: item.address });
+                  onClose();
+                }}
+                activeOpacity={0.8}
+              >
                 <Text style={styles.submitButtonText}>배송지 변경완료</Text>
               </TouchableOpacity>
             </View>

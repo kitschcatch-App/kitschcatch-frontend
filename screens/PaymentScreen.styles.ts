@@ -204,12 +204,22 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     color: colors.black,
   },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  payButtonDisabled: {
+    opacity: 0.5,
+  },
   paymentMethodContainer: {
     marginTop: 20,
     gap: 10,
     paddingHorizontal: 15,
   },
-  paymentMethodRowTop: {
+  paymentMethodRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },

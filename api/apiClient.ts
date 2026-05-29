@@ -80,7 +80,7 @@ apiClient.interceptors.response.use(
         const storedRefreshToken = await AsyncStorage.getItem('refreshToken');
 
         // 저장된 refreshToken이 없으면(미로그인) 갱신 시도 없이 원래 401 에러 그대로 전달
-        // → 토큰 삭제 없이 조용히 reject (기존: "No refresh token stored" 에러를 새로 throw해 혼란 유발)
+        // → 토큰 삭제 없이 조용히 reject
         if (!storedRefreshToken) {
           isRefreshing = false;
           processQueue(null, null);
@@ -119,7 +119,6 @@ apiClient.interceptors.response.use(
 );
 
 // ─── 인증 전용 axios 인스턴스 (인터셉터 없음) ────────────────────────────────────
-// authAPI는 로그인 전에 호출되므로 토큰 갱신 인터셉터를 거치면 안 됩니다.
 const authClient = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
@@ -161,4 +160,22 @@ export const productAPI = {
   // S3 Presigned URL 발급 (다중 파일)
   getPresignedUrls: (images: { originalFileName: string; contentType: string }[]) =>
     apiClient.post('/posts/images/presigned-urls', { images }),
+};
+
+// ─── 주문 관련 API ──────────────────────────────────────────────────────────────
+export const orderAPI = {
+  // 주문 생성 (15분 홀드)
+  createOrder: (data: { postId: number }) =>
+    apiClient.post('/orders', data),
+};
+
+// ─── 결제 관련 API ──────────────────────────────────────────────────────────────
+export const paymentAPI = {
+  // 결제 생성 (토스페이먼츠 초기화, clientKey/pgOrderId 수령)
+  createPayment: (data: { orderId: number; method: string }) =>
+    apiClient.post('/payments', data),
+
+  // 결제 승인 (토스 SDK 완료 후 paymentKey 전달)
+  confirmPayment: (paymentId: number, data: { paymentKey: string }) =>
+    apiClient.post(`/payments/${paymentId}/confirm`, data),
 };
