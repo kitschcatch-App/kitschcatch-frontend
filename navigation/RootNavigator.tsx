@@ -5,6 +5,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { MockModeProvider } from '../contexts/MockModeContext';
 import ProductListScreen from '../screens/ProductListScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -14,6 +15,7 @@ import ProductEditScreen from '../screens/ProductEditScreen';
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import PaymentCompleteScreen from '../screens/PaymentCompleteScreen';
+import ApiTestScreen from '../screens/ApiTestScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -32,6 +34,7 @@ export type RootStackParamList = {
     description: string;
     price: number;
     imageURL: string;
+    imageKeys: string[];
     productCategory: string;
     productCondition: string;
     productStatus: string;
@@ -54,12 +57,14 @@ export type RootStackParamList = {
     totalPrice: number;
     productImageUrl: string;
   };
+  ApiTest: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
   return (
+    <MockModeProvider>
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
         <Stack.Screen name="Splash" component={SplashScreen} />
@@ -71,8 +76,10 @@ const RootNavigator = () => {
         <Stack.Screen name="ProductRegistration" component={ProductRegistrationScreen} />
         <Stack.Screen name="ProductEdit" component={ProductEditScreen} />
         <Stack.Screen name="PaymentComplete" component={PaymentCompleteScreen} />
+        <Stack.Screen name="ApiTest" component={ApiTestScreen} />
       </Stack.Navigator>
     </NavigationContainer>
+    </MockModeProvider>
   );
 };
 

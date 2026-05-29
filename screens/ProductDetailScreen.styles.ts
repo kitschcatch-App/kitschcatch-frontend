@@ -36,49 +36,64 @@ export const styles = StyleSheet.create({
     height: height * 0.5, // 화면 세로 길이의 약 60%를 차지
     backgroundColor: colors.gray02,
   },
-  statusDropdownContainer: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    alignItems: 'flex-end', 
-    zIndex: 20, 
-  },
-  statusButton: {
-    backgroundColor: colors.main01,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    flexDirection: 'row',
+  // 모달 스타일
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
   },
-  statusButtonText: {
-    fontSize: 16,
-    fontFamily: typography.M,
-    color: colors.black,
-  },
-  dropdownList: {
-    position: 'absolute',
-    top: '100%',
-    marginTop: 6,
+  modalContent: {
+    width: '80%',
     backgroundColor: colors.white,
     borderRadius: 8,
-    paddingVertical: 4,
-    minWidth: 85,
+    paddingHorizontal: 18,
+    paddingVertical: 24,
   },
-  dropdownItem: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: typography.SB,
+    color: colors.black,
+    marginBottom: 10,
+    textAlign: 'left',
+  },
+  modalOptionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 21,
+    gap: 5,
+  },
+  modalOptionBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 40,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.gray04,
   },
-  dropdownItemActive: {
-    backgroundColor: colors.main03,
-    borderRadius: 8,
+  modalOptionBtnActive: {
+    backgroundColor: `${colors.sub01}22`,
+    borderColor: colors.main01,
+
   },
-  dropdownItemText: {
+  modalOptionText: {
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.black,
+  },
+  modalOptionTextActive: {
+    color: colors.sub02,
+  },
+  modalSubmitBtn: {
+    backgroundColor: colors.main01,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    color: colors.black,
+    fontSize: 18,
+    fontFamily: typography.SB,
   },
   infoContainer: {
     paddingTop: 10,
@@ -94,8 +109,8 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
     borderRadius: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     alignSelf: 'flex-start',
     justifyContent: 'center',
   },
@@ -200,6 +215,8 @@ export const styles = StyleSheet.create({
   },
   wishButton: {
     padding: 10,
+    marginRight: -15,
+    marginTop: -10,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

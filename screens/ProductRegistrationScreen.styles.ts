@@ -115,7 +115,7 @@ export const styles = StyleSheet.create({
     paddingTop: 20,
   },
   statusLayout: {
-    paddingBottom: 20, 
+    paddingBottom: 20,
     paddingTop: 20,
   },
   policyLayout: {

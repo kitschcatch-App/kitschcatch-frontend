@@ -46,4 +46,15 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     color: colors.black,
   },
+  devTestButton: {
+    marginTop: 16,
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  devTestButtonText: {
+    fontSize: 12,
+    fontFamily: typography.R,
+    color: colors.gray05,
+  },
 });
