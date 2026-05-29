@@ -10,10 +10,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PaymentComplete'>;
 
 const PaymentCompleteScreen = ({ navigation, route }: Props) => {
   const insets = useSafeAreaInsets();
-  const { productName, productPrice, totalPrice, productImageUrl } = route.params;
-  
-  // 임시 주문번호 생성 (실제 서버 연동 시 응답값 사용)
-  const orderNumber = '12345678';
+  const { productName, totalPrice, productImageUrl, pgOrderId } = route.params;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
@@ -51,7 +48,7 @@ const PaymentCompleteScreen = ({ navigation, route }: Props) => {
                     <Text style={styles.productName} numberOfLines={2}>{productName}</Text>
                     <Text style={styles.productPrice}>{totalPrice.toLocaleString()}원</Text>
                   </View>
-                  <Text style={styles.orderNumber}>주문번호 {orderNumber}</Text>
+                  <Text style={styles.orderNumber}>주문번호 {pgOrderId}</Text>
                 </View>
               </View>
             </View>
