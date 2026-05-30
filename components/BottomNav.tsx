@@ -32,7 +32,7 @@ const BottomNav = () => {
         <NavHomeIcon width={20} height={20} />
         <Text style={styles.navText}>홈</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.navItem}>
+      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ChatList')}>
         <NavChatIcon width={20} height={20} />
         <Text style={styles.navText}>채팅목록</Text>
       </TouchableOpacity>
