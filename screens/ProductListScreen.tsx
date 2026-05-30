@@ -29,21 +29,9 @@ import { productAPI } from '../api/apiClient';
 import { MOCK_POST_LIST, mockDelay } from '../api/mockData';
 import { useMockMode } from '../contexts/MockModeContext';
 import FilterBottomSheet, { FilterState } from '../components/FilterBottomSheet';
+import { filterProducts, Product } from '../utils/filterProducts';
 
 import { styles } from './ProductListScreen.styles';
-
-type Product = {
-  id: string;
-  name: string;
-  price: number;
-  imageUrl: string;
-  heartCount?: number;
-  chatCount?: number;
-  status?: string;
-  category?: string;
-  condition?: string;
-  createdAt?: string;
-};
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
 
@@ -133,46 +121,10 @@ const ProductListScreen = ({ navigation }: Props) => {
     };
   }, [isMockMode]); // Mock 모드가 바뀌면 자동으로 다시 로드
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
-
-    if (filterState.isOnSaleOnly) {
-      result = result.filter((p) => p.status === 'ON_SALE');
-    }
-
-    if (selectedCategories.length > 0) {
-      result = result.filter(
-        (p) => p.category && selectedCategories.includes(p.category)
-      );
-    }
-
-    const min = filterState.minPrice ? parseInt(filterState.minPrice.replace(/,/g, ''), 10) : null;
-    const max = filterState.maxPrice ? parseInt(filterState.maxPrice.replace(/,/g, ''), 10) : null;
-    if (min !== null) result = result.filter((p) => p.price >= min);
-    if (max !== null) result = result.filter((p) => p.price <= max);
-
-    if (filterState.conditions.length > 0) {
-      result = result.filter(
-        (p) => !p.condition || filterState.conditions.includes(p.condition)
-      );
-    }
-
-    switch (filterState.sort) {
-      case '최신순':
-        result.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
-        break;
-      case '가격 높은 순':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case '가격 낮은 순':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      default:
-        break;
-    }
-
-    return result;
-  }, [products, filterState, selectedCategories]);
+  const filteredProducts = useMemo(
+    () => filterProducts(products, filterState, selectedCategories),
+    [products, filterState, selectedCategories],
+  );
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
