@@ -14,19 +14,12 @@ import CommonInput from '../components/CommonInput';
 import CommonDropdown from '../components/CommonDropdown';
 import { productAPI } from '../api/apiClient';
 import { MOCK_PRESIGNED_URLS, MOCK_CREATE_POST, mockDelay } from '../api/mockData';
-import { uploadImagesToS3 } from '../utils/uploadImages';
+import { validateProductForm } from '../utils/validateProductForm';
+import { registerProduct, CONDITION_MAP } from '../utils/registerProduct';
 import { useMockMode } from '../contexts/MockModeContext';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductRegistration'>;
-
-// 한글 드롭다운 옵션을 백엔드 ProductCondition enum 값으로 변환하는 매핑 객체
-const CONDITION_MAP: Record<string, string> = {
-  '새상품': 'NEW',
-  '사용감 적음': 'LIKE_NEW',
-  '사용감 있음': 'USED',
-  '사용감 많음': 'DAMAGED',
-};
 
 // 명세서 4.1: 백엔드는 한글 라벨 값으로 직렬화/역직렬화합니다.
 // 예시: "productCategory": "굿즈" → 변환 없이 한글 그대로 전송해야 합니다.
@@ -105,20 +98,13 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   // 상품 등록 핸들러 (Mock / Real 모드 공통)
   const handleSubmit = async () => {
     // ── 공통 유효성 검사 ────────────────────────────────────────────────────
-    if (!productName || !productPrice || !productDescription) {
-      Alert.alert('알림', '필수 입력 항목을 모두 채워주세요.');
-      return;
-    }
-    if (selectedCondition === '사용감 선택' || selectedCategory === '카테고리 선택') {
-      Alert.alert('알림', '드롭다운 항목을 모두 선택해주세요.');
-      return;
-    }
-    if (!isPolicyAgreed) {
-      Alert.alert('알림', '운영 정책에 동의해주세요.');
-      return;
-    }
-    if (selectedImages.length === 0) {
-      Alert.alert('알림', '상품 사진을 1장 이상 등록해주세요.');
+    const validationError = validateProductForm({
+      productName, productPrice, productDescription,
+      selectedCondition, selectedCategory,
+      isPolicyAgreed, imageCount: selectedImages.length,
+    });
+    if (validationError) {
+      Alert.alert('알림', validationError);
       return;
     }
 
@@ -147,37 +133,14 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
         );
       } else {
         // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
-        // 1. Presigned URL 발급
-        const requestPayload = selectedImages.map((img, index) => ({
-          originalFileName: img.fileName || `image_${Date.now()}_${index}.jpg`,
-          contentType: img.type || 'image/jpeg',
-        }));
-        const presignedRes = await productAPI.getPresignedUrls(requestPayload);
-        if (!presignedRes.data?.success) {
-          throw new Error('Presigned URL 발급에 실패했습니다.');
-        }
-        const presignedDataList = presignedRes.data.data.images;
-
-        // 2. S3 이미지 업로드 (병렬)
-        const uploadedImageKeys = await uploadImagesToS3(selectedImages, presignedDataList);
-
-        // 3. 상품 등록
-        const requestData = {
-          title: productName,
-          description: productDescription,
-          price: Number(productPrice.replace(/,/g, '')),
-          productCategory: selectedCategory,
-          productCondition: CONDITION_MAP[selectedCondition] || 'NEW',
-          imageKeys: uploadedImageKeys,
-        };
-        const response = await productAPI.createPost(requestData);
-        if (response.data?.success) {
-          Alert.alert('성공', '상품이 성공적으로 등록되었습니다.', [
-            { text: '확인', onPress: () => navigation.goBack() },
-          ]);
-        } else {
-          Alert.alert('오류', '상품 등록에 실패했습니다. (서버 응답 오류)');
-        }
+        await registerProduct({
+          productName, productPrice, productDescription,
+          selectedCondition, selectedCategory,
+          images: selectedImages,
+        });
+        Alert.alert('성공', '상품이 성공적으로 등록되었습니다.', [
+          { text: '확인', onPress: () => navigation.goBack() },
+        ]);
       }
     } catch (error: any) {
       const errorData = error.response?.data

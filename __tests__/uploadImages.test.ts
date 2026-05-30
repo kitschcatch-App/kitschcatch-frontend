@@ -1,6 +1,6 @@
 import { uploadImagesToS3, ImageAsset, PresignedEntry } from '../utils/uploadImages';
 
-const mockBlob = new Blob(['mock image data'], { type: 'image/jpeg' });
+const mockBlob = new Blob(['mock image data']);
 
 const image: ImageAsset = { uri: 'file:///photo.jpg', type: 'image/jpeg' };
 const presigned: PresignedEntry = {
@@ -12,7 +12,7 @@ describe('uploadImagesToS3', () => {
   let fetchSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    fetchSpy = jest.spyOn(global, 'fetch');
+    fetchSpy = jest.spyOn(globalThis, 'fetch');
   });
 
   afterEach(() => {
