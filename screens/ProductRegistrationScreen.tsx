@@ -14,6 +14,7 @@ import CommonInput from '../components/CommonInput';
 import CommonDropdown from '../components/CommonDropdown';
 import { productAPI } from '../api/apiClient';
 import { MOCK_PRESIGNED_URLS, MOCK_CREATE_POST, mockDelay } from '../api/mockData';
+import { uploadImagesToS3 } from '../utils/uploadImages';
 import { useMockMode } from '../contexts/MockModeContext';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
 
@@ -158,20 +159,7 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
         const presignedDataList = presignedRes.data.data.images;
 
         // 2. S3 이미지 업로드 (병렬)
-        const uploadedImageKeys = await Promise.all(
-          selectedImages.map(async (image, index) => {
-            const { uploadUrl, imageKey } = presignedDataList[index];
-            const response = await fetch(image.uri!);
-            const blob = await response.blob();
-            const uploadRes = await fetch(uploadUrl, {
-              method: 'PUT',
-              body: blob,
-              headers: { 'Content-Type': image.type || 'image/jpeg' },
-            });
-            if (!uploadRes.ok) throw new Error('S3 이미지 업로드 실패');
-            return imageKey;
-          }),
-        );
+        const uploadedImageKeys = await uploadImagesToS3(selectedImages, presignedDataList);
 
         // 3. 상품 등록
         const requestData = {
