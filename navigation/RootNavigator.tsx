@@ -43,9 +43,8 @@ export type RootStackParamList = {
   };
   ChatList: undefined;
   Chat: {
-    sellerName: string;
-    productName: string;
-    productImageUrl: string;
+    chatRoomId: number;
+    opponentNickname: string;
   };
   Payment: {
     productId: string;

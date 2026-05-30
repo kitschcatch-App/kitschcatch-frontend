@@ -252,12 +252,107 @@ export const getMockCreatePayment = (orderId: number, method: string, amount: nu
   },
 });
 
-// ─── 결제 승인 ──────────────────────────────────────────────────────────────
 
-export const MOCK_CONFIRM_PAYMENT = {
+// ─── 채팅 ────────────────────────────────────────────────────────────────────
+
+export const MOCK_MY_USER_ID = 1;
+
+export const MOCK_CHAT_ROOMS = {
   status: 200,
-  data: {
-    success: true,
-    data: null,
-  },
+  data: [
+    {
+      chatRoomId: 1,
+      opponentId: 52,
+      opponentNickname: '졸린코끼리',
+      lastMessageContent: '네 내일 오후에 직거래 가능해요!',
+      lastMessageAt: '2026-05-30T10:30:00',
+    },
+    {
+      chatRoomId: 2,
+      opponentId: 7,
+      opponentNickname: '굿즈헌터',
+      lastMessageContent: '상품 아직 판매 중인가요?',
+      lastMessageAt: '2026-05-29T18:45:00',
+    },
+  ],
+};
+
+export const getMockChatRoomDetail = (chatRoomId: number) => {
+  const details: Record<number, { postTitle: string; postThumbnailImageUrl: string }> = {
+    1: {
+      postTitle: '반프레스토 귀멸의 칼날 무이치로 피규어',
+      postThumbnailImageUrl: 'https://picsum.photos/id/101/400/400',
+    },
+    2: {
+      postTitle: '홀로라이브 제일복권 보탄 아크릴스탠드',
+      postThumbnailImageUrl: 'https://picsum.photos/id/102/400/400',
+    },
+  };
+  return {
+    status: 200,
+    data: details[chatRoomId] ?? {
+      postTitle: `[Mock] 채팅방 ${chatRoomId}`,
+      postThumbnailImageUrl: `https://picsum.photos/id/${100 + chatRoomId}/400/400`,
+    },
+  };
+};
+
+export const getMockMessages = (chatRoomId: number) => {
+  const messageMap: Record<number, any[]> = {
+    1: [
+      {
+        messageId: 1, chatRoomId: 1, senderId: 52, senderNickname: '졸린코끼리',
+        messageType: 'TEXT', content: '안녕하세요, 피규어 아직 판매 중인가요?',
+        imageUrl: null, isRead: true, createdAt: '2026-05-30T10:00:00',
+      },
+      {
+        messageId: 2, chatRoomId: 1, senderId: MOCK_MY_USER_ID, senderNickname: '나',
+        messageType: 'TEXT', content: '네! 아직 판매 중입니다 :)',
+        imageUrl: null, isRead: true, createdAt: '2026-05-30T10:05:00',
+      },
+      {
+        messageId: 3, chatRoomId: 1, senderId: 52, senderNickname: '졸린코끼리',
+        messageType: 'TEXT', content: '가격 네고 가능할까요? 10만원에 거래 가능한가요?',
+        imageUrl: null, isRead: true, createdAt: '2026-05-30T10:10:00',
+      },
+      {
+        messageId: 4, chatRoomId: 1, senderId: MOCK_MY_USER_ID, senderNickname: '나',
+        messageType: 'TEXT', content: '죄송해요, 가격은 고정이에요. 배송비 포함 12만원입니다.',
+        imageUrl: null, isRead: true, createdAt: '2026-05-30T10:15:00',
+      },
+      {
+        messageId: 5, chatRoomId: 1, senderId: 52, senderNickname: '졸린코끼리',
+        messageType: 'TEXT', content: '네 내일 오후에 직거래 가능해요!',
+        imageUrl: null, isRead: true, createdAt: '2026-05-30T10:30:00',
+      },
+    ],
+    2: [
+      {
+        messageId: 10, chatRoomId: 2, senderId: 7, senderNickname: '굿즈헌터',
+        messageType: 'TEXT', content: '상품 아직 판매 중인가요?',
+        imageUrl: null, isRead: false, createdAt: '2026-05-29T18:45:00',
+      },
+    ],
+  };
+  return {
+    status: 200,
+    data: messageMap[chatRoomId] ?? [],
+  };
+};
+
+export const getMockCreateChatRoom = (postId: number) => {
+  const sellerNicknameMap: Record<number, string> = {
+    1: '졸린코끼리',
+    2: '굿즈헌터',
+    3: '오타쿠창고',
+    4: '키치캐치셀러',
+    5: '건프라마니아',
+  };
+  return {
+    status: 201,
+    data: {
+      chatRoomId: postId,
+      sellerNickname: sellerNicknameMap[postId] ?? `판매자${postId}`,
+    },
+  };
 };

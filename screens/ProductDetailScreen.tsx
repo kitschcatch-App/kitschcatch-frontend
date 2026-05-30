@@ -15,8 +15,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { productAPI } from '../api/apiClient';
-import { getMockPostDetail, mockDelay } from '../api/mockData';
+import { productAPI, chatAPI } from '../api/apiClient';
+import { getMockPostDetail, getMockCreateChatRoom, mockDelay } from '../api/mockData';
 import { useMockMode } from '../contexts/MockModeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
@@ -82,6 +82,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   });
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [tempStatus, setTempStatus] = useState<string>('');
 
@@ -362,13 +363,39 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             <View style={{ flex: 1, flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity
                 style={styles.chatButton}
-                onPress={() => navigation.navigate('Chat', {
-                  sellerName: productDetail.sellerName,
-                  productName: productDetail.name,
-                  productImageUrl: productDetail.imageUrl,
-                })}
+                disabled={isChatLoading}
+                onPress={async () => {
+                  try {
+                    setIsChatLoading(true);
+                    let chatRoomId: number;
+                    let opponentNickname: string;
+
+                    if (isMockMode) {
+                      await mockDelay(300);
+                      const mock = getMockCreateChatRoom(Number(productDetail.id));
+                      chatRoomId = mock.data.chatRoomId;
+                      opponentNickname = mock.data.sellerNickname;
+                    } else {
+                      const res = await chatAPI.createChatRoom(Number(productDetail.id));
+                      chatRoomId = res.data.chatRoomId;
+                      opponentNickname = res.data.sellerNickname;
+                    }
+
+                    navigation.navigate('Chat', { chatRoomId, opponentNickname });
+                  } catch (e: any) {
+                    if (e?.response?.status === 401) {
+                      navigation.navigate('Login');
+                    } else {
+                      console.error('채팅방 생성 실패:', e);
+                    }
+                  } finally {
+                    setIsChatLoading(false);
+                  }
+                }}
               >
-                <Text style={styles.chatButtonText}>채팅하기</Text>
+                <Text style={styles.chatButtonText}>
+                  {isChatLoading ? '연결 중...' : '채팅하기'}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.buyButton}

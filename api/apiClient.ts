@@ -179,3 +179,31 @@ export const paymentAPI = {
   confirmPayment: (paymentId: number, data: { paymentKey: string }) =>
     apiClient.post(`/payments/${paymentId}/confirm`, data),
 };
+
+// ─── 채팅 관련 API ──────────────────────────────────────────────────────────────
+export const chatAPI = {
+  // 채팅방 생성 (이미 존재하면 기존 방 반환)
+  createChatRoom: (postId: number) =>
+    apiClient.post('/chat-rooms', { postId }),
+
+  // 내 채팅방 목록 조회
+  getChatRooms: () =>
+    apiClient.get('/chat-rooms'),
+
+  // 채팅방 상세 조회 (상품 정보)
+  getChatRoomDetail: (chatRoomId: number) =>
+    apiClient.get(`/chat-rooms/${chatRoomId}`),
+
+  // 메시지 이력 조회
+  getMessages: (chatRoomId: number) =>
+    apiClient.get(`/chat-rooms/${chatRoomId}/messages`),
+
+  // 이미지 메시지 전송 (multipart/form-data)
+  sendImageMessage: (chatRoomId: number, imageUri: string, fileName: string, mimeType: string) => {
+    const formData = new FormData();
+    formData.append('image', { uri: imageUri, name: fileName, type: mimeType } as any);
+    return apiClient.post(`/chat-rooms/${chatRoomId}/messages/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};

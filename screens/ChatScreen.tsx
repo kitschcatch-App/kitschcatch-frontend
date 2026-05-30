@@ -1,10 +1,10 @@
-/**
- * 화면: 채팅 화면 (ChatScreen)
- * 역할: 판매자와 1:1 채팅을 진행하는 화면입니다.
- */
-import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  View, Text, TouchableOpacity, Image, ScrollView,
+  TextInput, KeyboardAvoidingView, Platform, Modal, ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BackIcon from '../assets/back.svg';
 import PlusIcon from '../assets/plus.svg';
 import SendIcon from '../assets/send.svg';
@@ -13,202 +13,315 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { styles } from './ChatScreen.styles';
 import { colors } from '../styles/colors';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { chatAPI } from '../api/apiClient';
+import { useChatSocket, ChatMessageResponse } from '../hooks/useChatSocket';
+import { getMockChatRoomDetail, getMockMessages, MOCK_MY_USER_ID, mockDelay } from '../api/mockData';
+import { useMockMode } from '../contexts/MockModeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
-const ChatScreen = ({ route, navigation }: Props) => {
-  const { sellerName, productName, productImageUrl } = route.params;
+type Message = {
+  messageId: number;
+  senderId: number;
+  messageType: 'TEXT' | 'IMAGE';
+  content: string | null;
+  imageUrl: string | null;
+  time: string;
+  sender: 'me' | 'them';
+};
 
-  // 상태 관리: 입력 텍스트와 메시지 리스트
+type ProductInfo = {
+  postTitle: string;
+  postThumbnailImageUrl: string | null;
+};
+
+const getKSTTimeString = (isoString?: string): string => {
+  const date = isoString ? new Date(isoString) : new Date();
+  return date.toLocaleTimeString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+const getKSTDateString = (isoString?: string): string => {
+  const date = isoString ? new Date(isoString) : new Date();
+  return date.toLocaleDateString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+const ChatScreen = ({ route, navigation }: Props) => {
+  const { chatRoomId, opponentNickname } = route.params;
+  const insets = useSafeAreaInsets();
+  const { isMockMode } = useMockMode();
+
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
   const [inputText, setInputText] = useState('');
-  const [messages, setMessages] = useState<{ id: string; text?: string; imageUrl?: string; time: string; sender: 'me' | 'them' }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSendingImage, setIsSendingImage] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // 스크롤 뷰 참조 (새 메시지 전송 시 자동 스크롤을 위해 사용)
   const scrollViewRef = useRef<ScrollView>(null);
-  const hasReplied = useRef(false); // 상대방이 이미 답장을 했는지 여부 추적
-  const insets = useSafeAreaInsets(); // 상단 안전 영역 크기 가져오기
+  const myUserIdRef = useRef<number | null>(null);
 
-  // 상대방 답장 시뮬레이션
-  const simulateReply = () => {
-    if (!hasReplied.current) {
-      hasReplied.current = true;
-      setTimeout(() => {
-        const replyMessage = {
-          id: (Date.now() + 1).toString(),
-          text: '안녕하세요',
-          time: getKSTTimeString(),
-          sender: 'them' as const,
-        };
-        setMessages((prevMessages) => [...prevMessages, replyMessage]);
-      }, 1000); // 1초 뒤에 답장 시뮬레이션
-    }
-  };
+  const { connect, sendText, sendReadReceipt, disconnect } = useChatSocket();
 
-  // 메시지 전송 핸들러
+  const toMessage = useCallback((raw: ChatMessageResponse, userId: number): Message => ({
+    messageId: raw.messageId,
+    senderId: raw.senderId,
+    messageType: raw.messageType,
+    content: raw.content,
+    imageUrl: raw.imageUrl,
+    time: getKSTTimeString(raw.createdAt),
+    sender: raw.senderId === userId ? 'me' : 'them',
+  }), []);
+
+  // 초기 데이터 로딩: userId, 상품 정보, 메시지 이력
+  useEffect(() => {
+    const init = async () => {
+      try {
+        setIsLoading(true);
+
+        if (isMockMode) {
+          await mockDelay(300);
+          myUserIdRef.current = MOCK_MY_USER_ID;
+          const detail = getMockChatRoomDetail(chatRoomId).data;
+          const msgs = getMockMessages(chatRoomId).data as ChatMessageResponse[];
+          setProductInfo({ postTitle: detail.postTitle, postThumbnailImageUrl: detail.postThumbnailImageUrl });
+          setMessages(msgs.map((raw) => toMessage(raw, MOCK_MY_USER_ID)));
+        } else {
+          const stored = await AsyncStorage.getItem('userId');
+          const userId = stored ? Number(stored) : null;
+          myUserIdRef.current = userId;
+
+          const [detailRes, messagesRes] = await Promise.all([
+            chatAPI.getChatRoomDetail(chatRoomId),
+            chatAPI.getMessages(chatRoomId),
+          ]);
+
+          setProductInfo({
+            postTitle: detailRes.data.postTitle,
+            postThumbnailImageUrl: detailRes.data.postThumbnailImageUrl,
+          });
+
+          if (userId !== null) {
+            const history: Message[] = (messagesRes.data as ChatMessageResponse[]).map(
+              (raw) => toMessage(raw, userId)
+            );
+            setMessages(history);
+          }
+        }
+      } catch (e) {
+        console.error('채팅 초기화 실패:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    init();
+  }, [chatRoomId, isMockMode, toMessage]);
+
+  // WebSocket 연결 (초기 데이터 로딩 완료 후, mock 모드 제외)
+  useEffect(() => {
+    if (isLoading || isMockMode) return;
+
+    connect({
+      chatRoomId,
+      onMessage: (msg) => {
+        const userId = myUserIdRef.current;
+        if (userId === null) return;
+        setMessages((prev) => [...prev, toMessage(msg, userId)]);
+        if (msg.senderId !== userId) {
+          sendReadReceipt(chatRoomId);
+        }
+      },
+    });
+
+    return () => disconnect();
+  }, [isLoading, isMockMode, chatRoomId, connect, disconnect, sendReadReceipt, toMessage]);
+
   const handleSendMessage = () => {
     if (inputText.trim().length === 0) return;
 
-    const newMessage = {
-      id: Date.now().toString(),
-      text: inputText.trim(),
-      time: getKSTTimeString(),
-      sender: 'me' as const,
-    };
-
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    setInputText(''); // 전송 후 입력창 초기화
-
-    simulateReply();
+    if (isMockMode) {
+      // mock 모드: 로컬에 즉시 추가
+      setMessages((prev) => [...prev, {
+        messageId: Date.now(),
+        senderId: MOCK_MY_USER_ID,
+        messageType: 'TEXT',
+        content: inputText.trim(),
+        imageUrl: null,
+        time: getKSTTimeString(),
+        sender: 'me',
+      }]);
+    } else {
+      sendText(chatRoomId, inputText.trim());
+      // 에코 방식: 서버 브로드캐스트로만 메시지 추가
+    }
+    setInputText('');
   };
 
-  // 사진 선택 핸들러
   const handlePickImage = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1, // 한 번에 보낼 이미지 수
-      quality: 0.8,
-    });
+    const result = await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1, quality: 0.8 });
+    if (result.didCancel || result.errorCode || !result.assets?.length) return;
 
-    if (result.didCancel || result.errorCode || !result.assets || result.assets.length === 0) {
+    const asset = result.assets[0];
+    if (!asset.uri) return;
+
+    if (isMockMode) {
+      // mock 모드: 선택한 이미지를 로컬에 즉시 추가
+      setMessages((prev) => [...prev, {
+        messageId: Date.now(),
+        senderId: MOCK_MY_USER_ID,
+        messageType: 'IMAGE',
+        content: null,
+        imageUrl: asset.uri!,
+        time: getKSTTimeString(),
+        sender: 'me',
+      }]);
       return;
     }
 
-    const imageUri = result.assets[0].uri;
+    const fileName = asset.fileName ?? `chat_image_${Date.now()}.jpg`;
+    const mimeType = asset.type ?? 'image/jpeg';
 
-    const newMessage = {
-      id: Date.now().toString(),
-      imageUrl: imageUri, // 이미지 URI를 추가
-      time: getKSTTimeString(),
-      sender: 'me' as const,
-    };
-
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    simulateReply();
+    try {
+      setIsSendingImage(true);
+      await chatAPI.sendImageMessage(chatRoomId, asset.uri, fileName, mimeType);
+      // 서버가 업로드 완료 후 WebSocket으로 브로드캐스트하므로 로컬 추가 불필요
+    } catch (e) {
+      console.error('이미지 전송 실패:', e);
+    } finally {
+      setIsSendingImage(false);
+    }
   };
 
-  // KST(한국 표준시) 기준 오늘 날짜 문자열 생성 함수
-  const getKSTDateString = () => {
-    return new Date().toLocaleDateString('ko-KR', {
-      timeZone: 'Asia/Seoul',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-  // KST(한국 표준시) 기준 현재 시간 문자열 생성 함수
-  const getKSTTimeString = () => {
-    return new Date().toLocaleTimeString('ko-KR', {
-      timeZone: 'Asia/Seoul',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-  };
+  const firstMessageDate = messages.length > 0 ? getKSTDateString(undefined) : null;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* 상단 공백 컨테이너 */}
         <View style={[styles.topSpacer, { height: Math.max(insets.top, 65) }]} />
 
-        {/* 헤더 영역 */}
+        {/* 헤더 */}
         <View style={styles.headerContainer}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <BackIcon width={24} height={24} />
           </TouchableOpacity>
-          
           <View style={styles.headerCenter}>
-            <Text style={styles.nickname}>{sellerName}</Text>
+            <Text style={styles.nickname}>{opponentNickname}</Text>
             <Text style={styles.responseTime}>평균응답시간 30분</Text>
           </View>
         </View>
 
-        {/* 상품 정보 영역 */}
+        {/* 상품 정보 */}
         <View style={styles.productInfoContainer}>
-          <Image source={{ uri: productImageUrl }} style={styles.productImage} />
-          <Text style={styles.productName} numberOfLines={1}>{productName}</Text>
-          {/* 상품 이름이 길면 몇줄까지 표시할건지 */}
+          {productInfo?.postThumbnailImageUrl ? (
+            <Image source={{ uri: productInfo.postThumbnailImageUrl }} style={styles.productImage} />
+          ) : (
+            <View style={[styles.productImage, { backgroundColor: colors.main03 }]} />
+          )}
+          <Text style={styles.productName} numberOfLines={1}>
+            {productInfo?.postTitle ?? ''}
+          </Text>
         </View>
 
-        {/* 채팅 내용 영역 */}
+        {/* 채팅 내용 */}
         <View style={[styles.chatBackground, { backgroundColor: colors.main03 }]}>
-          <ScrollView 
-            style={styles.chatScrollView}
-            ref={scrollViewRef}
-            contentContainerStyle={styles.chatContentContainer}
-            onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-          >
-            {/* 날짜 구분선 (메시지가 1개 이상 있을 때만 표시) */}
-            {messages.length > 0 && (
-              <View style={styles.dateSeparatorContainer}>
-                <View style={styles.dateLine} />
-                <Text style={styles.dateText}>{getKSTDateString()}</Text>
-                <View style={styles.dateLine} />
-              </View>
-            )}
+          {isLoading ? (
+            <ActivityIndicator style={{ flex: 1 }} />
+          ) : (
+            <ScrollView
+              style={styles.chatScrollView}
+              ref={scrollViewRef}
+              contentContainerStyle={styles.chatContentContainer}
+              onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+            >
+              {firstMessageDate && (
+                <View style={styles.dateSeparatorContainer}>
+                  <View style={styles.dateLine} />
+                  <Text style={styles.dateText}>{firstMessageDate}</Text>
+                  <View style={styles.dateLine} />
+                </View>
+              )}
 
-            {/* 메시지 말풍선 목록 렌더링 */}
-            {messages.map((msg, index, arr) => {
-              // 그룹의 마지막 메시지에만 시간을 표시하기 위함
-              const nextMessage = arr[index + 1];
-              const showTime = !nextMessage || nextMessage.time !== msg.time || nextMessage.sender !== msg.sender;
+              {messages.map((msg, index, arr) => {
+                const nextMsg = arr[index + 1];
+                const showTime = !nextMsg || nextMsg.time !== msg.time || nextMsg.sender !== msg.sender;
+                const isImage = msg.messageType === 'IMAGE';
+                const bubbleStyle = isImage ? styles.imageMessageBubble : {};
 
-              // 이미지 메시지일 경우 적용할 특수 스타일
-              const isImage = !!msg.imageUrl;
-              const bubbleStyle = isImage ? styles.imageMessageBubble : {};
-
-              if (msg.sender === 'them') {
-                return (
-                  <View key={msg.id} style={styles.messageRowThem}>
-                    <View style={[styles.messageBubbleThem, bubbleStyle]}>
-                      {isImage ? (
-                        <TouchableOpacity activeOpacity={0.8} onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}>
-                          <Image source={{ uri: msg.imageUrl }} style={styles.messageImage} />
-                        </TouchableOpacity>
-                      ) : (
-                        <Text style={styles.messageTextMe}>{msg.text}</Text>
-                      )}
-                      {!isImage && <View style={styles.tailIconThem} />}
+                if (msg.sender === 'them') {
+                  return (
+                    <View key={msg.messageId} style={styles.messageRowThem}>
+                      <View style={[styles.messageBubbleThem, bubbleStyle]}>
+                        {isImage ? (
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}
+                          >
+                            <Image source={{ uri: msg.imageUrl! }} style={styles.messageImage} />
+                          </TouchableOpacity>
+                        ) : (
+                          <Text style={styles.messageTextMe}>{msg.content}</Text>
+                        )}
+                        {!isImage && <View style={styles.tailIconThem} />}
+                      </View>
+                      <Text style={[styles.messageTime, { opacity: showTime ? 1 : 0, marginLeft: 6 }]}>
+                        {msg.time}
+                      </Text>
                     </View>
-                    <Text style={[styles.messageTime, { opacity: showTime ? 1 : 0, marginLeft: 6 }]}>
+                  );
+                }
+
+                return (
+                  <View key={msg.messageId} style={styles.messageRowMe}>
+                    <Text style={[styles.messageTime, { opacity: showTime ? 1 : 0 }]}>
                       {msg.time}
                     </Text>
+                    <View style={[styles.messageBubbleMe, bubbleStyle]}>
+                      {isImage ? (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}
+                        >
+                          <Image source={{ uri: msg.imageUrl! }} style={styles.messageImage} />
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.messageTextMe}>{msg.content}</Text>
+                      )}
+                      {!isImage && <View style={styles.tailIconMe} />}
+                    </View>
                   </View>
                 );
-              }
-              // 내 메시지
-              return (
-                <View key={msg.id} style={styles.messageRowMe}>
-                  <Text style={[styles.messageTime, { opacity: showTime ? 1 : 0 }]}>
-                    {msg.time}
-                  </Text>
-                  <View style={[styles.messageBubbleMe, bubbleStyle]}>
-                    {isImage ? (
-                      <TouchableOpacity activeOpacity={0.8} onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}>
-                        <Image source={{ uri: msg.imageUrl }} style={styles.messageImage} />
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={styles.messageTextMe}>{msg.text}</Text>
-                    )}
-                    {!isImage && <View style={styles.tailIconMe} />}
-                  </View>
-                </View>
-              );
-            })}
-          </ScrollView>
+              })}
+            </ScrollView>
+          )}
         </View>
 
-        {/* 하단 고정 채팅 입력 바 */}
+        {/* 입력 바 */}
         <View style={styles.inputContainer}>
-          <TouchableOpacity style={styles.plusButton} onPress={handlePickImage}>
-            <PlusIcon width={28} height={28} />
+          <TouchableOpacity
+            style={styles.plusButton}
+            onPress={handlePickImage}
+            disabled={isSendingImage}
+          >
+            {isSendingImage
+              ? <ActivityIndicator size="small" />
+              : <PlusIcon width={28} height={28} />
+            }
           </TouchableOpacity>
-          <TextInput 
+          <TextInput
             style={styles.textInput}
             placeholder="메시지 입력"
             value={inputText}
@@ -223,7 +336,12 @@ const ChatScreen = ({ route, navigation }: Props) => {
       </KeyboardAvoidingView>
 
       {/* 이미지 전체 화면 모달 */}
-      <Modal visible={modalVisible} transparent={true} animationType="fade" onRequestClose={() => setModalVisible(false)}>
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
         <View style={styles.modalBackground}>
           <TouchableOpacity style={styles.modalCloseButton} onPress={() => setModalVisible(false)}>
             <Text style={styles.modalCloseText}>✕</Text>
