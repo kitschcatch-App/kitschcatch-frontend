@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { productAPI, chatAPI } from '../api/apiClient';
 import { getMockPostDetail, getMockCreateChatRoom, mockDelay } from '../api/mockData';
 import { useMockMode } from '../contexts/MockModeContext';
+import { formatTime } from '../utils/formatTime';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
 
@@ -205,38 +206,6 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     ]).start(() => {
       navigation.goBack();
     });
-  };
-
-  // 등록된 시간 포맷팅 함수 ("방금 전", "N시간 전", "N달 전" 등)
-  const formatTime = (dateString: string) => {
-    if (!dateString) return '';
-
-    const timePart = dateString.split('T')[1] || '';
-    const hasTimezone = timePart.includes('Z') || timePart.includes('+') || timePart.includes('-');
-    const kstDateString = hasTimezone ? dateString : `${dateString}+09:00`;
-
-    const date = new Date(kstDateString);
-    if (isNaN(date.getTime())) return dateString;
-
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-
-    if (diffMs < 0) {
-      return `${date.getFullYear()}. ${date.getMonth() + 1}. ${date.getDate()}.`;
-    }
-
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    const diffMonths = Math.floor(diffDays / 30);
-    const diffYears = Math.floor(diffDays / 365);
-
-    if (diffMins < 1) return '방금 전';
-    if (diffMins < 60) return `${diffMins}분 전`;
-    if (diffHours < 24) return `${diffHours}시간 전`;
-    if (diffDays < 30) return `${diffDays}일 전`;
-    if (diffMonths < 12) return `${diffMonths}달 전`;
-    return `${diffYears}년 전`;
   };
 
   // 로그인 유저 ID와 판매자 ID를 비교하여 본인 게시글 여부 판별
