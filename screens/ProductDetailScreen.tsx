@@ -18,7 +18,7 @@ import BottomNav from '../components/BottomNav';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import { productAPI, chatAPI } from '../api/apiClient';
 import { getMockPostDetail, getMockCreateChatRoom, mockDelay } from '../api/mockData';
 import { useMockMode } from '../contexts/MockModeContext';
@@ -163,7 +163,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   // 로그인된 사용자 ID 불러오기 (로그인 시 저장한 user.id)
   useEffect(() => {
     const loadCurrentUser = async () => {
-      const stored = await AsyncStorage.getItem('userId');
+      const stored = await secureStorage.getItem('userId');
       if (stored) setCurrentUserId(Number(stored));
     };
     loadCurrentUser();

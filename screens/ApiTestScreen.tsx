@@ -21,7 +21,7 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import axios from 'axios';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -250,18 +250,18 @@ const ApiTestScreen = ({ navigation }: Props) => {
   // ─── 토큰 확인 / 삭제 ─────────────────────────────────────────────────────
   const handleCheckTokens = async () => {
     const [accessToken, refreshToken, userId] = await Promise.all([
-      AsyncStorage.getItem('accessToken'),
-      AsyncStorage.getItem('refreshToken'),
-      AsyncStorage.getItem('userId'),
+      secureStorage.getItem('accessToken'),
+      secureStorage.getItem('refreshToken'),
+      secureStorage.getItem('userId'),
     ]);
     setTokenStatus({ accessToken, refreshToken, userId });
   };
 
   const handleClearTokens = async () => {
     await Promise.all([
-      AsyncStorage.removeItem('accessToken'),
-      AsyncStorage.removeItem('refreshToken'),
-      AsyncStorage.removeItem('userId'),
+      secureStorage.removeItem('accessToken'),
+      secureStorage.removeItem('refreshToken'),
+      secureStorage.removeItem('userId'),
     ]);
     setTokenStatus({ accessToken: null, refreshToken: null, userId: null });
   };

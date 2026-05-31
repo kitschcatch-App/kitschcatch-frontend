@@ -1,11 +1,13 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import LoginScreen from '../screens/LoginScreen';
 
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  setItem: jest.fn(),
+jest.mock('../utils/secureStorage', () => ({
+  secureStorage: {
+    setItem: jest.fn(),
+  },
 }));
 
 jest.mock('@react-native-seoul/kakao-login', () => ({
@@ -39,6 +41,17 @@ jest.mock('react-native-svg', () => ({
   Stop: 'Stop',
 }));
 
+// SuccessView: 애니메이션 타이머 없이 visible=true 즉시 onDismiss 호출
+jest.mock('../components/SuccessView', () => {
+  const React = require('react');
+  return function MockSuccessView({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
+    React.useEffect(() => {
+      if (visible) onDismiss();
+    }, [visible]);
+    return null;
+  };
+});
+
 const mockReplace = jest.fn();
 const mockNavigate = jest.fn();
 const navigation: any = { replace: mockReplace, navigate: mockNavigate };
@@ -58,10 +71,10 @@ const renderLogin = async () => {
 describe('LoginScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+    (secureStorage.setItem as jest.Mock).mockResolvedValue(undefined);
   });
 
-  it('카카오 로그인 버튼 클릭 시 userId "42"를 AsyncStorage에 저장한다', async () => {
+  it('카카오 로그인 버튼 클릭 시 userId "42"를 secureStorage에 저장한다', async () => {
     const renderer = await renderLogin();
     const [kakaoButton] = renderer.root.findAllByType(TouchableOpacity);
 
@@ -69,7 +82,7 @@ describe('LoginScreen', () => {
       kakaoButton.props.onPress();
     });
 
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith('userId', '42');
+    expect(secureStorage.setItem).toHaveBeenCalledWith('userId', '42');
   });
 
   it('카카오 로그인 버튼 클릭 시 ProductList로 이동한다', async () => {
@@ -85,7 +98,7 @@ describe('LoginScreen', () => {
 
   it('카카오 로그인은 userId 저장 후 화면을 전환한다', async () => {
     const callOrder: string[] = [];
-    (AsyncStorage.setItem as jest.Mock).mockImplementation(async () => {
+    (secureStorage.setItem as jest.Mock).mockImplementation(async () => {
       callOrder.push('setItem');
     });
     mockReplace.mockImplementation(() => {

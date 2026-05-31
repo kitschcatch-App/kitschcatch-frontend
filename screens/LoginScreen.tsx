@@ -13,7 +13,7 @@ import KakaoIcon from '../assets/kakao.svg';
 import Svg, { Ellipse, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { login } from '@react-native-seoul/kakao-login';
 import { authAPI } from '../api/apiClient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import ErrorView from '../components/ErrorView';
 import SuccessView from '../components/SuccessView';
 import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
@@ -29,7 +29,7 @@ const LoginScreen = ({ navigation }: Props) => {
   const handleKakaoLogin = async () => {
     // 백엔드 연동 전 임시로 바로 메인 화면(ProductList)으로 넘어가게 처리
     // Mock 데이터의 판매자 정보(id: 42)와 일치하도록 내 ID를 임시 저장
-    await AsyncStorage.setItem('userId', '42');
+    await secureStorage.setItem('userId', '42');
     setShowSuccess(true);
     /*
     try {
@@ -57,9 +57,9 @@ const LoginScreen = ({ navigation }: Props) => {
       const { accessToken, refreshToken } = response.data.data;
 
       // Step 4: 발급받은 토큰을 기기에 저장
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', refreshToken);
-      await AsyncStorage.setItem('userId', String(response.data.data.user.id));
+      await secureStorage.setItem('accessToken', accessToken);
+      await secureStorage.setItem('refreshToken', refreshToken);
+      await secureStorage.setItem('userId', String(response.data.data.user.id));
       console.log('[Login] 로그인 성공');
 
       // Step 5: 메인 화면으로 이동
@@ -74,7 +74,11 @@ const LoginScreen = ({ navigation }: Props) => {
         console.error('[Login] 카카오 로그인 에러:', err.message);
         console.error('[Login] HTTP 상태 코드:', err.response?.status);
         console.error('[Login] 서버 에러 응답:', JSON.stringify(serverError, null, 2));
-        setErrorMsg(ERROR_MESSAGES.AUTH.FAILED);
+        if (serverError?.error?.code === 'AUTH_004') {
+          setErrorMsg(ERROR_MESSAGES.AUTH.EMAIL_CONSENT);
+        } else {
+          setErrorMsg(ERROR_MESSAGES.AUTH.FAILED);
+        }
       }
     }
     */

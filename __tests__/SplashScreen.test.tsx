@@ -1,11 +1,13 @@
 import React from 'react';
 import { Animated } from 'react-native';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import SplashScreen from '../screens/SplashScreen';
 
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(),
+jest.mock('../utils/secureStorage', () => ({
+  secureStorage: {
+    getItem: jest.fn(),
+  },
 }));
 
 const mockReplace = jest.fn();
@@ -30,9 +32,9 @@ describe('SplashScreen', () => {
   });
 
   it('accessToken이 있으면 ProductList로 이동한다', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('access-token');
+    (secureStorage.getItem as jest.Mock).mockResolvedValue('access-token');
 
-    // AsyncStorage.getItem 완료 + setTimeout(2000) 등록까지 진행
+    // secureStorage.getItem 완료 + setTimeout(2000) 등록까지 진행
     await act(async () => {
       renderSplash();
       await Promise.resolve();
@@ -46,7 +48,7 @@ describe('SplashScreen', () => {
   });
 
   it('accessToken이 없으면 Login으로 이동한다', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+    (secureStorage.getItem as jest.Mock).mockResolvedValue(null);
 
     await act(async () => {
       renderSplash();
@@ -59,20 +61,20 @@ describe('SplashScreen', () => {
     expect(mockReplace).toHaveBeenCalledWith('Login');
   });
 
-  it('"accessToken" 키로 AsyncStorage를 조회한다', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+  it('"accessToken" 키로 secureStorage를 조회한다', async () => {
+    (secureStorage.getItem as jest.Mock).mockResolvedValue(null);
 
     await act(async () => {
       renderSplash();
-      await Promise.resolve(); // AsyncStorage.getItem 완료 대기
+      await Promise.resolve(); // secureStorage.getItem 완료 대기
       await Promise.resolve(); // checkAndNavigate 재개 대기
     });
 
-    expect(AsyncStorage.getItem).toHaveBeenCalledWith('accessToken');
+    expect(secureStorage.getItem).toHaveBeenCalledWith('accessToken');
   });
 
   it('언마운트 후에는 navigation.replace를 호출하지 않는다', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+    (secureStorage.getItem as jest.Mock).mockResolvedValue(null);
 
     let renderer!: ReactTestRenderer.ReactTestRenderer;
 

@@ -1,16 +1,18 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import { apiClient } from '../api/apiClient';
 
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
+jest.mock('../utils/secureStorage', () => ({
+  secureStorage: {
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+  },
 }));
 
-const mockGetItem = AsyncStorage.getItem as jest.Mock;
-const mockSetItem = AsyncStorage.setItem as jest.Mock;
-const mockRemoveItem = AsyncStorage.removeItem as jest.Mock;
+const mockGetItem = secureStorage.getItem as jest.Mock;
+const mockSetItem = secureStorage.setItem as jest.Mock;
+const mockRemoveItem = secureStorage.removeItem as jest.Mock;
 
 // 성공 응답 어댑터 헬퍼
 const makeSuccessAdapter = (data = {}) =>
@@ -155,11 +157,11 @@ describe('apiClient - 응답 인터셉터 (토큰 자동 갱신)', () => {
     expect(mockRemoveItem).toHaveBeenCalledWith('refreshToken');
   });
 
-  it('/auth/token/refresh 경로에서 401 발생 시 토큰을 삭제하고 무한 루프 없이 종료한다', async () => {
+  it('/token/refresh 경로에서 401 발생 시 토큰을 삭제하고 무한 루프 없이 종료한다', async () => {
     mockGetItem.mockResolvedValue(null);
 
     await expect(
-      request(async (config) => { throw make401Error(config); }, '/auth/token/refresh'),
+      request(async (config) => { throw make401Error(config); }, '/token/refresh'),
     ).rejects.toMatchObject({ response: { status: 401 } });
 
     expect(mockRemoveItem).toHaveBeenCalledWith('accessToken');

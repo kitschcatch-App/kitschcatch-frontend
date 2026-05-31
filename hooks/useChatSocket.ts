@@ -7,7 +7,7 @@
 import { useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 
 const WS_BASE_URL = 'http://10.0.2.2:8080/ws';
 
@@ -45,7 +45,7 @@ export const useChatSocket = () => {
       webSocketFactory: () => new SockJS(WS_BASE_URL),
       reconnectDelay: 5000,
       beforeConnect: async () => {
-        const token = await AsyncStorage.getItem('accessToken');
+        const token = await secureStorage.getItem('accessToken');
         client.connectHeaders = {
           Authorization: `Bearer ${token ?? ''}`,
         };

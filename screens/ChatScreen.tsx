@@ -8,7 +8,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import BackIcon from '../assets/back.svg';
 import PlusIcon from '../assets/plus.svg';
 import SendIcon from '../assets/send.svg';
@@ -105,7 +105,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
           setProductInfo({ postTitle: detail.postTitle, postThumbnailImageUrl: detail.postThumbnailImageUrl });
           setMessages(msgs.map((raw) => toMessage(raw, MOCK_MY_USER_ID)));
         } else {
-          const stored = await AsyncStorage.getItem('userId');
+          const stored = await secureStorage.getItem('userId');
           const userId = stored ? Number(stored) : null;
           myUserIdRef.current = userId;
 

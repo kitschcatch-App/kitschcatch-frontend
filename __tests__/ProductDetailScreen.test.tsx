@@ -5,13 +5,15 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { Text, Animated } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import { productAPI, chatAPI } from '../api/apiClient';
 import { useMockMode } from '../contexts/MockModeContext';
 
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(),
+jest.mock('../utils/secureStorage', () => ({
+  secureStorage: {
+    getItem: jest.fn(),
+  },
 }));
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -139,7 +141,7 @@ describe('ProductDetailScreen - 판매자 UI', () => {
     (productAPI.getPostDetail as jest.Mock).mockResolvedValue({
       data: { data: { ...mockPost, seller: { id: 42, nickname: 'seller1' } } },
     });
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('42');
+    (secureStorage.getItem as jest.Mock).mockResolvedValue('42');
     (productAPI.updatePost as jest.Mock).mockResolvedValue({ status: 200 });
   });
 
@@ -228,7 +230,7 @@ describe('ProductDetailScreen - 구매자 UI', () => {
     (productAPI.getPostDetail as jest.Mock).mockResolvedValue({
       data: { data: { ...mockPost, seller: { id: 42, nickname: 'seller1' } } },
     });
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('99');
+    (secureStorage.getItem as jest.Mock).mockResolvedValue('99');
   });
 
   it('"채팅하기" 버튼을 표시한다', async () => {
@@ -269,7 +271,7 @@ describe('ProductDetailScreen - 채팅하기', () => {
     (productAPI.getPostDetail as jest.Mock).mockResolvedValue({
       data: { data: { ...mockPost, seller: { id: 42, nickname: 'seller1' } } },
     });
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('99');
+    (secureStorage.getItem as jest.Mock).mockResolvedValue('99');
   });
 
   it('"채팅하기" 클릭 시 chatAPI.createChatRoom을 productId(숫자)로 호출한다', async () => {
@@ -315,7 +317,7 @@ describe('ProductDetailScreen - API 데이터 매핑', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useMockMode as jest.Mock).mockReturnValue({ isMockMode: false });
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+    (secureStorage.getItem as jest.Mock).mockResolvedValue(null);
   });
 
   it('images 배열이 없으면 route.params의 imageUrl을 유지한다', async () => {
