@@ -19,33 +19,9 @@ import { launchImageLibrary, Asset } from 'react-native-image-picker';
 import { validateEditForm } from '../utils/validateProductForm';
 import { updateProduct, STATUS_MAP } from '../utils/updateProduct';
 import { CONDITION_MAP } from '../utils/registerProduct';
+import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP } from '../constants/displayMaps';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductEdit'>;
-
-// 백엔드 enum → 한글 표시용 (기존 데이터 초기화에 사용)
-const CONDITION_DISPLAY_MAP: Record<string, string> = {
-  'NEW': '새상품',
-  'LIKE_NEW': '사용감 적음',
-  'USED': '사용감 있음',
-  'DAMAGED': '사용감 많음',
-};
-
-// 백엔드 enum → 한글 표시용 (productCategory가 English enum으로 넘어올 경우 fallback용)
-const CATEGORY_DISPLAY_MAP: Record<string, string> = {
-  'ANIME_MANGA': '애니/만화',
-  'GAME': '게임',
-  'GOODS': '굿즈',
-  'COSPLAY': '코스프레',
-  'BOOK': '서적',
-  'MUSIC_VIDEO': '음반/영상',
-  'ETC': '기타',
-};
-
-const STATUS_DISPLAY_MAP: Record<string, string> = {
-  'ON_SALE': '판매중',
-  'RESERVED': '예약중',
-  'SOLD_OUT': '판매완료',
-};
 
 const CONDITION_OPTIONS = ['새상품', '사용감 적음', '사용감 있음', '사용감 많음'];
 // 등록 화면과 동일한 카테고리 목록 (백엔드 한글 직렬화 값과 일치)

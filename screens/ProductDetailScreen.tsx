@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, Dimensions } from 'react-native';
 import ErrorView from '../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
+import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP } from '../constants/displayMaps';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,30 +26,6 @@ import { useMockMode } from '../contexts/MockModeContext';
 import { formatTime } from '../utils/formatTime';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
-
-// 한글 출력용 매핑 객체
-const CONDITION_DISPLAY_MAP: Record<string, string> = {
-  'NEW': '새상품',
-  'LIKE_NEW': '사용감 적음',
-  'USED': '사용감 있음',
-  'DAMAGED': '사용감 많음',
-};
-
-const CATEGORY_DISPLAY_MAP: Record<string, string> = {
-  'ANIME_MANGA': '애니/만화',
-  'GAME': '게임',
-  'GOODS': '굿즈',
-  'COSPLAY': '코스프레',
-  'BOOK': '서적',
-  'MUSIC_VIDEO': '음반/영상',
-  'ETC': '기타',
-};
-
-const STATUS_DISPLAY_MAP: Record<string, string> = {
-  'ON_SALE': '판매중',
-  'RESERVED': '예약중',
-  'SOLD_OUT': '판매완료',
-};
 
 const ProductDetailScreen = ({ route, navigation }: Props) => {
   const insets = useSafeAreaInsets();

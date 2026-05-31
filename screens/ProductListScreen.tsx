@@ -32,16 +32,11 @@ import FilterBottomSheet, { FilterState } from '../components/FilterBottomSheet'
 import { filterProducts, Product } from '../utils/filterProducts';
 import ErrorView from '../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
+import { STATUS_DISPLAY_MAP } from '../constants/displayMaps';
 
 import { styles } from './ProductListScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
-
-const STATUS_DISPLAY_MAP: Record<string, string> = {
-  'ON_SALE': '판매중',
-  'RESERVED': '예약중',
-  'SOLD_OUT': '판매완료',
-};
 
 const ProductListScreen = ({ navigation }: Props) => {
   const { isMockMode, toggleMockMode } = useMockMode();
