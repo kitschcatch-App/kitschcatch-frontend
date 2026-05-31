@@ -1,3 +1,7 @@
+/**
+ * 컴포넌트: 에러 뷰 (ErrorView)
+ * 역할: 앱 내에서 발생하는 에러 메시지를 모달 형태로 보여주는 공통 컴포넌트입니다.
+ */
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { styles } from './ErrorView.styles';

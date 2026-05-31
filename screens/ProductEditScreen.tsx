@@ -155,7 +155,7 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
           postId,
           productName, productPrice, productDescription,
           selectedCondition, selectedCategory, selectedStatus,
-          newImages: selectedImages,
+          newImages: selectedImages.filter((img): img is typeof img & { uri: string } => !!img.uri),
           existingImageKeys: imageKeys || [],
         });
         setShowSuccess(true);

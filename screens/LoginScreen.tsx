@@ -1,3 +1,7 @@
+/**
+ * 화면: 로그인 화면 (LoginScreen)
+ * 역할: 카카오 소셜 로그인을 통해 앱에 접속하고 인증 토큰을 발급받는 화면입니다.
+ */
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

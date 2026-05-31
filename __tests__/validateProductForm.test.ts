@@ -1,3 +1,7 @@
+/**
+ * 테스트: 상품 폼 유효성 검사 테스트 (validateProductForm.test)
+ * 역할: 상품 등록 및 수정 시 입력된 데이터의 유효성을 검사하는 로직을 검증합니다.
+ */
 import { validateProductForm, ProductFormInputs } from '../utils/validateProductForm';
 
 const validInputs: ProductFormInputs = {

@@ -1,3 +1,9 @@
+/**
+ * 스타일: 성공 뷰 스타일 (SuccessView.styles)
+ * 역할: SuccessView 컴포넌트의 모달 오버레이 및 메시지 UI 스타일을 정의합니다.
+ */
+
+
 import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';

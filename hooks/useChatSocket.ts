@@ -1,3 +1,9 @@
+/**
+ * 훅: 웹소켓 채팅 커스텀 훅 (useChatSocket)
+ * 역할: 채팅방 접속, 메시지 수신/발신, 읽음 처리 등 WebSocket(STOMP) 통신 상태와 로직을 관리합니다.
+ */
+
+
 import { useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';

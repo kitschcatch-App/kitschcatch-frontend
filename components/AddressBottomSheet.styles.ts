@@ -1,3 +1,9 @@
+/**
+ * 스타일: 배송지 바텀 시트 스타일 (AddressBottomSheet.styles)
+ * 역할: AddressBottomSheet 컴포넌트의 레이아웃, 애니메이션 및 리스트 아이템 UI 스타일을 정의합니다.
+ */
+
+
 import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';

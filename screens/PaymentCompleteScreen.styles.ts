@@ -1,3 +1,9 @@
+/**
+ * 스타일: 결제 완료 화면 스타일 (PaymentCompleteScreen.styles)
+ * 역할: PaymentCompleteScreen 화면의 레이아웃 및 UI 요소(결제 완료 메시지, 주문 정보 등)의 스타일을 정의합니다.
+ */
+
+
 import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';

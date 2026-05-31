@@ -1,3 +1,7 @@
+/**
+ * 테스트: 시간 포맷 유틸리티 테스트 (formatTime.test)
+ * 역할: formatTime 함수의 시간 계산 및 문자열 변환 로직을 검증합니다.
+ */
 import { formatTime } from '../utils/formatTime';
 
 // NOW = 2024-06-15T12:00:00+09:00 (= 2024-06-15T03:00:00Z)

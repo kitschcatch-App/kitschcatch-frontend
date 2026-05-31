@@ -1,3 +1,7 @@
+/**
+ * 테스트: 상품 상세 화면 테스트 (ProductDetailScreen.test)
+ * 역할: 판매자/구매자별 UI 렌더링, API 호출, 화면 이동 등의 동작을 검증합니다.
+ */
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { Text, Animated } from 'react-native';

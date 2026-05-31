@@ -1,3 +1,7 @@
+/**
+ * 스타일: 에러 뷰 스타일 (ErrorView.styles)
+ * 역할: ErrorView 컴포넌트의 UI 스타일을 정의합니다.
+ */
 import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';

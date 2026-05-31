@@ -1,3 +1,8 @@
+/**
+ * 스타일: 채팅 화면 스타일 (ChatScreen.styles)
+ * 역할: ChatScreen 화면의 레이아웃 및 UI 요소(메시지 버블, 입력창 등)의 스타일을 정의합니다.
+ */
+
 import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';

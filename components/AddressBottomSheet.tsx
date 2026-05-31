@@ -1,3 +1,9 @@
+/**
+ * 컴포넌트: 배송지 바텀 시트 (AddressBottomSheet)
+ * 역할: 결제 화면 등에서 배송지를 변경하거나 목록에서 새로 선택할 때 하단에서 올라오는 바텀 시트 컴포넌트입니다.
+ */
+
+
 import React, { useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

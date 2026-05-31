@@ -1,3 +1,9 @@
+/**
+ * 컴포넌트: 성공 뷰 (SuccessView)
+ * 역할: 앱 내에서 작업(상품 등록, 결제 완료, 정보 수정 등)이 성공적으로 처리되었을 때 보여주는 공통 모달 컴포넌트입니다.
+ */
+
+
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Modal, Animated } from 'react-native';
 import { styles } from './SuccessView.styles';

@@ -1,3 +1,7 @@
+/**
+ * 화면: 스플래시 화면 (SplashScreen)
+ * 역할: 앱 실행 시 처음에 나타나는 로딩 화면으로, 로그인 상태를 확인하여 이동할 화면을 결정합니다.
+ */
 import React, { useEffect, useRef } from 'react';
 import { View, Image, StyleSheet, Dimensions, Animated } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';

@@ -1,3 +1,7 @@
+/**
+ * 상수: 에러 메시지 (errorMessages)
+ * 역할: 시스템, 인증, 상품, 채팅 등 앱 전반에서 공통으로 사용되는 에러 메시지 텍스트를 정의합니다.
+ */
 export const ERROR_MESSAGES = {
   SYSTEM: {
     NETWORK:   { title: '인터넷 연결을 확인해주세요',       subtitle: '네트워크 상태가 불안정해요.' },

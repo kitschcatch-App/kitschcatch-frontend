@@ -1,3 +1,7 @@
+/**
+ * 테스트: 상품 필터링 유틸리티 테스트 (filterProducts.test)
+ * 역할: 상품 목록의 카테고리, 상태, 가격, 정렬 필터링 로직을 검증합니다.
+ */
 import { filterProducts, Product } from '../utils/filterProducts';
 import type { FilterState } from '../components/FilterBottomSheet';
 

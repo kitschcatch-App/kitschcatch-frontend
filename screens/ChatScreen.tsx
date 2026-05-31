@@ -1,3 +1,7 @@
+/**
+ * 화면: 채팅 화면 (ChatScreen)
+ * 역할: 구매자와 판매자가 상품에 대해 1:1로 채팅을 주고받는 화면입니다.
+ */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Image, ScrollView,

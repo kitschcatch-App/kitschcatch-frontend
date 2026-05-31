@@ -1,3 +1,7 @@
+/**
+ * 화면: 채팅 목록 화면 (ChatListScreen)
+ * 역할: 사용자가 참여 중인 채팅방 목록을 최근 메시지 순으로 보여주는 화면입니다.
+ */
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
