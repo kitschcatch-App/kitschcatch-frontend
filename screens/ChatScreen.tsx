@@ -17,6 +17,8 @@ import { chatAPI } from '../api/apiClient';
 import { useChatSocket, ChatMessageResponse } from '../hooks/useChatSocket';
 import { getMockChatRoomDetail, getMockMessages, MOCK_MY_USER_ID, mockDelay } from '../api/mockData';
 import { useMockMode } from '../contexts/MockModeContext';
+import ErrorView from '../components/ErrorView';
+import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
@@ -67,6 +69,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
   const [isSendingImage, setIsSendingImage] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const myUserIdRef = useRef<number | null>(null);
@@ -198,6 +201,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
       // 서버가 업로드 완료 후 WebSocket으로 브로드캐스트하므로 로컬 추가 불필요
     } catch (e) {
       console.error('이미지 전송 실패:', e);
+      setErrorMsg(ERROR_MESSAGES.CHAT.SEND_FAILED);
     } finally {
       setIsSendingImage(false);
     }
@@ -334,6 +338,13 @@ const ChatScreen = ({ route, navigation }: Props) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <ErrorView
+        visible={!!errorMsg}
+        title={errorMsg?.title ?? ''}
+        subtitle={errorMsg?.subtitle ?? ''}
+        onPress={() => setErrorMsg(null)}
+      />
 
       {/* 이미지 전체 화면 모달 */}
       <Modal

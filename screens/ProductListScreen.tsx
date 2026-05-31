@@ -30,6 +30,8 @@ import { MOCK_POST_LIST, mockDelay } from '../api/mockData';
 import { useMockMode } from '../contexts/MockModeContext';
 import FilterBottomSheet, { FilterState } from '../components/FilterBottomSheet';
 import { filterProducts, Product } from '../utils/filterProducts';
+import ErrorView from '../components/ErrorView';
+import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
 
 import { styles } from './ProductListScreen.styles';
 
@@ -49,7 +51,7 @@ const ProductListScreen = ({ navigation }: Props) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLastPage, setIsLastPage] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorMessage | null>(null);
   const [isFilterVisible, setIsFilterVisible] = useState(false); // 필터 모달 상태
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filterState, setFilterState] = useState<FilterState>({
@@ -132,7 +134,8 @@ const ProductListScreen = ({ navigation }: Props) => {
       if (axios.isCancel(err)) return;
       console.error('상품 목록 불러오기 실패:', err);
       if (page === 0) {
-        setError('상품 목록을 불러오지 못했습니다.\nMock 모드로 전환하거나 서버를 확인해주세요.');
+        const isNetworkError = !err.response;
+        setError(isNetworkError ? ERROR_MESSAGES.SYSTEM.NETWORK : ERROR_MESSAGES.SYSTEM.TEMPORARY);
       }
     } finally {
       setLoading(false);
@@ -307,10 +310,6 @@ const ProductListScreen = ({ navigation }: Props) => {
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#000" />
           </View>
-        ) : error ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text>{error}</Text>
-          </View>
         ) : (
           <FlatList
             data={filteredProducts}
@@ -342,6 +341,17 @@ const ProductListScreen = ({ navigation }: Props) => {
         onClose={() => setIsFilterVisible(false)}
         filterState={filterState}
         onApply={(filters) => setFilterState(filters)}
+      />
+
+      <ErrorView
+        visible={!!error}
+        title={error?.title ?? ''}
+        subtitle={error?.subtitle ?? ''}
+        buttonText="확인"
+        onPress={() => {
+          setError(null);
+          fetchProducts(0);
+        }}
       />
 
       <BottomNav />

@@ -15,5 +15,6 @@ export const colors = {
   main03: '#46C9B226',
   sub01: '#E4F7F4',
   sub02: '#008A71',
+  sub03: '#46C9B2',
   red: '#DE0000',
 } as const;

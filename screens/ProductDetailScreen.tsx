@@ -4,6 +4,8 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, Dimensions } from 'react-native';
+import ErrorView from '../components/ErrorView';
+import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,6 +91,8 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [tempStatus, setTempStatus] = useState<string>('');
 
@@ -103,6 +107,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     const fetchProductDetail = async () => {
       try {
         setIsLoading(true);
+        setErrorMsg(null);
 
         let post: any;
 
@@ -139,6 +144,17 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
       } catch (error: any) {
         if (axios.isCancel(error)) return;
         console.error('상품 상세 정보 조회 실패:', error);
+        const status = error?.response?.status;
+        const errCode = error?.response?.data?.error?.code;
+        if (status === 404 || errCode === 'POST_NOT_FOUND') {
+          setErrorMsg(ERROR_MESSAGES.PRODUCT_DETAIL.DELETED);
+        } else if (errCode?.includes('SOLD_OUT')) {
+          setErrorMsg(ERROR_MESSAGES.PRODUCT_DETAIL.SOLD_OUT);
+        } else if (errCode?.includes('UNAVAILABLE') || status === 403) {
+          setErrorMsg(ERROR_MESSAGES.PRODUCT_DETAIL.UNAVAILABLE);
+        } else {
+          setErrorMsg(ERROR_MESSAGES.SYSTEM.TEMPORARY);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -149,7 +165,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     return () => {
       abortController.abort();
     };
-  }, [productId, isMockMode]);
+  }, [productId, isMockMode, retryTrigger]);
 
   // 화면 진입 애니메이션
   useEffect(() => {
@@ -421,6 +437,16 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
 
         <BottomNav />
       </Animated.View>
+
+      <ErrorView
+        visible={!!errorMsg}
+        title={errorMsg?.title ?? ''}
+        subtitle={errorMsg?.subtitle ?? ''}
+        onPress={() => {
+          setErrorMsg(null);
+          setRetryTrigger(t => t + 1);
+        }}
+      />
 
       {/* 상태 수정 모달 */}
       <Modal

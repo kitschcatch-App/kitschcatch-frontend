@@ -62,7 +62,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   photoCountText: {
-    marginTop: 5,
+    position: 'absolute',
+    bottom: 8,
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.sub01,

@@ -4,6 +4,7 @@
  */
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Animated } from 'react-native';
+import SuccessView from '../components/SuccessView';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ExitIcon from '../assets/exit.svg';
 import CameraIcon from '../assets/camera.svg';
@@ -71,6 +72,7 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
   const [selectedImages, setSelectedImages] = useState<Asset[]>([]);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handlePriceChange = (text: string) => {
     const numericText = text.replace(/[^0-9]/g, '');
@@ -146,11 +148,7 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
           imageKeys: mockImageKeys,
           mockResult: mockResult.data.data,
         });
-        Alert.alert(
-          '🧪 Mock 수정 성공',
-          `"${productName}" 상품이 가상으로 수정되었습니다.\n(Mock ID: ${postId})`,
-          [{ text: '확인', onPress: () => navigation.goBack() }],
-        );
+        setShowSuccess(true);
       } else {
         // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
         await updateProduct({
@@ -160,9 +158,7 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
           newImages: selectedImages,
           existingImageKeys: imageKeys || [],
         });
-        Alert.alert('성공', '상품이 수정되었습니다.', [
-          { text: '확인', onPress: () => navigation.goBack() },
-        ]);
+        setShowSuccess(true);
       }
     } catch (error: any) {
       const errorData = error.response?.data
@@ -328,6 +324,15 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
       <Animated.View style={[styles.toastOverlay, { opacity: toastOpacity }]} pointerEvents="none">
         <Text style={styles.toastText}>사진은 최대 6장까지 선택 가능합니다.</Text>
       </Animated.View>
+
+      <SuccessView
+        visible={showSuccess}
+        title="상품정보 수정이 완료되었습니다."
+        onDismiss={() => {
+          setShowSuccess(false);
+          navigation.goBack();
+        }}
+      />
     </SafeAreaView>
   );
 };
