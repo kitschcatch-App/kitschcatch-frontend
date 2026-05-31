@@ -46,6 +46,9 @@ const ProductListScreen = ({ navigation }: Props) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isLastPage, setIsLastPage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFilterVisible, setIsFilterVisible] = useState(false); // 필터 모달 상태
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -57,8 +60,15 @@ const ProductListScreen = ({ navigation }: Props) => {
     conditions: [],
   });
 
-  // 백엔드 productCategory 한글 직렬화 값과 일치시켜야 필터가 정상 동작함
-  const CATEGORIES = ['애니/만화', '게임', '굿즈', '코스프레', '서적', '음반/영상', '기타'];
+  const CATEGORIES = [
+    { label: '애니/만화', value: 'ANIME_MANGA' },
+    { label: '게임',      value: 'GAME' },
+    { label: '굿즈',      value: 'GOODS' },
+    { label: '코스프레',   value: 'COSPLAY' },
+    { label: '서적',      value: 'BOOK' },
+    { label: '음반/영상',  value: 'MUSIC_VIDEO' },
+    { label: '기타',      value: 'ETC' },
+  ];
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -84,42 +94,71 @@ const ProductListScreen = ({ navigation }: Props) => {
     createdAt: post.createdAt,
   });
 
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    const loadProducts = async () => {
-      try {
+  const fetchProducts = async (page: number, signal?: AbortSignal) => {
+    try {
+      if (page === 0) {
         setLoading(true);
         setError(null);
-
-        if (isMockMode) {
-          // ── Mock 모드: mockData.ts의 가상 데이터 사용 ──────────────────────
-          await mockDelay(400 + Math.random() * 300);
-          const mockContent = MOCK_POST_LIST.data.data.content;
-          setProducts(mockContent.map(mapPostToProduct));
-        } else {
-          // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
-          const response = await productAPI.getPostList({
-            signal: abortController.signal,
-            params: { page: 0, size: 20 },
-          });
-          setProducts(response.data.data.content.map(mapPostToProduct));
-        }
-      } catch (err: any) {
-        if (axios.isCancel(err)) return;
-        console.error('상품 목록 불러오기 실패:', err);
-        setError('상품 목록을 불러오지 못했습니다.\nMock 모드로 전환하거나 서버를 확인해주세요.');
-      } finally {
-        setLoading(false);
+      } else {
+        setLoadingMore(true);
       }
-    };
 
-    loadProducts();
+      if (isMockMode) {
+        // ── Mock 모드: mockData.ts의 가상 데이터 사용 (첫 페이지만) ──────────
+        await mockDelay(400 + Math.random() * 300);
+        const mockData = MOCK_POST_LIST.data.data;
+        setProducts(mockData.content.map(mapPostToProduct));
+        setIsLastPage(true);
+        setCurrentPage(0);
+      } else {
+        // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
+        const response = await productAPI.getPostList({
+          signal,
+          params: { page, size: 20 },
+        });
+        const pageData = response.data.data;
+        const newItems = pageData.content.map(mapPostToProduct);
 
-    return () => {
-      abortController.abort();
-    };
+        if (page === 0) {
+          setProducts(newItems);
+        } else {
+          setProducts(prev => [...prev, ...newItems]);
+        }
+
+        setIsLastPage(pageData.last);
+        setCurrentPage(page);
+      }
+    } catch (err: any) {
+      if (axios.isCancel(err)) return;
+      console.error('상품 목록 불러오기 실패:', err);
+      if (page === 0) {
+        setError('상품 목록을 불러오지 못했습니다.\nMock 모드로 전환하거나 서버를 확인해주세요.');
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    setIsLastPage(false);
+    setCurrentPage(0);
+    fetchProducts(0, abortController.signal);
+    return () => abortController.abort();
   }, [isMockMode]); // Mock 모드가 바뀌면 자동으로 다시 로드
+
+  const isFilterActive =
+    selectedCategories.length > 0 ||
+    filterState.conditions.length > 0 ||
+    filterState.isOnSaleOnly ||
+    filterState.minPrice !== '' ||
+    filterState.maxPrice !== '';
+
+  const handleLoadMore = () => {
+    if (loadingMore || isLastPage || isFilterActive) return;
+    fetchProducts(currentPage + 1);
+  };
 
   const filteredProducts = useMemo(
     () => filterProducts(products, filterState, selectedCategories),
@@ -235,16 +274,16 @@ const ProductListScreen = ({ navigation }: Props) => {
           >
             {CATEGORIES.map((category) => (
               <TouchableOpacity
-                key={category}
+                key={category.value}
                 style={[
                   styles.categoryButton,
-                  selectedCategories.includes(category) && styles.categoryButtonActive,
+                  selectedCategories.includes(category.value) && styles.categoryButtonActive,
                 ]}
-                onPress={() => toggleCategory(category)}
+                onPress={() => toggleCategory(category.value)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.categoryText, selectedCategories.includes(category) && styles.categoryTextActive]}>
-                  {category}
+                <Text style={[styles.categoryText, selectedCategories.includes(category.value) && styles.categoryTextActive]}>
+                  {category.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -281,6 +320,9 @@ const ProductListScreen = ({ navigation }: Props) => {
             numColumns={2}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.productListContent}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#000" style={{ marginVertical: 12 }} /> : null}
           />
         )}
       </View>

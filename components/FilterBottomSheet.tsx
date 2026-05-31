@@ -29,14 +29,19 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   
-  const conditionOptions = ['새 상품', '사용감 적음', '사용감 있음', '사용감 많음'];
+  const conditionOptions = [
+    { label: '새상품', value: 'NEW' },
+    { label: '사용감 적음', value: 'LIKE_NEW' },
+    { label: '사용감 있음', value: 'USED' },
+    { label: '사용감 많음', value: 'DAMAGED' },
+  ];
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
 
-  const toggleCondition = (condition: string) => {
+  const toggleCondition = (value: string) => {
     setSelectedConditions((prev) =>
-      prev.includes(condition)
-        ? prev.filter((c) => c !== condition)
-        : [...prev, condition]
+      prev.includes(value)
+        ? prev.filter((c) => c !== value)
+        : [...prev, value]
     );
   };
 
@@ -173,17 +178,17 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
                 <View style={styles.conditionOptionsContainer}>
                   {conditionOptions.map((option) => (
                     <TouchableOpacity
-                      key={option}
+                      key={option.value}
                       style={[
                         styles.optionButton,
-                        selectedConditions.includes(option) && styles.optionButtonActive,
+                        selectedConditions.includes(option.value) && styles.optionButtonActive,
                         { paddingHorizontal: 16 }
                       ]}
-                      onPress={() => toggleCondition(option)}
+                      onPress={() => toggleCondition(option.value)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.optionText, selectedConditions.includes(option) && styles.optionTextActive]}>
-                        {option}
+                      <Text style={[styles.optionText, selectedConditions.includes(option.value) && styles.optionTextActive]}>
+                        {option.label}
                       </Text>
                     </TouchableOpacity>
                   ))}

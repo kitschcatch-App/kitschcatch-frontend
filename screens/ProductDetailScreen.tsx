@@ -3,7 +3,9 @@
  * 역할: 상품 목록에서 선택한 특정 상품의 상세 정보(이미지, 가격, 설명, 판매자 정보 등)와 하단 액션 바를 보여주는 컴포넌트입니다.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, Dimensions } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import { styles } from './ProductDetailScreen.styles';
@@ -59,6 +61,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     name: string;
     price: number;
     imageUrl: string;
+    imageUrls: string[];       // 전체 이미지 URL 목록 (캐러셀용)
     description: string;
     sellerName: string;
     sellerId: number | null;   // 판매자 숫자 ID (본인 게시글 여부 판별용)
@@ -72,6 +75,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     name: productName,
     price: productPrice,
     imageUrl: productImageUrl,
+    imageUrls: [productImageUrl],
     description: '상품 정보를 불러오는 중입니다...',
     sellerName: '불러오는 중...',
     sellerId: null,
@@ -81,6 +85,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     status: '',
     createdAt: '',
   });
+  const [imageIndex, setImageIndex] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -113,21 +118,24 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           post = response.data.data;
         }
 
+        const images: any[] = post.images ?? [];
         setProductDetail(prev => ({
           ...prev,
           id: post.id?.toString() || prev.id,
           name: post.title || prev.name,
           price: post.price || prev.price,
-          imageUrl: post.images?.[0]?.imageUrl || prev.imageUrl,
-          imageKeys: post.images?.map((img: any) => img.imageKey) || prev.imageKeys,
+          imageUrl: images[0]?.imageUrl || prev.imageUrl,
+          imageUrls: images.length > 0 ? images.map((img: any) => img.imageUrl) : prev.imageUrls,
+          imageKeys: images.map((img: any) => img.imageKey),
           description: post.description || '상세 설명이 없습니다.',
-          sellerName: post.seller?.nickname || post.seller?.id?.toString() || '알 수 없음',
-          sellerId: post.seller?.id ?? null,
+          sellerName: post.sellerNickname || post.sellerId?.toString() || '알 수 없음',
+          sellerId: post.sellerId ?? null,
           category: post.productCategory || 'ETC',
           condition: post.productCondition || 'USED',
           status: post.productStatus || 'ON_SALE',
           createdAt: post.createdAt || new Date().toISOString(),
         }));
+        setImageIndex(0);
       } catch (error: any) {
         if (axios.isCancel(error)) return;
         console.error('상품 상세 정보 조회 실패:', error);
@@ -216,9 +224,39 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
       {/* 상단 (페이드 인 애니메이션 적용) */}
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* 1. 상품 이미지 및 상태 드롭다운 (화면의 약 60%) */}
+          {/* 1. 상품 이미지 캐러셀 */}
           <View style={styles.imageContainer}>
-            <Image source={{ uri: productDetail.imageUrl }} style={styles.productImage} />
+            <FlatList
+              data={productDetail.imageUrls}
+              keyExtractor={(_, i) => i.toString()}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                setImageIndex(index);
+              }}
+              renderItem={({ item }) => (
+                <Image source={{ uri: item }} style={[styles.productImage, { width: SCREEN_WIDTH }]} />
+              )}
+            />
+
+            {/* 이미지 인디케이터 */}
+            {productDetail.imageUrls.length > 1 && (
+              <View style={{ position: 'absolute', bottom: 10, alignSelf: 'center', flexDirection: 'row', gap: 6 }}>
+                {productDetail.imageUrls.map((_, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      width: i === imageIndex ? 16 : 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: i === imageIndex ? '#fff' : 'rgba(255,255,255,0.5)',
+                    }}
+                  />
+                ))}
+              </View>
+            )}
 
             {/* Mock 모드 배지 (이미지 좌측 상단) */}
             {isMockMode && (
