@@ -1,9 +1,13 @@
+/**
+ * 화면: 스플래시 화면 (SplashScreen)
+ * 역할: 앱 실행 시 처음에 나타나는 로딩 화면으로, 로그인 상태를 확인하여 이동할 화면을 결정합니다.
+ */
 import React, { useEffect, useRef } from 'react';
 import { View, Image, StyleSheet, Dimensions, Animated } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { colors } from '../styles/colors';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 
 const { width } = Dimensions.get('window');
 
@@ -20,7 +24,7 @@ const SplashScreen = ({ navigation }: Props) => {
 
     const checkAndNavigate = async () => {
       // AsyncStorage에서 토큰 존재 여부 확인 → 있으면 메인, 없으면 로그인
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await secureStorage.getItem('accessToken');
 
       if (!isMounted) return;
 

@@ -3,7 +3,11 @@
  * 역할: 상품 목록에서 선택한 특정 상품의 상세 정보(이미지, 가격, 설명, 판매자 정보 등)와 하단 액션 바를 보여주는 컴포넌트입니다.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, useWindowDimensions } from 'react-native';
+import ErrorView from '../components/ErrorView';
+import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
+import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP } from '../constants/displayMaps';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import { styles } from './ProductDetailScreen.styles';
@@ -14,39 +18,17 @@ import BottomNav from '../components/BottomNav';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { productAPI } from '../api/apiClient';
-import { getMockPostDetail, mockDelay } from '../api/mockData';
+import { secureStorage } from '../utils/secureStorage';
+import { productAPI, chatAPI } from '../api/apiClient';
+import { getMockPostDetail, getMockCreateChatRoom, mockDelay } from '../api/mockData';
 import { useMockMode } from '../contexts/MockModeContext';
+import { formatTime } from '../utils/formatTime';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
 
-// 한글 출력용 매핑 객체
-const CONDITION_DISPLAY_MAP: Record<string, string> = {
-  'NEW': '새상품',
-  'LIKE_NEW': '사용감 적음',
-  'USED': '사용감 있음',
-  'DAMAGED': '사용감 많음',
-};
-
-const CATEGORY_DISPLAY_MAP: Record<string, string> = {
-  'ANIME_MANGA': '애니/만화',
-  'GAME': '게임',
-  'GOODS': '굿즈',
-  'COSPLAY': '코스프레',
-  'BOOK': '서적',
-  'MUSIC_VIDEO': '음반/영상',
-  'ETC': '기타',
-};
-
-const STATUS_DISPLAY_MAP: Record<string, string> = {
-  'ON_SALE': '판매중',
-  'RESERVED': '예약중',
-  'SOLD_OUT': '판매완료',
-};
-
 const ProductDetailScreen = ({ route, navigation }: Props) => {
   const insets = useSafeAreaInsets();
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   const { isMockMode } = useMockMode();
 
   // 이전 화면(ProductList)에서 넘겨준 파라미터 받기
@@ -58,6 +40,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     name: string;
     price: number;
     imageUrl: string;
+    imageUrls: string[];       // 전체 이미지 URL 목록 (캐러셀용)
     description: string;
     sellerName: string;
     sellerId: number | null;   // 판매자 숫자 ID (본인 게시글 여부 판별용)
@@ -71,6 +54,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     name: productName,
     price: productPrice,
     imageUrl: productImageUrl,
+    imageUrls: [productImageUrl],
     description: '상품 정보를 불러오는 중입니다...',
     sellerName: '불러오는 중...',
     sellerId: null,
@@ -80,8 +64,12 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     status: '',
     createdAt: '',
   });
+  const [imageIndex, setImageIndex] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [tempStatus, setTempStatus] = useState<string>('');
 
@@ -96,6 +84,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     const fetchProductDetail = async () => {
       try {
         setIsLoading(true);
+        setErrorMsg(null);
 
         let post: any;
 
@@ -111,24 +100,38 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           post = response.data.data;
         }
 
+        const images: any[] = post.images ?? [];
         setProductDetail(prev => ({
           ...prev,
           id: post.id?.toString() || prev.id,
           name: post.title || prev.name,
           price: post.price || prev.price,
-          imageUrl: post.images?.[0]?.imageUrl || prev.imageUrl,
-          imageKeys: post.images?.map((img: any) => img.imageKey) || prev.imageKeys,
+          imageUrl: images[0]?.imageUrl || prev.imageUrl,
+          imageUrls: images.length > 0 ? images.map((img: any) => img.imageUrl) : prev.imageUrls,
+          imageKeys: images.map((img: any) => img.imageKey),
           description: post.description || '상세 설명이 없습니다.',
-          sellerName: post.seller?.nickname || post.seller?.id?.toString() || '알 수 없음',
-          sellerId: post.seller?.id ?? null,
+          sellerName: post.sellerNickname || post.sellerId?.toString() || '알 수 없음',
+          sellerId: post.sellerId ?? null,
           category: post.productCategory || 'ETC',
           condition: post.productCondition || 'USED',
           status: post.productStatus || 'ON_SALE',
           createdAt: post.createdAt || new Date().toISOString(),
         }));
+        setImageIndex(0);
       } catch (error: any) {
         if (axios.isCancel(error)) return;
         console.error('상품 상세 정보 조회 실패:', error);
+        const status = error?.response?.status;
+        const errCode = error?.response?.data?.error?.code;
+        if (status === 404 || errCode === 'POST_NOT_FOUND') {
+          setErrorMsg(ERROR_MESSAGES.PRODUCT_DETAIL.DELETED);
+        } else if (errCode?.includes('SOLD_OUT')) {
+          setErrorMsg(ERROR_MESSAGES.PRODUCT_DETAIL.SOLD_OUT);
+        } else if (errCode?.includes('UNAVAILABLE') || status === 403) {
+          setErrorMsg(ERROR_MESSAGES.PRODUCT_DETAIL.UNAVAILABLE);
+        } else {
+          setErrorMsg(ERROR_MESSAGES.SYSTEM.TEMPORARY);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -139,7 +142,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     return () => {
       abortController.abort();
     };
-  }, [productId, isMockMode]);
+  }, [productId, isMockMode, retryTrigger]);
 
   // 화면 진입 애니메이션
   useEffect(() => {
@@ -160,7 +163,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   // 로그인된 사용자 ID 불러오기 (로그인 시 저장한 user.id)
   useEffect(() => {
     const loadCurrentUser = async () => {
-      const stored = await AsyncStorage.getItem('userId');
+      const stored = await secureStorage.getItem('userId');
       if (stored) setCurrentUserId(Number(stored));
     };
     loadCurrentUser();
@@ -206,38 +209,6 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     });
   };
 
-  // 등록된 시간 포맷팅 함수 ("방금 전", "N시간 전", "N달 전" 등)
-  const formatTime = (dateString: string) => {
-    if (!dateString) return '';
-
-    const timePart = dateString.split('T')[1] || '';
-    const hasTimezone = timePart.includes('Z') || timePart.includes('+') || timePart.includes('-');
-    const kstDateString = hasTimezone ? dateString : `${dateString}+09:00`;
-
-    const date = new Date(kstDateString);
-    if (isNaN(date.getTime())) return dateString;
-
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-
-    if (diffMs < 0) {
-      return `${date.getFullYear()}. ${date.getMonth() + 1}. ${date.getDate()}.`;
-    }
-
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    const diffMonths = Math.floor(diffDays / 30);
-    const diffYears = Math.floor(diffDays / 365);
-
-    if (diffMins < 1) return '방금 전';
-    if (diffMins < 60) return `${diffMins}분 전`;
-    if (diffHours < 24) return `${diffHours}시간 전`;
-    if (diffDays < 30) return `${diffDays}일 전`;
-    if (diffMonths < 12) return `${diffMonths}달 전`;
-    return `${diffYears}년 전`;
-  };
-
   // 로그인 유저 ID와 판매자 ID를 비교하여 본인 게시글 여부 판별
   const isSeller = currentUserId !== null && currentUserId === productDetail.sellerId;
 
@@ -246,9 +217,39 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
       {/* 상단 (페이드 인 애니메이션 적용) */}
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* 1. 상품 이미지 및 상태 드롭다운 (화면의 약 60%) */}
+          {/* 1. 상품 이미지 캐러셀 */}
           <View style={styles.imageContainer}>
-            <Image source={{ uri: productDetail.imageUrl }} style={styles.productImage} />
+            <FlatList
+              data={productDetail.imageUrls}
+              keyExtractor={(_, i) => i.toString()}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                setImageIndex(index);
+              }}
+              renderItem={({ item }) => (
+                <Image source={{ uri: item }} style={[styles.productImage, { width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.5 }]} />
+              )}
+            />
+
+            {/* 이미지 인디케이터 */}
+            {productDetail.imageUrls.length > 1 && (
+              <View style={{ position: 'absolute', bottom: 10, alignSelf: 'center', flexDirection: 'row', gap: 6 }}>
+                {productDetail.imageUrls.map((_, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      width: i === imageIndex ? 16 : 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: i === imageIndex ? '#fff' : 'rgba(255,255,255,0.5)',
+                    }}
+                  />
+                ))}
+              </View>
+            )}
 
             {/* Mock 모드 배지 (이미지 좌측 상단) */}
             {isMockMode && (
@@ -362,13 +363,39 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             <View style={{ flex: 1, flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity
                 style={styles.chatButton}
-                onPress={() => navigation.navigate('Chat', {
-                  sellerName: productDetail.sellerName,
-                  productName: productDetail.name,
-                  productImageUrl: productDetail.imageUrl,
-                })}
+                disabled={isChatLoading}
+                onPress={async () => {
+                  try {
+                    setIsChatLoading(true);
+                    let chatRoomId: number;
+                    let opponentNickname: string;
+
+                    if (isMockMode) {
+                      await mockDelay(300);
+                      const mock = getMockCreateChatRoom(Number(productDetail.id));
+                      chatRoomId = mock.data.chatRoomId;
+                      opponentNickname = mock.data.sellerNickname;
+                    } else {
+                      const res = await chatAPI.createChatRoom(Number(productDetail.id));
+                      chatRoomId = res.data.chatRoomId;
+                      opponentNickname = res.data.sellerNickname;
+                    }
+
+                    navigation.navigate('Chat', { chatRoomId, opponentNickname });
+                  } catch (e: any) {
+                    if (e?.response?.status === 401) {
+                      navigation.navigate('Login');
+                    } else {
+                      console.error('채팅방 생성 실패:', e);
+                    }
+                  } finally {
+                    setIsChatLoading(false);
+                  }
+                }}
               >
-                <Text style={styles.chatButtonText}>채팅하기</Text>
+                <Text style={styles.chatButtonText}>
+                  {isChatLoading ? '연결 중...' : '채팅하기'}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.buyButton}
@@ -387,6 +414,16 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
 
         <BottomNav />
       </Animated.View>
+
+      <ErrorView
+        visible={!!errorMsg}
+        title={errorMsg?.title ?? ''}
+        subtitle={errorMsg?.subtitle ?? ''}
+        onPress={() => {
+          setErrorMsg(null);
+          setRetryTrigger(t => t + 1);
+        }}
+      />
 
       {/* 상태 수정 모달 */}
       <Modal

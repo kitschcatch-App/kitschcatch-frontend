@@ -2,11 +2,9 @@
  * 스타일: 상품 상세 화면 스타일 (ProductDetailScreen.styles)
  * 역할: ProductDetailScreen에서 사용하는 모든 UI 요소들의 디자인(레이아웃, 색상, 크기 등)을 정의하는 파일입니다.
  */
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
-
-const { height } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
   container: {
@@ -32,8 +30,6 @@ export const styles = StyleSheet.create({
     position: 'relative',
   },
   productImage: {
-    width: '100%',
-    height: height * 0.5, // 화면 세로 길이의 약 60%를 차지
     backgroundColor: colors.gray02,
   },
   // 모달 스타일

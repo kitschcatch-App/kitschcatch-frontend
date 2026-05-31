@@ -4,6 +4,7 @@
  */
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Animated } from 'react-native';
+import SuccessView from '../components/SuccessView';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ExitIcon from '../assets/exit.svg';
 import CameraIcon from '../assets/camera.svg';
@@ -12,50 +13,15 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import CommonInput from '../components/CommonInput';
 import CommonDropdown from '../components/CommonDropdown';
-import { productAPI } from '../api/apiClient';
 import { MOCK_PRESIGNED_URLS, getMockUpdatePost, mockDelay } from '../api/mockData';
 import { useMockMode } from '../contexts/MockModeContext';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
+import { validateEditForm } from '../utils/validateProductForm';
+import { updateProduct, STATUS_MAP } from '../utils/updateProduct';
+import { CONDITION_MAP } from '../utils/registerProduct';
+import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP } from '../constants/displayMaps';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductEdit'>;
-
-// 한글 선택값 → 백엔드 enum 변환 (등록 화면과 동일한 규격)
-const CONDITION_MAP: Record<string, string> = {
-  '새상품': 'NEW',
-  '사용감 적음': 'LIKE_NEW',
-  '사용감 있음': 'USED',
-  '사용감 많음': 'DAMAGED',
-};
-
-// 백엔드 enum → 한글 표시용 (기존 데이터 초기화에 사용)
-const CONDITION_DISPLAY_MAP: Record<string, string> = {
-  'NEW': '새상품',
-  'LIKE_NEW': '사용감 적음',
-  'USED': '사용감 있음',
-  'DAMAGED': '사용감 많음',
-};
-
-// 백엔드 enum → 한글 표시용 (productCategory가 English enum으로 넘어올 경우 fallback용)
-const CATEGORY_DISPLAY_MAP: Record<string, string> = {
-  'ANIME_MANGA': '애니/만화',
-  'GAME': '게임',
-  'GOODS': '굿즈',
-  'COSPLAY': '코스프레',
-  'BOOK': '서적',
-  'MUSIC_VIDEO': '음반/영상',
-  'ETC': '기타',
-};
-
-const STATUS_MAP: Record<string, string> = {
-  '판매중': 'ON_SALE',
-  '예약중': 'RESERVED',
-  '판매완료': 'SOLD_OUT',
-};
-const STATUS_DISPLAY_MAP: Record<string, string> = {
-  'ON_SALE': '판매중',
-  'RESERVED': '예약중',
-  'SOLD_OUT': '판매완료',
-};
 
 const CONDITION_OPTIONS = ['새상품', '사용감 적음', '사용감 있음', '사용감 많음'];
 // 등록 화면과 동일한 카테고리 목록 (백엔드 한글 직렬화 값과 일치)
@@ -82,6 +48,7 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
   const [selectedImages, setSelectedImages] = useState<Asset[]>([]);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handlePriceChange = (text: string) => {
     const numericText = text.replace(/[^0-9]/g, '');
@@ -127,12 +94,12 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
 
   const handleSubmit = async () => {
     // ── 공통 유효성 검사 ──────────────────────────────────────────────────
-    if (!productName || !productPrice || !productDescription) {
-      Alert.alert('알림', '필수 입력 항목을 모두 채워주세요.');
-      return;
-    }
-    if (selectedCondition === '사용감 선택' || selectedCategory === '카테고리 선택' || selectedStatus === '판매상태 선택') {
-      Alert.alert('알림', '드롭다운 항목을 모두 선택해주세요.');
+    const validationError = validateEditForm({
+      productName, productPrice, productDescription,
+      selectedCondition, selectedCategory, selectedStatus,
+    });
+    if (validationError) {
+      Alert.alert('알림', validationError);
       return;
     }
 
@@ -157,62 +124,17 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
           imageKeys: mockImageKeys,
           mockResult: mockResult.data.data,
         });
-        Alert.alert(
-          '🧪 Mock 수정 성공',
-          `"${productName}" 상품이 가상으로 수정되었습니다.\n(Mock ID: ${postId})`,
-          [{ text: '확인', onPress: () => navigation.goBack() }],
-        );
+        setShowSuccess(true);
       } else {
         // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
-        let finalImageKeys: string[] = imageKeys || [];
-
-        if (selectedImages.length > 0) {
-          // 1. Presigned URL 발급
-          const requestPayload = selectedImages.map((img, index) => ({
-            originalFileName: img.fileName || `image_${Date.now()}_${index}.jpg`,
-            contentType: img.type || 'image/jpeg',
-          }));
-          const presignedRes = await productAPI.getPresignedUrls(requestPayload);
-          if (!presignedRes.data?.success) {
-            throw new Error('Presigned URL 발급에 실패했습니다.');
-          }
-          const presignedDataList = presignedRes.data.data.images;
-
-          // 2. S3 업로드 (병렬)
-          finalImageKeys = await Promise.all(
-            selectedImages.map(async (image, index) => {
-              const { uploadUrl, imageKey } = presignedDataList[index];
-              const response = await fetch(image.uri!);
-              const blob = await response.blob();
-              const uploadRes = await fetch(uploadUrl, {
-                method: 'PUT',
-                body: blob,
-                headers: { 'Content-Type': image.type || 'image/jpeg' },
-              });
-              if (!uploadRes.ok) throw new Error('S3 이미지 업로드 실패');
-              return imageKey;
-            }),
-          );
-        }
-
-        // 3. 수정 API 호출
-        const requestData = {
-          title: productName,
-          description: productDescription,
-          price: Number(productPrice.replace(/,/g, '')),
-          productCategory: selectedCategory,
-          productCondition: CONDITION_MAP[selectedCondition] || productCondition,
-          productStatus: STATUS_MAP[selectedStatus] || productStatus,
-          imageKeys: finalImageKeys,
-        };
-        const response = await productAPI.updatePost(postId, requestData);
-        if (response.status === 200 || response.status === 201) {
-          Alert.alert('성공', '상품이 수정되었습니다.', [
-            { text: '확인', onPress: () => navigation.goBack() },
-          ]);
-        } else {
-          Alert.alert('오류', '상품 수정에 실패했습니다. (서버 응답 오류)');
-        }
+        await updateProduct({
+          postId,
+          productName, productPrice, productDescription,
+          selectedCondition, selectedCategory, selectedStatus,
+          newImages: selectedImages.filter((img): img is typeof img & { uri: string } => !!img.uri),
+          existingImageKeys: imageKeys || [],
+        });
+        setShowSuccess(true);
       }
     } catch (error: any) {
       const errorData = error.response?.data
@@ -378,6 +300,15 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
       <Animated.View style={[styles.toastOverlay, { opacity: toastOpacity }]} pointerEvents="none">
         <Text style={styles.toastText}>사진은 최대 6장까지 선택 가능합니다.</Text>
       </Animated.View>
+
+      <SuccessView
+        visible={showSuccess}
+        title="상품정보 수정이 완료되었습니다."
+        onDismiss={() => {
+          setShowSuccess(false);
+          navigation.goBack();
+        }}
+      />
     </SafeAreaView>
   );
 };

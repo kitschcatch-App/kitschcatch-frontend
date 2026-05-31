@@ -16,6 +16,7 @@ import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import PaymentCompleteScreen from '../screens/PaymentCompleteScreen';
 import ApiTestScreen from '../screens/ApiTestScreen';
+import ChatListScreen from '../screens/ChatListScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -40,10 +41,10 @@ export type RootStackParamList = {
     productStatus: string;
     sellerId: string;
   };
+  ChatList: undefined;
   Chat: {
-    sellerName: string;
-    productName: string;
-    productImageUrl: string;
+    chatRoomId: number;
+    opponentNickname: string;
   };
   Payment: {
     productId: string;
@@ -72,6 +73,7 @@ const RootNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="ChatList" component={ChatListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="ProductRegistration" component={ProductRegistrationScreen} />

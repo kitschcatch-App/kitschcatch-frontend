@@ -1,3 +1,7 @@
+/**
+ * 화면: 결제 화면 (PaymentScreen)
+ * 역할: 상품 구매를 위해 배송지를 확인하고 결제 수단을 선택하여 결제를 진행하는 화면입니다.
+ */
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import WebView from 'react-native-webview';

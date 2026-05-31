@@ -2,8 +2,8 @@
  * 화면: 백엔드 API 연동 테스트 화면 (ApiTestScreen)
  * 역할: 앱에 연결된 모든 백엔드 API 엔드포인트를 하나의 화면에서 테스트합니다.
  *
- * ✅ Mock 모드: 상단 토글로 가상 응답 데이터 사용 (백엔드 미연결 시)
- * 🔌 Real 모드: 실제 서버(10.0.2.2:8080)로 요청
+ * Mock 모드: 상단 토글로 가상 응답 데이터 사용 (백엔드 미연결 시)
+ * Real 모드: 실제 서버(10.0.2.2:8080)로 요청
  *
  * 포함 API:
  *  - Auth:    Nonce 발급
@@ -21,7 +21,7 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import axios from 'axios';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -250,18 +250,18 @@ const ApiTestScreen = ({ navigation }: Props) => {
   // ─── 토큰 확인 / 삭제 ─────────────────────────────────────────────────────
   const handleCheckTokens = async () => {
     const [accessToken, refreshToken, userId] = await Promise.all([
-      AsyncStorage.getItem('accessToken'),
-      AsyncStorage.getItem('refreshToken'),
-      AsyncStorage.getItem('userId'),
+      secureStorage.getItem('accessToken'),
+      secureStorage.getItem('refreshToken'),
+      secureStorage.getItem('userId'),
     ]);
     setTokenStatus({ accessToken, refreshToken, userId });
   };
 
   const handleClearTokens = async () => {
     await Promise.all([
-      AsyncStorage.removeItem('accessToken'),
-      AsyncStorage.removeItem('refreshToken'),
-      AsyncStorage.removeItem('userId'),
+      secureStorage.removeItem('accessToken'),
+      secureStorage.removeItem('refreshToken'),
+      secureStorage.removeItem('userId'),
     ]);
     setTokenStatus({ accessToken: null, refreshToken: null, userId: null });
   };

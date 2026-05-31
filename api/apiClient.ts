@@ -3,7 +3,7 @@
  * 역할: axios를 사용하여 네트워크 요청(API 연동) 공통 로직을 모듈화한 파일입니다.
  */
 import axios, { AxiosRequestConfig } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 
 // 안드로이드 에뮬레이터 로컬 백엔드 연동 주소 (10.0.2.2)
 // 실기기나 iOS 등 환경에 따라 나중에는 환경변수(.env)로 분리하는 것이 좋습니다.
@@ -21,7 +21,7 @@ export const apiClient = axios.create({
 // ─── 요청 인터셉터: 모든 요청 헤더에 Access Token 자동 추가 ───────────────────
 apiClient.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('accessToken');
+    const token = await secureStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -56,9 +56,9 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     // Refresh Token 엔드포인트 자체가 401이면 즉시 로그아웃 처리 (무한 루프 방지)
-    if (originalRequest.url?.includes('/auth/token/refresh')) {
-      await AsyncStorage.removeItem('accessToken');
-      await AsyncStorage.removeItem('refreshToken');
+    if (originalRequest.url?.includes('/token/refresh')) {
+      await secureStorage.removeItem('accessToken');
+      await secureStorage.removeItem('refreshToken');
       return Promise.reject(error);
     }
 
@@ -77,7 +77,7 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const storedRefreshToken = await AsyncStorage.getItem('refreshToken');
+        const storedRefreshToken = await secureStorage.getItem('refreshToken');
 
         // 저장된 refreshToken이 없으면(미로그인) 갱신 시도 없이 원래 401 에러 그대로 전달
         // → 토큰 삭제 없이 조용히 reject
@@ -89,7 +89,7 @@ apiClient.interceptors.response.use(
 
         // apiClient 인터셉터를 우회해 순수 axios로 직접 호출 (중복 인터셉터 방지)
         const refreshResponse = await axios.post(
-          `${BASE_URL}/auth/token/refresh`,
+          `${BASE_URL}/token/refresh`,
           { refreshToken: storedRefreshToken },
           { headers: { 'Content-Type': 'application/json' } },
         );
@@ -97,8 +97,8 @@ apiClient.interceptors.response.use(
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
           refreshResponse.data.data;
 
-        await AsyncStorage.setItem('accessToken', newAccessToken);
-        await AsyncStorage.setItem('refreshToken', newRefreshToken);
+        await secureStorage.setItem('accessToken', newAccessToken);
+        await secureStorage.setItem('refreshToken', newRefreshToken);
 
         processQueue(null, newAccessToken);
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -106,8 +106,8 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // Refresh Token도 만료 → 저장된 토큰 전부 삭제 (로그인 화면으로 이동은 각 화면에서 처리)
         processQueue(refreshError, null);
-        await AsyncStorage.removeItem('accessToken');
-        await AsyncStorage.removeItem('refreshToken');
+        await secureStorage.removeItem('accessToken');
+        await secureStorage.removeItem('refreshToken');
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -178,4 +178,32 @@ export const paymentAPI = {
   // 결제 승인 (토스 SDK 완료 후 paymentKey 전달)
   confirmPayment: (paymentId: number, data: { paymentKey: string }) =>
     apiClient.post(`/payments/${paymentId}/confirm`, data),
+};
+
+// ─── 채팅 관련 API ──────────────────────────────────────────────────────────────
+export const chatAPI = {
+  // 채팅방 생성 (이미 존재하면 기존 방 반환)
+  createChatRoom: (postId: number) =>
+    apiClient.post('/chat-rooms', { postId }),
+
+  // 내 채팅방 목록 조회
+  getChatRooms: () =>
+    apiClient.get('/chat-rooms'),
+
+  // 채팅방 상세 조회 (상품 정보)
+  getChatRoomDetail: (chatRoomId: number) =>
+    apiClient.get(`/chat-rooms/${chatRoomId}`),
+
+  // 메시지 이력 조회
+  getMessages: (chatRoomId: number) =>
+    apiClient.get(`/chat-rooms/${chatRoomId}/messages`),
+
+  // 이미지 메시지 전송 (multipart/form-data)
+  sendImageMessage: (chatRoomId: number, imageUri: string, fileName: string, mimeType: string) => {
+    const formData = new FormData();
+    formData.append('image', { uri: imageUri, name: fileName, type: mimeType } as any);
+    return apiClient.post(`/chat-rooms/${chatRoomId}/messages/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };

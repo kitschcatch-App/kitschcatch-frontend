@@ -1,3 +1,9 @@
+/**
+ * 스타일: 로그인 화면 스타일 (LoginScreen.styles)
+ * 역할: LoginScreen 화면의 레이아웃 및 UI 요소(로고, 카카오 로그인 버튼 등)의 스타일을 정의합니다.
+ */
+
+
 import { StyleSheet, Dimensions } from 'react-native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';

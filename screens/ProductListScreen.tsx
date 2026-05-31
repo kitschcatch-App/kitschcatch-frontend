@@ -29,36 +29,24 @@ import { productAPI } from '../api/apiClient';
 import { MOCK_POST_LIST, mockDelay } from '../api/mockData';
 import { useMockMode } from '../contexts/MockModeContext';
 import FilterBottomSheet, { FilterState } from '../components/FilterBottomSheet';
+import { filterProducts, Product } from '../utils/filterProducts';
+import ErrorView from '../components/ErrorView';
+import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
+import { STATUS_DISPLAY_MAP } from '../constants/displayMaps';
 
 import { styles } from './ProductListScreen.styles';
 
-type Product = {
-  id: string;
-  name: string;
-  price: number;
-  imageUrl: string;
-  heartCount?: number;
-  chatCount?: number;
-  status?: string;
-  category?: string;
-  condition?: string;
-  createdAt?: string;
-};
-
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
-
-const STATUS_DISPLAY_MAP: Record<string, string> = {
-  'ON_SALE': '판매중',
-  'RESERVED': '예약중',
-  'SOLD_OUT': '판매완료',
-};
 
 const ProductListScreen = ({ navigation }: Props) => {
   const { isMockMode, toggleMockMode } = useMockMode();
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isLastPage, setIsLastPage] = useState(false);
+  const [error, setError] = useState<ErrorMessage | null>(null);
   const [isFilterVisible, setIsFilterVisible] = useState(false); // 필터 모달 상태
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filterState, setFilterState] = useState<FilterState>({
@@ -69,8 +57,15 @@ const ProductListScreen = ({ navigation }: Props) => {
     conditions: [],
   });
 
-  // 백엔드 productCategory 한글 직렬화 값과 일치시켜야 필터가 정상 동작함
-  const CATEGORIES = ['애니/만화', '게임', '굿즈', '코스프레', '서적', '음반/영상', '기타'];
+  const CATEGORIES = [
+    { label: '애니/만화', value: 'ANIME_MANGA' },
+    { label: '게임',      value: 'GAME' },
+    { label: '굿즈',      value: 'GOODS' },
+    { label: '코스프레',   value: 'COSPLAY' },
+    { label: '서적',      value: 'BOOK' },
+    { label: '음반/영상',  value: 'MUSIC_VIDEO' },
+    { label: '기타',      value: 'ETC' },
+  ];
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -96,83 +91,77 @@ const ProductListScreen = ({ navigation }: Props) => {
     createdAt: post.createdAt,
   });
 
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    const loadProducts = async () => {
-      try {
+  const fetchProducts = async (page: number, signal?: AbortSignal) => {
+    try {
+      if (page === 0) {
         setLoading(true);
         setError(null);
-
-        if (isMockMode) {
-          // ── Mock 모드: mockData.ts의 가상 데이터 사용 ──────────────────────
-          await mockDelay(400 + Math.random() * 300);
-          const mockContent = MOCK_POST_LIST.data.data.content;
-          setProducts(mockContent.map(mapPostToProduct));
-        } else {
-          // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
-          const response = await productAPI.getPostList({
-            signal: abortController.signal,
-            params: { page: 0, size: 20 },
-          });
-          setProducts(response.data.data.content.map(mapPostToProduct));
-        }
-      } catch (err: any) {
-        if (axios.isCancel(err)) return;
-        console.error('상품 목록 불러오기 실패:', err);
-        setError('상품 목록을 불러오지 못했습니다.\nMock 모드로 전환하거나 서버를 확인해주세요.');
-      } finally {
-        setLoading(false);
+      } else {
+        setLoadingMore(true);
       }
-    };
 
-    loadProducts();
+      if (isMockMode) {
+        // ── Mock 모드: mockData.ts의 가상 데이터 사용 (첫 페이지만) ──────────
+        await mockDelay(400 + Math.random() * 300);
+        const mockData = MOCK_POST_LIST.data.data;
+        setProducts(mockData.content.map(mapPostToProduct));
+        setIsLastPage(true);
+        setCurrentPage(0);
+      } else {
+        // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
+        const response = await productAPI.getPostList({
+          signal,
+          params: { page, size: 20 },
+        });
+        const pageData = response.data.data;
+        const newItems = pageData.content.map(mapPostToProduct);
 
-    return () => {
-      abortController.abort();
-    };
+        if (page === 0) {
+          setProducts(newItems);
+        } else {
+          setProducts(prev => [...prev, ...newItems]);
+        }
+
+        setIsLastPage(pageData.last);
+        setCurrentPage(page);
+      }
+    } catch (err: any) {
+      if (axios.isCancel(err)) return;
+      console.error('상품 목록 불러오기 실패:', err);
+      if (page === 0) {
+        const isNetworkError = !err.response;
+        setError(isNetworkError ? ERROR_MESSAGES.SYSTEM.NETWORK : ERROR_MESSAGES.SYSTEM.TEMPORARY);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    setIsLastPage(false);
+    setCurrentPage(0);
+    fetchProducts(0, abortController.signal);
+    return () => abortController.abort();
   }, [isMockMode]); // Mock 모드가 바뀌면 자동으로 다시 로드
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
+  const isFilterActive =
+    selectedCategories.length > 0 ||
+    filterState.conditions.length > 0 ||
+    filterState.isOnSaleOnly ||
+    filterState.minPrice !== '' ||
+    filterState.maxPrice !== '';
 
-    if (filterState.isOnSaleOnly) {
-      result = result.filter((p) => p.status === 'ON_SALE');
-    }
+  const handleLoadMore = () => {
+    if (loadingMore || isLastPage || isFilterActive) return;
+    fetchProducts(currentPage + 1);
+  };
 
-    if (selectedCategories.length > 0) {
-      result = result.filter(
-        (p) => p.category && selectedCategories.includes(p.category)
-      );
-    }
-
-    const min = filterState.minPrice ? parseInt(filterState.minPrice.replace(/,/g, ''), 10) : null;
-    const max = filterState.maxPrice ? parseInt(filterState.maxPrice.replace(/,/g, ''), 10) : null;
-    if (min !== null) result = result.filter((p) => p.price >= min);
-    if (max !== null) result = result.filter((p) => p.price <= max);
-
-    if (filterState.conditions.length > 0) {
-      result = result.filter(
-        (p) => !p.condition || filterState.conditions.includes(p.condition)
-      );
-    }
-
-    switch (filterState.sort) {
-      case '최신순':
-        result.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
-        break;
-      case '가격 높은 순':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case '가격 낮은 순':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      default:
-        break;
-    }
-
-    return result;
-  }, [products, filterState, selectedCategories]);
+  const filteredProducts = useMemo(
+    () => filterProducts(products, filterState, selectedCategories),
+    [products, filterState, selectedCategories],
+  );
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
@@ -283,16 +272,16 @@ const ProductListScreen = ({ navigation }: Props) => {
           >
             {CATEGORIES.map((category) => (
               <TouchableOpacity
-                key={category}
+                key={category.value}
                 style={[
                   styles.categoryButton,
-                  selectedCategories.includes(category) && styles.categoryButtonActive,
+                  selectedCategories.includes(category.value) && styles.categoryButtonActive,
                 ]}
-                onPress={() => toggleCategory(category)}
+                onPress={() => toggleCategory(category.value)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.categoryText, selectedCategories.includes(category) && styles.categoryTextActive]}>
-                  {category}
+                <Text style={[styles.categoryText, selectedCategories.includes(category.value) && styles.categoryTextActive]}>
+                  {category.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -316,10 +305,6 @@ const ProductListScreen = ({ navigation }: Props) => {
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#000" />
           </View>
-        ) : error ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text>{error}</Text>
-          </View>
         ) : (
           <FlatList
             data={filteredProducts}
@@ -329,13 +314,16 @@ const ProductListScreen = ({ navigation }: Props) => {
             numColumns={2}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.productListContent}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#000" style={{ marginVertical: 12 }} /> : null}
           />
         )}
       </View>
 
       {/* 플로팅 상품등록 버튼 */}
       <TouchableOpacity
-        style={styles.floatingButton}
+        style={[styles.floatingButton, { bottom: Math.max(insets.bottom, 14) + 60 }]}
         onPress={() => navigation.navigate('ProductRegistration')}
       >
         <Text style={styles.floatingButtonText}>상품등록</Text>
@@ -348,6 +336,17 @@ const ProductListScreen = ({ navigation }: Props) => {
         onClose={() => setIsFilterVisible(false)}
         filterState={filterState}
         onApply={(filters) => setFilterState(filters)}
+      />
+
+      <ErrorView
+        visible={!!error}
+        title={error?.title ?? ''}
+        subtitle={error?.subtitle ?? ''}
+        buttonText="확인"
+        onPress={() => {
+          setError(null);
+          fetchProducts(0);
+        }}
       />
 
       <BottomNav />

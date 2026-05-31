@@ -3,7 +3,10 @@
  * 역할: 사용자가 판매할 상품의 정보를 입력하고 등록하는 화면입니다.
  */
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Animated } from 'react-native';
+import ErrorView from '../components/ErrorView';
+import SuccessView from '../components/SuccessView';
+import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ExitIcon from '../assets/exit.svg';
 import CameraIcon from '../assets/camera.svg';
@@ -14,18 +17,12 @@ import CommonInput from '../components/CommonInput';
 import CommonDropdown from '../components/CommonDropdown';
 import { productAPI } from '../api/apiClient';
 import { MOCK_PRESIGNED_URLS, MOCK_CREATE_POST, mockDelay } from '../api/mockData';
+import { validateProductForm } from '../utils/validateProductForm';
+import { registerProduct, CONDITION_MAP } from '../utils/registerProduct';
 import { useMockMode } from '../contexts/MockModeContext';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductRegistration'>;
-
-// 한글 드롭다운 옵션을 백엔드 ProductCondition enum 값으로 변환하는 매핑 객체
-const CONDITION_MAP: Record<string, string> = {
-  '새상품': 'NEW',
-  '사용감 적음': 'LIKE_NEW',
-  '사용감 있음': 'USED',
-  '사용감 많음': 'DAMAGED',
-};
 
 // 명세서 4.1: 백엔드는 한글 라벨 값으로 직렬화/역직렬화합니다.
 // 예시: "productCategory": "굿즈" → 변환 없이 한글 그대로 전송해야 합니다.
@@ -44,6 +41,8 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const [isPolicyAgreed, setIsPolicyAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const CONDITION_OPTIONS = ['새상품', '사용감 적음', '사용감 있음', '사용감 많음'];
   const CATEGORY_OPTIONS = ['애니/만화', '게임', '굿즈', '코스프레', '서적', '음반/영상', '기타'];
@@ -104,20 +103,13 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   // 상품 등록 핸들러 (Mock / Real 모드 공통)
   const handleSubmit = async () => {
     // ── 공통 유효성 검사 ────────────────────────────────────────────────────
-    if (!productName || !productPrice || !productDescription) {
-      Alert.alert('알림', '필수 입력 항목을 모두 채워주세요.');
-      return;
-    }
-    if (selectedCondition === '사용감 선택' || selectedCategory === '카테고리 선택') {
-      Alert.alert('알림', '드롭다운 항목을 모두 선택해주세요.');
-      return;
-    }
-    if (!isPolicyAgreed) {
-      Alert.alert('알림', '운영 정책에 동의해주세요.');
-      return;
-    }
-    if (selectedImages.length === 0) {
-      Alert.alert('알림', '상품 사진을 1장 이상 등록해주세요.');
+    const validationError = validateProductForm({
+      productName, productPrice, productDescription,
+      selectedCondition, selectedCategory,
+      isPolicyAgreed, imageCount: selectedImages.length,
+    });
+    if (validationError) {
+      setErrorMsg(ERROR_MESSAGES.PRODUCT.MISSING_FIELDS);
       return;
     }
 
@@ -139,66 +131,20 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
           imageKeys: mockImageKeys,
           mockPostId: MOCK_CREATE_POST.data.data.id,
         });
-        Alert.alert(
-          '🧪 Mock 등록 성공',
-          `"${productName}" 상품이 가상으로 등록되었습니다.\n(Mock ID: ${MOCK_CREATE_POST.data.data.id})`,
-          [{ text: '확인', onPress: () => navigation.goBack() }],
-        );
+        setShowSuccess(true);
       } else {
         // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
-        // 1. Presigned URL 발급
-        const requestPayload = selectedImages.map((img, index) => ({
-          originalFileName: img.fileName || `image_${Date.now()}_${index}.jpg`,
-          contentType: img.type || 'image/jpeg',
-        }));
-        const presignedRes = await productAPI.getPresignedUrls(requestPayload);
-        if (!presignedRes.data?.success) {
-          throw new Error('Presigned URL 발급에 실패했습니다.');
-        }
-        const presignedDataList = presignedRes.data.data.images;
-
-        // 2. S3 이미지 업로드 (병렬)
-        const uploadedImageKeys = await Promise.all(
-          selectedImages.map(async (image, index) => {
-            const { uploadUrl, imageKey } = presignedDataList[index];
-            const response = await fetch(image.uri!);
-            const blob = await response.blob();
-            const uploadRes = await fetch(uploadUrl, {
-              method: 'PUT',
-              body: blob,
-              headers: { 'Content-Type': image.type || 'image/jpeg' },
-            });
-            if (!uploadRes.ok) throw new Error('S3 이미지 업로드 실패');
-            return imageKey;
-          }),
-        );
-
-        // 3. 상품 등록
-        const requestData = {
-          title: productName,
-          description: productDescription,
-          price: Number(productPrice.replace(/,/g, '')),
-          productCategory: selectedCategory,
-          productCondition: CONDITION_MAP[selectedCondition] || 'NEW',
-          imageKeys: uploadedImageKeys,
-        };
-        const response = await productAPI.createPost(requestData);
-        if (response.data?.success) {
-          Alert.alert('성공', '상품이 성공적으로 등록되었습니다.', [
-            { text: '확인', onPress: () => navigation.goBack() },
-          ]);
-        } else {
-          Alert.alert('오류', '상품 등록에 실패했습니다. (서버 응답 오류)');
-        }
+        await registerProduct({
+          productName, productPrice, productDescription,
+          selectedCondition, selectedCategory,
+          images: selectedImages.filter((img): img is typeof img & { uri: string } => !!img.uri),
+        });
+        setShowSuccess(true);
       }
     } catch (error: any) {
-      const errorData = error.response?.data
-        ? (typeof error.response.data === 'object'
-            ? JSON.stringify(error.response.data, null, 2)
-            : error.response.data)
-        : error.message ?? '알 수 없는 오류';
-      console.error('상품 등록 에러:', errorData);
-      Alert.alert('오류', `상품 등록 중 문제가 발생했습니다.\n\n${errorData}`);
+      console.error('상품 등록 에러:', error.message);
+      const isImageUploadError = error.message?.includes('Presigned') || !error.response;
+      setErrorMsg(isImageUploadError ? ERROR_MESSAGES.PRODUCT.IMAGE_UPLOAD : ERROR_MESSAGES.PRODUCT.REGISTER_FAILED);
     } finally {
       setIsLoading(false);
     }
@@ -360,6 +306,22 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
       <Animated.View style={[styles.toastOverlay, { opacity: toastOpacity }]} pointerEvents="none">
         <Text style={styles.toastText}>사진은 최대 6장까지 선택 가능합니다.</Text>
       </Animated.View>
+
+      <ErrorView
+        visible={!!errorMsg}
+        title={errorMsg?.title ?? ''}
+        subtitle={errorMsg?.subtitle ?? ''}
+        onPress={() => setErrorMsg(null)}
+      />
+
+      <SuccessView
+        visible={showSuccess}
+        title="상품등록이 완료되었습니다."
+        onDismiss={() => {
+          setShowSuccess(false);
+          navigation.goBack();
+        }}
+      />
     </SafeAreaView>
   );
 };
