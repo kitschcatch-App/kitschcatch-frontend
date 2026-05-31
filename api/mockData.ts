@@ -157,7 +157,7 @@ export const getMockPostDetail = (productId: string | number) => ({
           sortOrder: 0,
         },
       ],
-      sellerId: 42,
+      sellerId: 40,
       sellerNickname: '김민영',
       createdAt: '2026-05-25T10:00:00',
     },

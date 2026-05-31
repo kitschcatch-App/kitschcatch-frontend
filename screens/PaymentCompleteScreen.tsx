@@ -3,7 +3,7 @@
  * 역할: 결제가 성공적으로 완료된 후 주문 정보를 요약하여 보여주는 화면입니다.
  */
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -14,6 +14,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PaymentComplete'>;
 
 const PaymentCompleteScreen = ({ navigation, route }: Props) => {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const { productName, totalPrice, productImageUrl, pgOrderId } = route.params;
 
   return (
@@ -34,7 +35,7 @@ const PaymentCompleteScreen = ({ navigation, route }: Props) => {
 
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.contentContainer}>
-            <Image source={require('../assets/paymentcomplete.png')} style={styles.completeImage} resizeMode="contain" />
+            <Image source={require('../assets/paymentcomplete.png')} style={[styles.completeImage, { width: screenWidth * 0.58, height: screenWidth * 0.58 }]} resizeMode="contain" />
             <Text style={styles.mainText}>결제가 완료되었습니다</Text>
             <Text style={styles.subText}>주문이 정상적으로 접수되었어요</Text>
           </View>

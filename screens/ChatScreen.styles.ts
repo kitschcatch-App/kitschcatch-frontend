@@ -141,8 +141,6 @@ export const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   messageImage: {
-    width: 200,
-    height: 200,
     borderRadius: 15,
   },
   tailIconMe: {
@@ -208,7 +206,6 @@ export const styles = StyleSheet.create({
   },
   modalCloseButton: {
     position: 'absolute',
-    top: 50,
     right: 20,
     zIndex: 1,
     padding: 15,

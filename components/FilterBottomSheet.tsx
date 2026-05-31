@@ -4,6 +4,7 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, Animated, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from './FilterBottomSheet.styles';
 import { colors } from '../styles/colors';
 
@@ -23,6 +24,7 @@ interface Props {
 }
 
 const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) => {
+  const insets = useSafeAreaInsets();
   const sortOptions = ['추천순', '최신순', '가격 높은 순', '가격 낮은 순'];
   const [selectedSort, setSelectedSort] = useState('추천순');
   const [isOnSaleOnly, setIsOnSaleOnly] = useState(false);
@@ -99,7 +101,7 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
         <View style={styles.overlay}>
           {/* 내부 콘텐츠 터치 시 모달 닫히지 않도록 이벤트 전파 방지 */}
           <TouchableWithoutFeedback>
-            <View style={styles.bottomSheetContainer}>
+            <View style={[styles.bottomSheetContainer, { paddingBottom: Math.max(insets.bottom + 15, 40) }]}>
               {/* 상단 핸들 손잡이 */}
               <View style={styles.handleContainer}>
                 <View style={styles.handle} />

@@ -3,12 +3,11 @@
  * 역할: 상품 목록에서 선택한 특정 상품의 상세 정보(이미지, 가격, 설명, 판매자 정보 등)와 하단 액션 바를 보여주는 컴포넌트입니다.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, useWindowDimensions } from 'react-native';
 import ErrorView from '../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
 import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP } from '../constants/displayMaps';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import { styles } from './ProductDetailScreen.styles';
@@ -29,6 +28,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
 
 const ProductDetailScreen = ({ route, navigation }: Props) => {
   const insets = useSafeAreaInsets();
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   const { isMockMode } = useMockMode();
 
   // 이전 화면(ProductList)에서 넘겨준 파라미터 받기
@@ -230,7 +230,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                 setImageIndex(index);
               }}
               renderItem={({ item }) => (
-                <Image source={{ uri: item }} style={[styles.productImage, { width: SCREEN_WIDTH }]} />
+                <Image source={{ uri: item }} style={[styles.productImage, { width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.5 }]} />
               )}
             />
 

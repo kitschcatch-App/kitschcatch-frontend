@@ -192,8 +192,7 @@ export const styles = StyleSheet.create({
   // 상품 등록 버튼
   floatingButton: {
     position: 'absolute',
-    bottom: 85, // 화면 하단에서의 위치
-    right: 16, // 화면 오른쪽 여백
+    right: 16,
     display: 'flex',
     flexDirection: 'row',
     padding: 10,

@@ -5,7 +5,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Image, ScrollView,
-  TextInput, KeyboardAvoidingView, Platform, Modal, ActivityIndicator,
+  TextInput, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -64,6 +64,7 @@ const getKSTDateString = (isoString?: string): string => {
 const ChatScreen = ({ route, navigation }: Props) => {
   const { chatRoomId, opponentNickname } = route.params;
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const { isMockMode } = useMockMode();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -278,7 +279,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
                             activeOpacity={0.8}
                             onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}
                           >
-                            <Image source={{ uri: msg.imageUrl! }} style={styles.messageImage} />
+                            <Image source={{ uri: msg.imageUrl! }} style={[styles.messageImage, { width: screenWidth * 0.6, height: screenWidth * 0.6 }]} />
                           </TouchableOpacity>
                         ) : (
                           <Text style={styles.messageTextMe}>{msg.content}</Text>
@@ -303,7 +304,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
                           activeOpacity={0.8}
                           onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}
                         >
-                          <Image source={{ uri: msg.imageUrl! }} style={styles.messageImage} />
+                          <Image source={{ uri: msg.imageUrl! }} style={[styles.messageImage, { width: screenWidth * 0.6, height: screenWidth * 0.6 }]} />
                         </TouchableOpacity>
                       ) : (
                         <Text style={styles.messageTextMe}>{msg.content}</Text>
@@ -358,7 +359,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalBackground}>
-          <TouchableOpacity style={styles.modalCloseButton} onPress={() => setModalVisible(false)}>
+          <TouchableOpacity style={[styles.modalCloseButton, { top: insets.top + 10 }]} onPress={() => setModalVisible(false)}>
             <Text style={styles.modalCloseText}>✕</Text>
           </TouchableOpacity>
           {selectedImage && (

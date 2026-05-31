@@ -52,8 +52,6 @@ export const styles = StyleSheet.create({
     marginTop: 48,
   },
   completeImage: {
-    width: 230,
-    height: 230,
     marginBottom: 20,
   },
   mainText: {

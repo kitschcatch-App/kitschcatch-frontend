@@ -323,7 +323,7 @@ const ProductListScreen = ({ navigation }: Props) => {
 
       {/* 플로팅 상품등록 버튼 */}
       <TouchableOpacity
-        style={styles.floatingButton}
+        style={[styles.floatingButton, { bottom: Math.max(insets.bottom, 14) + 60 }]}
         onPress={() => navigation.navigate('ProductRegistration')}
       >
         <Text style={styles.floatingButtonText}>상품등록</Text>
