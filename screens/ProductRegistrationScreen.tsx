@@ -143,6 +143,7 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
       }
     } catch (error: any) {
       console.error('상품 등록 에러:', error.message);
+      console.error('상품 등록 에러 상세:', JSON.stringify(error.response?.data));
       const isImageUploadError = error.message?.includes('Presigned') || !error.response;
       setErrorMsg(isImageUploadError ? ERROR_MESSAGES.PRODUCT.IMAGE_UPLOAD : ERROR_MESSAGES.PRODUCT.REGISTER_FAILED);
     } finally {

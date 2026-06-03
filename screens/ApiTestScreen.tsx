@@ -40,7 +40,7 @@ import { typography } from '../styles/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ApiTest'>;
 
-const BASE_URL = 'http://10.0.2.2:8080/api';
+const BASE_URL = 'https://dev-kitschcatch.p-e.kr/api';
 
 // ─── 테스트 결과 타입 ──────────────────────────────────────────────────────────
 type TestStatus = 'idle' | 'loading' | 'success' | 'error';

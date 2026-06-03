@@ -11,7 +11,7 @@ import { styles } from './LoginScreen.styles';
 import KitschcatchIcon from '../assets/kitschcatch.svg';
 import KakaoIcon from '../assets/kakao.svg';
 import Svg, { Ellipse, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { login } from '@react-native-seoul/kakao-login';
+import { login, loginWithNewScopes } from '@react-native-seoul/kakao-login';
 import { authAPI } from '../api/apiClient';
 import { secureStorage } from '../utils/secureStorage';
 import ErrorView from '../components/ErrorView';
@@ -27,24 +27,14 @@ const LoginScreen = ({ navigation }: Props) => {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleKakaoLogin = async () => {
-    // 백엔드 연동 전 임시로 바로 메인 화면(ProductList)으로 넘어가게 처리
-    // Mock 데이터의 판매자 정보(id: 42)와 일치하도록 내 ID를 임시 저장
-    await secureStorage.setItem('userId', '42');
-    setShowSuccess(true);
-    /*
     try {
       // Step 1: 서버에서 카카오 OIDC 검증용 Nonce 발급
-      console.log('[Login] Step 1: Nonce 발급 요청');
       const nonceRes = await authAPI.getNonce();
       const nonce: string = nonceRes.data.data.nonce;
-      console.log('[Login] Step 1 완료 - nonce:', nonce);
 
       // Step 2: Nonce를 포함하여 카카오 로그인 → ID Token 발급
-      // 라이브러리 타입 정의에 nonce 파라미터가 누락되어 있어 타입 단언으로 우회
-      console.log('[Login] Step 2: 카카오 SDK 로그인 요청');
-      const kakaoToken = await (login as (params: { nonce: string }) => Promise<{ idToken: string }>)({ nonce });
+      const kakaoToken = await login({ nonce });
       const idToken = kakaoToken.idToken;
-      console.log('[Login] Step 2 완료 - idToken 존재 여부:', !!idToken);
 
       if (!idToken) {
         // 카카오 앱 설정에서 "OpenID Connect 활성화"가 꺼져 있으면 idToken이 없을 수 있음
@@ -52,7 +42,6 @@ const LoginScreen = ({ navigation }: Props) => {
       }
 
       // Step 3: 백엔드로 ID Token + Nonce 전송 → 앱 JWT(Access/Refresh Token) 발급
-      console.log('[Login] Step 3: 백엔드 로그인 요청 (mobile-login)');
       const response = await authAPI.loginWithKakao(idToken, nonce);
       const { accessToken, refreshToken } = response.data.data;
 
@@ -60,28 +49,46 @@ const LoginScreen = ({ navigation }: Props) => {
       await secureStorage.setItem('accessToken', accessToken);
       await secureStorage.setItem('refreshToken', refreshToken);
       await secureStorage.setItem('userId', String(response.data.data.user.id));
-      console.log('[Login] 로그인 성공');
 
       // Step 5: 메인 화면으로 이동
-      navigation.replace('ProductList');
+      setShowSuccess(true);
     } catch (err: any) {
       if (err.message?.includes('user cancelled')) {
         setErrorMsg(ERROR_MESSAGES.AUTH.CANCELLED);
-      } else if (!err.response) {
+      } else if (err.isAxiosError && !err.response) {
+        console.error('[Login] 네트워크 에러 (응답 없음):', err.message, err.code);
         setErrorMsg(ERROR_MESSAGES.AUTH.NETWORK);
       } else {
         const serverError = err.response?.data;
         console.error('[Login] 카카오 로그인 에러:', err.message);
         console.error('[Login] HTTP 상태 코드:', err.response?.status);
         console.error('[Login] 서버 에러 응답:', JSON.stringify(serverError, null, 2));
-        if (serverError?.error?.code === 'AUTH_004') {
+        if (serverError?.error?.code === 'AUTH_002') {
+          // 이메일 동의 미완료 → 동의 팝업 표시 후 새 nonce로 재로그인
+          try {
+            await loginWithNewScopes(['account_email']);
+            const retryNonceRes = await authAPI.getNonce();
+            const retryNonce: string = retryNonceRes.data.data.nonce;
+            const retryToken = await login({ nonce: retryNonce });
+            if (!retryToken.idToken) throw new Error('idToken 없음');
+            const retryResponse = await authAPI.loginWithKakao(retryToken.idToken, retryNonce);
+            const { accessToken, refreshToken } = retryResponse.data.data;
+            await secureStorage.setItem('accessToken', accessToken);
+            await secureStorage.setItem('refreshToken', refreshToken);
+            await secureStorage.setItem('userId', String(retryResponse.data.data.user.id));
+            setShowSuccess(true);
+          } catch (retryErr: any) {
+            console.error('[Login] 이메일 동의 재시도 에러:', retryErr?.message);
+            console.error('[Login] 재시도 에러 응답:', JSON.stringify(retryErr?.response?.data, null, 2));
+            setErrorMsg(ERROR_MESSAGES.AUTH.EMAIL_CONSENT);
+          }
+        } else if (serverError?.error?.code === 'AUTH_004') {
           setErrorMsg(ERROR_MESSAGES.AUTH.EMAIL_CONSENT);
         } else {
           setErrorMsg(ERROR_MESSAGES.AUTH.FAILED);
         }
       }
     }
-    */
   };
 
   return (

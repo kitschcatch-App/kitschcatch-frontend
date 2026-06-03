@@ -3,11 +3,10 @@
  * 역할: axios를 사용하여 네트워크 요청(API 연동) 공통 로직을 모듈화한 파일입니다.
  */
 import axios, { AxiosRequestConfig } from 'axios';
+import Config from 'react-native-config';
 import { secureStorage } from '../utils/secureStorage';
 
-// 안드로이드 에뮬레이터 로컬 백엔드 연동 주소 (10.0.2.2)
-// 실기기나 iOS 등 환경에 따라 나중에는 환경변수(.env)로 분리하는 것이 좋습니다.
-const BASE_URL = 'http://10.0.2.2:8080/api';
+const BASE_URL = Config.API_BASE_URL!;
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

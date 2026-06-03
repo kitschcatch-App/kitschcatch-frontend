@@ -1,0 +1,198 @@
+diff --git a/node_modules/@react-native-seoul/kakao-login/android/src/main/java/com/dooboolab/kakaologins/RNKakaoLoginsModule.kt b/node_modules/@react-native-seoul/kakao-login/android/src/main/java/com/dooboolab/kakaologins/RNKakaoLoginsModule.kt
+index ad0ffcd..6db6c79 100644
+--- a/node_modules/@react-native-seoul/kakao-login/android/src/main/java/com/dooboolab/kakaologins/RNKakaoLoginsModule.kt
++++ b/node_modules/@react-native-seoul/kakao-login/android/src/main/java/com/dooboolab/kakaologins/RNKakaoLoginsModule.kt
+@@ -20,103 +20,76 @@ class RNKakaoLoginsModule(private val reactContext: ReactApplicationContext) : R
+         return "RNKakaoLogins"
+     }
+ 
++    private fun buildTokenMap(token: com.kakao.sdk.auth.model.OAuthToken): WritableMap {
++        val (accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt, idToken, scopes) = token
++        val map = Arguments.createMap()
++        map.putString("accessToken", accessToken)
++        map.putString("refreshToken", refreshToken)
++        map.putString("idToken", idToken)
++        map.putString("accessTokenExpiresAt", dateFormat(accessTokenExpiresAt))
++        map.putString("refreshTokenExpiresAt", dateFormat(refreshTokenExpiresAt))
++        val scopeArray = Arguments.createArray()
++        if (scopes != null) {
++            for (scope in scopes) {
++                scopeArray.pushString(scope)
++            }
++        }
++        map.putArray("scopes", scopeArray)
++        return map
++    }
++
+     @ReactMethod
+-    private fun login(promise: Promise) {
++    private fun login(nonce: String?, promise: Promise) {
+         if (UserApiClient.instance.isKakaoTalkLoginAvailable(reactContext)) {
+             reactContext.currentActivity?.let {
+-                UserApiClient.instance.loginWithKakaoTalk(it) { token, error: Throwable? ->
++                UserApiClient.instance.loginWithKakaoTalk(it, nonce = nonce) { token, error: Throwable? ->
+                     if (error != null) {
+                         if (error is AuthError && error.statusCode == 302) {
+-                            this.loginWithKakaoAccount(promise)
++                            this.loginWithKakaoAccount(nonce, promise)
+                             return@loginWithKakaoTalk
+                         }
+                         promise.reject("RNKakaoLogins", error.message, error)
+                         return@loginWithKakaoTalk
+                     }
+-
+                     if (token != null) {
+-                        val (accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt, idToken, scopes) = token
+-                        val map = Arguments.createMap()
+-                        map.putString("accessToken", accessToken)
+-                        map.putString("refreshToken", refreshToken)
+-                        map.putString("idToken", idToken)
+-                        map.putString("accessTokenExpiresAt", dateFormat(accessTokenExpiresAt))
+-                        map.putString("refreshTokenExpiresAt", dateFormat(refreshTokenExpiresAt))
+-                        val scopeArray = Arguments.createArray()
+-                        if (scopes != null) {
+-                            for (scope in scopes) {
+-                                scopeArray.pushString(scope)
+-                            }
+-                        }
+-                        map.putArray("scopes", scopeArray)
+-                        promise.resolve(map)
+-                        return@loginWithKakaoTalk
++                        promise.resolve(buildTokenMap(token))
++                    } else {
++                        promise.reject("RNKakaoLogins", "Token is null")
+                     }
+-
+-                    promise.reject("RNKakaoLogins", "Token is null")
+                 }
+             }
+         } else {
+-            UserApiClient.instance.loginWithKakaoAccount(reactContext) { token, error: Throwable? ->
+-                if (error != null) {
+-                    promise.reject("RNKakaoLogins", error.message, error)
+-                    return@loginWithKakaoAccount
+-                }
+-
+-                if (token != null) {
+-                    val (accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt, idToken, scopes) = token
+-                    val map = Arguments.createMap()
+-                    map.putString("accessToken", accessToken)
+-                    map.putString("refreshToken", refreshToken)
+-                    map.putString("idToken", idToken)
+-                    map.putString("accessTokenExpiresAt", dateFormat(accessTokenExpiresAt))
+-                    map.putString("refreshTokenExpiresAt", dateFormat(refreshTokenExpiresAt))
+-                    val scopeArray = Arguments.createArray()
+-                    if (scopes != null) {
+-                        for (scope in scopes) {
+-                            scopeArray.pushString(scope)
+-                        }
+-                    }
+-                    map.putArray("scopes", scopeArray)
+-                    promise.resolve(map)
+-                    return@loginWithKakaoAccount
+-                }
+-
+-                promise.reject("RNKakaoLogins", "Token is null")
+-            }
++            loginWithKakaoAccount(nonce, promise)
+         }
+     }
+ 
+     @ReactMethod
+-    private fun loginWithKakaoAccount(promise: Promise) {
+-        UserApiClient.instance.loginWithKakaoAccount(reactContext) { token, error: Throwable? ->
++    private fun loginWithKakaoAccount(nonce: String?, promise: Promise) {
++        UserApiClient.instance.loginWithKakaoAccount(reactContext, nonce = nonce) { token, error: Throwable? ->
+             if (error != null) {
+                 promise.reject("RNKakaoLogins", error.message, error)
+                 return@loginWithKakaoAccount
+             }
+-
+-            if (token == null) {
++            if (token != null) {
++                promise.resolve(buildTokenMap(token))
++            } else {
+                 promise.reject("RNKakaoLogins", "Token is null")
+-                return@loginWithKakaoAccount
+             }
++        }
++    }
+ 
++    @ReactMethod
++    private fun loginWithNewScopes(scopes: ReadableArray, promise: Promise) {
++        val scopeList = (0 until scopes.size()).map { scopes.getString(it) }.filterNotNull()
++        UserApiClient.instance.loginWithNewScopes(reactContext, scopeList) { token, error: Throwable? ->
++            if (error != null) {
++                promise.reject("RNKakaoLogins", error.message, error)
++                return@loginWithNewScopes
++            }
+             if (token != null) {
+-                val (accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt, idToken, scopes) = token
+-                val map = Arguments.createMap()
+-                map.putString("accessToken", accessToken)
+-                map.putString("refreshToken", refreshToken)
+-                map.putString("idToken", idToken)
+-                map.putString("accessTokenExpiresAt", dateFormat(accessTokenExpiresAt))
+-                map.putString("refreshTokenExpiresAt", dateFormat(refreshTokenExpiresAt))
+-                val scopeArray = Arguments.createArray()
+-                if (scopes != null) {
+-                    for (scope in scopes) {
+-                        scopeArray.pushString(scope)
+-                    }
+-                }
+-                map.putArray("scopes", scopeArray)
+-                promise.resolve(map)
+-                return@loginWithKakaoAccount
++                promise.resolve(buildTokenMap(token))
++            } else {
++                promise.reject("RNKakaoLogins", "Token is null")
+             }
+         }
+     }
+diff --git a/node_modules/@react-native-seoul/kakao-login/src/index.d.ts b/node_modules/@react-native-seoul/kakao-login/src/index.d.ts
+index d4775a8..e842507 100644
+--- a/node_modules/@react-native-seoul/kakao-login/src/index.d.ts
++++ b/node_modules/@react-native-seoul/kakao-login/src/index.d.ts
+@@ -1,8 +1,9 @@
+ export declare const login: {
+-    (): Promise<import("./types").KakaoOAuthToken>;
++    (params?: { nonce?: string }): Promise<import("./types").KakaoOAuthToken>;
+     (props: import("./types").KaKaoLoginWebType): Promise<import("./types").KakaoOAuthWebToken>;
+ };
+-export declare const loginWithKakaoAccount: () => Promise<import("./types").KakaoOAuthToken>;
++export declare const loginWithKakaoAccount: (params?: { nonce?: string }) => Promise<import("./types").KakaoOAuthToken>;
++export declare const loginWithNewScopes: (scopes: string[]) => Promise<import("./types").KakaoOAuthToken>;
+ export declare const logout: {
+     (): Promise<string>;
+     (tokenWeb: string): Promise<string>;
+diff --git a/node_modules/@react-native-seoul/kakao-login/src/index.js b/node_modules/@react-native-seoul/kakao-login/src/index.js
+index bdf9f0b..265f756 100644
+--- a/node_modules/@react-native-seoul/kakao-login/src/index.js
++++ b/node_modules/@react-native-seoul/kakao-login/src/index.js
+@@ -1,11 +1,14 @@
+ import { NativeModules } from 'react-native';
+ var RNKakaoLogins = NativeModules.RNKakaoLogins;
+ var NativeKakaoLogins = {
+-    login: function () {
+-        return RNKakaoLogins.login();
++    login: function (params) {
++        return RNKakaoLogins.login(params && params.nonce ? params.nonce : null);
+     },
+-    loginWithKakaoAccount: function () {
+-        return RNKakaoLogins.loginWithKakaoAccount();
++    loginWithKakaoAccount: function (params) {
++        return RNKakaoLogins.loginWithKakaoAccount(params && params.nonce ? params.nonce : null);
++    },
++    loginWithNewScopes: function (scopes) {
++        return RNKakaoLogins.loginWithNewScopes(scopes);
+     },
+     logout: function () {
+         return RNKakaoLogins.logout();
+@@ -28,6 +31,7 @@ var NativeKakaoLogins = {
+ };
+ export var login = NativeKakaoLogins.login;
+ export var loginWithKakaoAccount = NativeKakaoLogins.loginWithKakaoAccount;
++export var loginWithNewScopes = NativeKakaoLogins.loginWithNewScopes;
+ export var logout = NativeKakaoLogins.logout;
+ export var unlink = NativeKakaoLogins.unlink;
+ export var getProfile = NativeKakaoLogins.getProfile;
