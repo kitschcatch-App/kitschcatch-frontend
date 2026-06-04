@@ -231,7 +231,6 @@ const ChatScreen = ({ route, navigation }: Props) => {
     if (!asset.uri) return;
 
     if (isMockMode) {
-      // mock 모드: 선택한 이미지를 로컬에 즉시 추가
       setMessages((prev) => [...prev, {
         messageId: Date.now(),
         senderId: MOCK_MY_USER_ID,
@@ -244,13 +243,36 @@ const ChatScreen = ({ route, navigation }: Props) => {
       return;
     }
 
-    const fileName = asset.fileName ?? `chat_image_${Date.now()}.jpg`;
-    const mimeType = asset.type ?? 'image/jpeg';
+    const contentType = asset.type ?? 'image/jpeg';
+    const originalFileName = asset.fileName ?? `chat_image_${Date.now()}.jpg`;
 
     try {
       setIsSendingImage(true);
-      await chatAPI.sendImageMessage(chatRoomId, asset.uri, fileName, mimeType);
-      // 서버가 업로드 완료 후 WebSocket으로 브로드캐스트하므로 로컬 추가 불필요
+
+      // Step 1: Presigned URL 발급
+      const urlRes = await chatAPI.getImageUploadUrl(chatRoomId, originalFileName, contentType);
+      const { uploadUrl, objectKey } = urlRes.data?.data ?? urlRes.data;
+
+      // Step 2: S3 직접 업로드 — fetch 사용으로 apiClient 인터셉터(Authorization 헤더) 우회
+      const imageResponse = await fetch(asset.uri);
+      const blob = await imageResponse.blob();
+      const s3Res = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
+        body: blob,
+      });
+      if (!s3Res.ok) throw new Error(`S3 upload failed: ${s3Res.status}`);
+
+      // Step 3: objectKey로 이미지 메시지 저장
+      const saveRes = await chatAPI.saveImageMessage(chatRoomId, objectKey);
+      const savedMsg: ChatMessageResponse = saveRes.data?.data ?? saveRes.data;
+      console.log('[Chat] savedMsg:', JSON.stringify(savedMsg));
+
+      // Step 3 응답으로 UI 반영 (WebSocket 에코는 senderId 필터로 무시되므로 중복 없음)
+      const userId = myUserIdRef.current;
+      if (userId !== null) {
+        setMessages((prev) => [...prev, toMessage(savedMsg, userId)]);
+      }
     } catch (e) {
       console.error('이미지 전송 실패:', e);
       setErrorMsg(ERROR_MESSAGES.CHAT.SEND_FAILED);
@@ -272,7 +294,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
             <BackIcon width={24} height={24} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.nickname}>잘자는고양이</Text>
+            <Text style={styles.nickname}>{opponentNickname}</Text>
             <Text style={styles.responseTime}>평균응답시간 30분</Text>
           </View>
         </View>
@@ -323,7 +345,11 @@ const ChatScreen = ({ route, navigation }: Props) => {
                             activeOpacity={0.8}
                             onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}
                           >
-                            <Image source={{ uri: msg.imageUrl! }} style={[styles.messageImage, { width: screenWidth * 0.6, height: screenWidth * 0.6 }]} />
+                            <Image
+                              source={{ uri: msg.imageUrl! }}
+                              style={[styles.messageImage, { width: screenWidth * 0.6, height: screenWidth * 0.6 }]}
+                              onError={(e) => console.error('[Chat] Image load error (them):', msg.imageUrl, e.nativeEvent.error)}
+                            />
                           </TouchableOpacity>
                         ) : (
                           <Text style={styles.messageTextMe}>{msg.content}</Text>
@@ -348,7 +374,11 @@ const ChatScreen = ({ route, navigation }: Props) => {
                           activeOpacity={0.8}
                           onPress={() => { setSelectedImage(msg.imageUrl!); setModalVisible(true); }}
                         >
-                          <Image source={{ uri: msg.imageUrl! }} style={[styles.messageImage, { width: screenWidth * 0.6, height: screenWidth * 0.6 }]} />
+                          <Image
+                            source={{ uri: msg.imageUrl! }}
+                            style={[styles.messageImage, { width: screenWidth * 0.6, height: screenWidth * 0.6 }]}
+                            onError={(e) => console.error('[Chat] Image load error (me):', msg.imageUrl, e.nativeEvent.error)}
+                          />
                         </TouchableOpacity>
                       ) : (
                         <Text style={styles.messageTextMe}>{msg.content}</Text>

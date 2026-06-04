@@ -105,10 +105,13 @@ const PaymentScreen = ({ route, navigation }: Props) => {
   const getErrorMessage = (error: any): string => {
     const errCode = error?.response?.data?.error?.code;
     const errMsg = error?.response?.data?.error?.message;
+    if (errCode === 'PAYMENT_001') return '결제 정보를 찾을 수 없습니다.';
+    if (errCode === 'PAYMENT_002') return '결제 금액이 일치하지 않습니다.';
+    if (errCode === 'PAYMENT_003') return '잘못된 결제 상태 전환입니다. 다시 시도해주세요.';
+    if (errCode === 'PAYMENT_005') return '결제 대행사 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+    if (errCode === 'ORDER_001') return '주문 정보를 찾을 수 없습니다.';
     if (errCode === 'ORDER_002') return '현재 주문할 수 없는 상품입니다.';
     if (errCode === 'ORDER_003') return '주문 결제 시간이 만료되었습니다. 다시 시도해주세요.';
-    if (errCode === 'PAYMENT_003') return '결제 대행사 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-    if (errCode === 'PAYMENT_004') return '결제 금액이 일치하지 않습니다.';
     return errMsg || '오류가 발생했습니다. 다시 시도해주세요.';
   };
 
@@ -201,7 +204,7 @@ ${extraParamsJs}
 
       // [2단계] Toss 결제창 열기
       // clientKey, successUrl, failUrl은 프론트엔드에서 관리 (백엔드 제공 안 함)
-      const clientKey = Config.TOSS_CLIENT_KEY;
+      const clientKey = Config.TOSS_CLIENT_KEY!;
       const extraParams: Record<string, string> = {};
       if (method.tossMethod === '휴대폰' || method.tossMethod === '계좌이체') {
         // 휴대폰: customerMobilePhone 필수 / 계좌이체: 현금영수증 발급을 위해 필요
@@ -244,9 +247,17 @@ ${extraParamsJs}
     }
     const paymentKey = parseQueryParam(url, 'paymentKey') || '';
     paymentAPI.confirmPayment(data.paymentId, { paymentKey })
-      .then(() => navigation.navigate('PaymentComplete', {
-        productName, productPrice, totalPrice, productImageUrl, pgOrderId: data.pgOrderId,
-      }))
+      .then(() => paymentAPI.getPayment(data.paymentId))
+      .then((statusRes) => {
+        const status = statusRes.data.data?.status;
+        if (status !== 'SUCCESS') {
+          Alert.alert('결제 오류', '결제가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.');
+          return;
+        }
+        navigation.navigate('PaymentComplete', {
+          productName, productPrice, totalPrice, productImageUrl, pgOrderId: data.pgOrderId,
+        });
+      })
       .catch((error) => Alert.alert('결제 오류', getErrorMessage(error)))
       .finally(() => setIsLoading(false));
   }, [isMockMode, navigation, productName, productPrice, totalPrice, productImageUrl]);
@@ -400,7 +411,7 @@ ${extraParamsJs}
             style={{ flex: 1 }}
           />
           {openingExternalApp && (
-            <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }]}>
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }]}>
               <ActivityIndicator size="large" color={colors.main01} />
               <Text style={{ marginTop: 12, color: '#666', fontSize: 14 }}>외부 앱으로 이동 중입니다...</Text>
             </View>

@@ -171,9 +171,16 @@ export const orderAPI = {
 // ─── 결제 관련 API ──────────────────────────────────────────────────────────────
 export const paymentAPI = {
   // 결제 승인 (Toss SDK 완료 후 paymentKey 전달)
-  // POST /api/payments/{paymentId}/confirm → { paymentId, paymentKey }
   confirmPayment: (paymentId: string, data: { paymentKey: string }) =>
     apiClient.post(`/payments/${paymentId}/confirm`, { paymentId, ...data }),
+
+  // 결제 상태 조회
+  getPayment: (paymentId: string) =>
+    apiClient.get(`/payments/${paymentId}`),
+
+  // 결제 취소 (status가 SUCCESS일 때만 가능)
+  cancelPayment: (paymentId: string) =>
+    apiClient.post(`/payments/${paymentId}/cancel`),
 };
 
 // ─── 채팅 관련 API ──────────────────────────────────────────────────────────────
@@ -198,17 +205,11 @@ export const chatAPI = {
   sendTextMessage: (chatRoomId: number, content: string) =>
     apiClient.post(`/chat-rooms/${chatRoomId}/messages/text`, { content }),
 
-  // 이미지 메시지 전송 (multipart/form-data)
-  sendImageMessage: (chatRoomId: number, imageUri: string, fileName: string, mimeType: string) => {
-    const formData = new FormData();
-    formData.append('image', { uri: imageUri, name: fileName, type: mimeType } as any);
-    return apiClient.post(`/chat-rooms/${chatRoomId}/messages/images`, formData, {
-      timeout: 30000,
-      transformRequest: (data, headers) => {
-        // React Native XHR가 boundary 포함한 Content-Type을 자동 설정하도록 헤더를 제거
-        delete headers['Content-Type'];
-        return data;
-      },
-    });
-  },
+  // [Step 1] 이미지 업로드용 Presigned URL 발급
+  getImageUploadUrl: (chatRoomId: number, originalFileName: string, contentType: string) =>
+    apiClient.post(`/chat-rooms/${chatRoomId}/messages/images/upload-url`, { originalFileName, contentType }),
+
+  // [Step 3] S3 업로드 완료 후 objectKey로 이미지 메시지 저장
+  saveImageMessage: (chatRoomId: number, objectKey: string) =>
+    apiClient.post(`/chat-rooms/${chatRoomId}/messages/images`, { objectKey }),
 };
