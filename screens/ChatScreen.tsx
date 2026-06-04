@@ -79,7 +79,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const myUserIdRef = useRef<number | null>(null);
 
-  const { connect, sendText, sendReadReceipt, disconnect } = useChatSocket();
+  const { connect, sendReadReceipt, disconnect } = useChatSocket();
 
   const toMessage = useCallback((raw: ChatMessageResponse, userId: number): Message => ({
     messageId: raw.messageId,
@@ -114,20 +114,40 @@ const ChatScreen = ({ route, navigation }: Props) => {
             chatAPI.getMessages(chatRoomId),
           ]);
 
+          console.log('[Chat] userId:', userId);
+          console.log('[Chat] messagesRes.data:', JSON.stringify(messagesRes.data)?.slice(0, 500));
+
+          const detailBody = detailRes.data?.data ?? detailRes.data;
+
+          // 서버 응답 형태에 따른 메시지 배열 추출
+          // 지원 형태: 직접 배열 / { data: [...] } / { data: { content: [...] } } / { content: [...] }
+          const rawData = messagesRes.data;
+          const messagesBody: ChatMessageResponse[] =
+            Array.isArray(rawData)                  ? rawData :
+            Array.isArray(rawData?.data)            ? rawData.data :
+            Array.isArray(rawData?.data?.content)   ? rawData.data.content :
+            Array.isArray(rawData?.content)         ? rawData.content :
+            [];
+
+          console.log('[Chat] messagesBody length:', messagesBody.length);
+
           setProductInfo({
-            postTitle: detailRes.data.postTitle,
-            postThumbnailImageUrl: detailRes.data.postThumbnailImageUrl,
+            postTitle: detailBody.postTitle,
+            postThumbnailImageUrl: detailBody.postThumbnailImageUrl,
           });
 
           if (userId !== null) {
-            const history: Message[] = (messagesRes.data as ChatMessageResponse[]).map(
-              (raw) => toMessage(raw, userId)
-            );
-            setMessages(history);
+            setMessages(messagesBody.map((m) => toMessage(m, userId)));
+          } else {
+            console.warn('[Chat] userId is null — messages not rendered');
           }
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('채팅 초기화 실패:', e);
+        if (e?.response) {
+          console.error('상태 코드:', e.response.status, '응답:', JSON.stringify(e.response.data));
+        }
+        setErrorMsg(ERROR_MESSAGES.CHAT.LOAD_FAILED);
       } finally {
         setIsLoading(false);
       }
@@ -145,35 +165,43 @@ const ChatScreen = ({ route, navigation }: Props) => {
       onMessage: (msg) => {
         const userId = myUserIdRef.current;
         if (userId === null) return;
+        // 본인 메시지는 낙관적 업데이트로 이미 추가했으므로 서버 에코 무시
+        if (msg.senderId === userId) return;
         setMessages((prev) => [...prev, toMessage(msg, userId)]);
-        if (msg.senderId !== userId) {
-          sendReadReceipt(chatRoomId);
-        }
+        sendReadReceipt(chatRoomId);
       },
     });
 
     return () => disconnect();
   }, [isLoading, isMockMode, chatRoomId, connect, disconnect, sendReadReceipt, toMessage]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (inputText.trim().length === 0) return;
-
-    if (isMockMode) {
-      // mock 모드: 로컬에 즉시 추가
-      setMessages((prev) => [...prev, {
-        messageId: Date.now(),
-        senderId: MOCK_MY_USER_ID,
-        messageType: 'TEXT',
-        content: inputText.trim(),
-        imageUrl: null,
-        time: getKSTTimeString(),
-        sender: 'me',
-      }]);
-    } else {
-      sendText(chatRoomId, inputText.trim());
-      // 에코 방식: 서버 브로드캐스트로만 메시지 추가
-    }
+    const text = inputText.trim();
     setInputText('');
+
+    const senderId = isMockMode ? MOCK_MY_USER_ID : (myUserIdRef.current ?? 0);
+    const tempId = Date.now();
+
+    setMessages((prev) => [...prev, {
+      messageId: tempId,
+      senderId,
+      messageType: 'TEXT',
+      content: text,
+      imageUrl: null,
+      time: getKSTTimeString(),
+      sender: 'me',
+    }]);
+
+    if (!isMockMode) {
+      try {
+        await chatAPI.sendTextMessage(chatRoomId, text);
+      } catch (e) {
+        console.error('메시지 전송 실패:', e);
+        setMessages((prev) => prev.filter((m) => m.messageId !== tempId));
+        setErrorMsg(ERROR_MESSAGES.CHAT.SEND_FAILED);
+      }
+    }
   };
 
   const handlePickImage = async () => {
@@ -228,7 +256,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
             <BackIcon width={24} height={24} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.nickname}>{opponentNickname}</Text>
+            <Text style={styles.nickname}>졸린코끼리</Text>
             <Text style={styles.responseTime}>평균응답시간 30분</Text>
           </View>
         </View>

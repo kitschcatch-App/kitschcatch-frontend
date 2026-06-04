@@ -2,7 +2,7 @@
  * 화면: 상품 목록 화면 (ProductListScreen)
  * 역할: 상품 검색, 정렬(최신순, 가격순 등) 필터링, 전체 상품 리스트 출력 및 네비게이션을 담당하는 메인 화면 컴포넌트입니다.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -32,7 +32,7 @@ import FilterBottomSheet, { FilterState } from '../components/FilterBottomSheet'
 import { filterProducts, Product } from '../utils/filterProducts';
 import ErrorView from '../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
-import { STATUS_DISPLAY_MAP } from '../constants/displayMaps';
+import { STATUS_DISPLAY_MAP, CATEGORY_REVERSE_MAP } from '../constants/displayMaps';
 
 import { styles } from './ProductListScreen.styles';
 
@@ -76,6 +76,7 @@ const ProductListScreen = ({ navigation }: Props) => {
   };
 
   const insets = useSafeAreaInsets();
+  const isInitialFocus = useRef(false);
 
   // ─── Mock / Real 공통 상품 목록 로더 ──────────────────────────────────────
   const mapPostToProduct = (post: any): Product => ({
@@ -86,7 +87,7 @@ const ProductListScreen = ({ navigation }: Props) => {
     heartCount: 0,
     chatCount: 0,
     status: post.productStatus,
-    category: post.productCategory,
+    category: CATEGORY_REVERSE_MAP[post.productCategory] || post.productCategory,
     condition: post.productCondition,
     createdAt: post.createdAt,
   });
@@ -127,6 +128,10 @@ const ProductListScreen = ({ navigation }: Props) => {
       }
     } catch (err: any) {
       if (axios.isCancel(err)) return;
+      if (err.response?.status === 401) {
+        navigation.navigate('Login');
+        return;
+      }
       console.error('상품 목록 불러오기 실패:', err);
       if (page === 0) {
         const isNetworkError = !err.response;
@@ -145,6 +150,20 @@ const ProductListScreen = ({ navigation }: Props) => {
     fetchProducts(0, abortController.signal);
     return () => abortController.abort();
   }, [isMockMode]); // Mock 모드가 바뀌면 자동으로 다시 로드
+
+  // ProductDetail에서 판매상태 수정 후 돌아올 때 목록 새로고침
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (!isInitialFocus.current) {
+        isInitialFocus.current = true;
+        return;
+      }
+      setIsLastPage(false);
+      setCurrentPage(0);
+      fetchProducts(0);
+    });
+    return unsubscribe;
+  }, [navigation, isMockMode]);
 
   const isFilterActive =
     selectedCategories.length > 0 ||

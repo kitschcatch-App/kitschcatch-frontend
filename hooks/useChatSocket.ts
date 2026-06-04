@@ -39,6 +39,7 @@ type ConnectOptions = {
 
 export const useChatSocket = () => {
   const clientRef = useRef<Client | null>(null);
+  const tokenRef = useRef<string | null>(null);
 
   const connect = useCallback(({ chatRoomId, onMessage, onReadUpdate }: ConnectOptions) => {
     const client = new Client({
@@ -46,6 +47,7 @@ export const useChatSocket = () => {
       reconnectDelay: 5000,
       beforeConnect: async () => {
         const token = await secureStorage.getItem('accessToken');
+        tokenRef.current = token;
         client.connectHeaders = {
           Authorization: `Bearer ${token ?? ''}`,
         };
@@ -63,8 +65,9 @@ export const useChatSocket = () => {
           });
         }
 
-        // 화면 진입 즉시 읽음 처리
-        client.publish({ destination: `/pub/chat-rooms/${chatRoomId}/read` });
+        if (client.connected) {
+          client.publish({ destination: `/pub/chat-rooms/${chatRoomId}/read` });
+        }
       },
     });
 
@@ -73,16 +76,24 @@ export const useChatSocket = () => {
   }, []);
 
   const sendText = useCallback((chatRoomId: number, content: string) => {
-    clientRef.current?.publish({
-      destination: `/pub/chat-rooms/${chatRoomId}/messages/text`,
-      body: JSON.stringify({ content }),
-    });
+    const client = clientRef.current;
+    if (client?.connected) {
+      client.publish({
+        destination: `/pub/chat-rooms/${chatRoomId}/messages/text`,
+        headers: { Authorization: `Bearer ${tokenRef.current ?? ''}` },
+        body: JSON.stringify({ content }),
+      });
+    }
   }, []);
 
   const sendReadReceipt = useCallback((chatRoomId: number) => {
-    clientRef.current?.publish({
-      destination: `/pub/chat-rooms/${chatRoomId}/read`,
-    });
+    const client = clientRef.current;
+    if (client?.connected) {
+      client.publish({
+        destination: `/pub/chat-rooms/${chatRoomId}/read`,
+        headers: { Authorization: `Bearer ${tokenRef.current ?? ''}` },
+      });
+    }
   }, []);
 
   const disconnect = useCallback(() => {

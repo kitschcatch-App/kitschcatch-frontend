@@ -26,6 +26,7 @@ export const ERROR_MESSAGES = {
   },
   CHAT: {
     SEND_FAILED: { title: '메시지를 보내지 못했어요', subtitle: '네트워크 상태를 확인해주세요.' },
+    LOAD_FAILED: { title: '대화 내역을 불러오지 못했어요', subtitle: '네트워크 상태를 확인한 뒤 다시 시도해주세요.' },
   },
 } as const;
 

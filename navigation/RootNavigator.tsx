@@ -35,6 +35,7 @@ export type RootStackParamList = {
     description: string;
     price: number;
     imageURL: string;
+    imageUrls: string[];
     imageKeys: string[];
     productCategory: string;
     productCondition: string;

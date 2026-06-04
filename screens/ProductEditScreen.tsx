@@ -29,7 +29,8 @@ const CATEGORY_OPTIONS = ['애니/만화', '게임', '굿즈', '코스프레', '
 const STATUS_OPTIONS = ['판매중', '예약중', '판매완료'];
 
 const ProductEditScreen = ({ route, navigation }: Props) => {
-  const { postId, title, description, price, imageURL, imageKeys, productCategory, productCondition, productStatus } = route.params;
+  const { postId, title, description, price, imageURL, imageUrls, imageKeys, productCategory, productCondition, productStatus } = route.params;
+  const existingImageUrls = imageUrls?.length ? imageUrls : (imageURL && imageURL !== 'string' ? [imageURL] : []);
   const insets = useSafeAreaInsets();
   const { isMockMode } = useMockMode();
 
@@ -189,16 +190,16 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
               <Text style={styles.photoCountText}>
                 {selectedImages.length > 0
                   ? selectedImages.length
-                  : imageURL && imageURL !== 'string' ? 1 : 0}/6
+                  : existingImageUrls.length}/6
               </Text>
             </TouchableOpacity>
 
             {/* 기존 이미지 미리보기 (새 이미지를 선택하지 않은 경우) */}
-            {selectedImages.length === 0 && imageURL && imageURL !== 'string' && (
-              <View style={styles.imageWrapper}>
-                <Image source={{ uri: imageURL }} style={styles.selectedImage} />
+            {selectedImages.length === 0 && existingImageUrls.map((url, index) => (
+              <View key={`existing-${index}`} style={styles.imageWrapper}>
+                <Image source={{ uri: url }} style={styles.selectedImage} />
               </View>
-            )}
+            ))}
 
             {selectedImages.map((image, index) => (
               <View key={index} style={styles.imageWrapper}>
@@ -209,7 +210,7 @@ const ProductEditScreen = ({ route, navigation }: Props) => {
               </View>
             ))}
 
-            {Array.from({ length: Math.max(0, 5 - selectedImages.length) }).map((_, index) => (
+            {Array.from({ length: Math.max(0, 5 - (selectedImages.length > 0 ? selectedImages.length : existingImageUrls.length)) }).map((_, index) => (
               <View key={`empty-${index}`} style={styles.photoBox} />
             ))}
           </ScrollView>

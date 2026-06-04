@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, useWindowDimensions } from 'react-native';
 import ErrorView from '../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
-import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP } from '../constants/displayMaps';
+import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP, CATEGORY_REVERSE_MAP } from '../constants/displayMaps';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
@@ -76,6 +76,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   // 애니메이션 값 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(150)).current;
+  const isInitialFocus = useRef(true);
 
   // 상품 상세 API 호출
   useEffect(() => {
@@ -112,7 +113,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           description: post.description || '상세 설명이 없습니다.',
           sellerName: post.sellerNickname || post.sellerId?.toString() || '알 수 없음',
           sellerId: post.sellerId ?? null,
-          category: post.productCategory || 'ETC',
+          category: CATEGORY_REVERSE_MAP[post.productCategory] || post.productCategory || 'ETC',
           condition: post.productCondition || 'USED',
           status: post.productStatus || 'ON_SALE',
           createdAt: post.createdAt || new Date().toISOString(),
@@ -168,6 +169,18 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     };
     loadCurrentUser();
   }, []);
+
+  // ProductEdit에서 돌아올 때 상품 정보 새로고침
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (isInitialFocus.current) {
+        isInitialFocus.current = false;
+        return;
+      }
+      setRetryTrigger(t => t + 1);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const openStatusModal = () => {
     setTempStatus(productDetail.status);
@@ -308,7 +321,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           <View style={styles.sellerContainer}>
             <Text style={styles.transactionCount}>판매자 거래 횟수 3회</Text>
             <View style={styles.sellerRight}>
-              <Text style={styles.sellerName}>{productDetail.sellerName}</Text>
+              <Text style={styles.sellerName}>졸린코끼리</Text>
               <Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.sellerProfileImage} />
             </View>
           </View>
@@ -349,6 +362,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                   description: productDetail.description,
                   price: productDetail.price,
                   imageURL: productDetail.imageUrl,
+                  imageUrls: productDetail.imageUrls,
                   imageKeys: productDetail.imageKeys,
                   productCategory: productDetail.category,
                   productCondition: productDetail.condition,
@@ -377,8 +391,14 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                       opponentNickname = mock.data.sellerNickname;
                     } else {
                       const res = await chatAPI.createChatRoom(Number(productDetail.id));
-                      chatRoomId = res.data.chatRoomId;
-                      opponentNickname = res.data.sellerNickname;
+                      // 서버가 { data: {...} } 래퍼를 사용하는 경우도 처리
+                      const resBody = res.data?.data ?? res.data;
+                      chatRoomId = resBody.chatRoomId;
+                      opponentNickname = resBody.sellerNickname;
+                      if (!chatRoomId) {
+                        console.error('채팅방 ID 없음, 응답:', JSON.stringify(res.data));
+                        throw new Error('채팅방 ID를 받지 못했습니다.');
+                      }
                     }
 
                     navigation.navigate('Chat', { chatRoomId, opponentNickname });

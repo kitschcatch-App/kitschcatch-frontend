@@ -53,7 +53,9 @@ const ChatListScreen = ({ navigation }: Props) => {
             setChatRooms(MOCK_CHAT_ROOMS.data);
           } else {
             const res = await chatAPI.getChatRooms();
-            setChatRooms(res.data);
+            // 서버가 { data: [...] } 래퍼를 사용하는 경우도 처리
+            const rooms = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+            setChatRooms(rooms);
           }
         } catch (e) {
           console.error('채팅 목록 조회 실패:', e);
@@ -77,7 +79,7 @@ const ChatListScreen = ({ navigation }: Props) => {
       <View style={styles.profileImage} />
       <View style={styles.chatInfo}>
         <View style={styles.chatHeader}>
-          <Text style={styles.sellerName}>{item.opponentNickname}</Text>
+          <Text style={styles.sellerName}>졸린코끼리</Text>
         </View>
         <View style={styles.messageRow}>
           <Text style={styles.lastMessage} numberOfLines={1}>

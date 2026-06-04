@@ -26,6 +26,12 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="kitschcatch" />
+        </intent-filter>
       </activity>
 
       <!-- 카카오 로그인 완료 후 앱으로 돌아오기 위한 커스텀 탭 설정 -->

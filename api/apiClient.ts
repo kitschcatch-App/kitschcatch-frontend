@@ -82,7 +82,7 @@ apiClient.interceptors.response.use(
         // → 토큰 삭제 없이 조용히 reject
         if (!storedRefreshToken) {
           isRefreshing = false;
-          processQueue(null, null);
+          processQueue(error, null);
           return Promise.reject(error);
         }
 
@@ -164,19 +164,16 @@ export const productAPI = {
 // ─── 주문 관련 API ──────────────────────────────────────────────────────────────
 export const orderAPI = {
   // 주문 생성 (15분 홀드)
-  createOrder: (data: { postId: number }) =>
+  createOrder: (data: { postId: number; amount: number; paymentMethod: string }) =>
     apiClient.post('/orders', data),
 };
 
 // ─── 결제 관련 API ──────────────────────────────────────────────────────────────
 export const paymentAPI = {
-  // 결제 생성 (토스페이먼츠 초기화, clientKey/pgOrderId 수령)
-  createPayment: (data: { orderId: number; method: string }) =>
-    apiClient.post('/payments', data),
-
-  // 결제 승인 (토스 SDK 완료 후 paymentKey 전달)
-  confirmPayment: (paymentId: number, data: { paymentKey: string }) =>
-    apiClient.post(`/payments/${paymentId}/confirm`, data),
+  // 결제 승인 (Toss SDK 완료 후 paymentKey 전달)
+  // POST /api/payments/{paymentId}/confirm → { paymentId, paymentKey }
+  confirmPayment: (paymentId: string, data: { paymentKey: string }) =>
+    apiClient.post(`/payments/${paymentId}/confirm`, { paymentId, ...data }),
 };
 
 // ─── 채팅 관련 API ──────────────────────────────────────────────────────────────
@@ -196,6 +193,10 @@ export const chatAPI = {
   // 메시지 이력 조회
   getMessages: (chatRoomId: number) =>
     apiClient.get(`/chat-rooms/${chatRoomId}/messages`),
+
+  // 텍스트 메시지 전송
+  sendTextMessage: (chatRoomId: number, content: string) =>
+    apiClient.post(`/chat-rooms/${chatRoomId}/messages/text`, { content }),
 
   // 이미지 메시지 전송 (multipart/form-data)
   sendImageMessage: (chatRoomId: number, imageUri: string, fileName: string, mimeType: string) => {

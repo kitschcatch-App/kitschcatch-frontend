@@ -15,6 +15,16 @@ export const CATEGORY_DISPLAY_MAP: Record<string, string> = {
   ETC: '기타',
 };
 
+export const CATEGORY_REVERSE_MAP: Record<string, string> = {
+  '애니/만화': 'ANIME_MANGA',
+  '게임': 'GAME',
+  '굿즈': 'GOODS',
+  '코스프레': 'COSPLAY',
+  '서적': 'BOOK',
+  '음반/영상': 'MUSIC_VIDEO',
+  '기타': 'ETC',
+};
+
 export const STATUS_DISPLAY_MAP: Record<string, string> = {
   ON_SALE: '판매중',
   RESERVED: '예약중',
