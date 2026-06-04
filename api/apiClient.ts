@@ -203,7 +203,12 @@ export const chatAPI = {
     const formData = new FormData();
     formData.append('image', { uri: imageUri, name: fileName, type: mimeType } as any);
     return apiClient.post(`/chat-rooms/${chatRoomId}/messages/images`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+      transformRequest: (data, headers) => {
+        // React Native XHR가 boundary 포함한 Content-Type을 자동 설정하도록 헤더를 제거
+        delete headers['Content-Type'];
+        return data;
+      },
     });
   },
 };

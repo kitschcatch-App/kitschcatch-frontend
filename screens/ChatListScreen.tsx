@@ -26,7 +26,10 @@ type ChatRoom = {
 
 const formatLastMessageTime = (isoString: string | null): string => {
   if (!isoString) return '';
-  const date = new Date(isoString.includes('+') || isoString.endsWith('Z') ? isoString : `${isoString}+09:00`);
+  const withTz = isoString.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(isoString)
+    ? isoString
+    : `${isoString}Z`;
+  const date = new Date(withTz);
   if (isNaN(date.getTime())) return '';
   const diffMs = Date.now() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
@@ -79,7 +82,7 @@ const ChatListScreen = ({ navigation }: Props) => {
       <View style={styles.profileImage} />
       <View style={styles.chatInfo}>
         <View style={styles.chatHeader}>
-          <Text style={styles.sellerName}>졸린코끼리</Text>
+          <Text style={styles.sellerName}>{item.opponentNickname}</Text>
         </View>
         <View style={styles.messageRow}>
           <Text style={styles.lastMessage} numberOfLines={1}>

@@ -5,7 +5,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Image, ScrollView,
-  TextInput, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, useWindowDimensions,
+  TextInput, Keyboard, Modal, ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { secureStorage } from '../utils/secureStorage';
@@ -41,8 +41,16 @@ type ProductInfo = {
   postThumbnailImageUrl: string | null;
 };
 
+// timezone 없는 서버 LocalDateTime을 UTC로 파싱 (서버가 UTC 기준 LocalDateTime 반환)
+const parseKSTDate = (isoString: string): Date => {
+  const withTz = isoString.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(isoString)
+    ? isoString
+    : `${isoString}Z`;
+  return new Date(withTz);
+};
+
 const getKSTTimeString = (isoString?: string): string => {
-  const date = isoString ? new Date(isoString) : new Date();
+  const date = isoString ? parseKSTDate(isoString) : new Date();
   return date.toLocaleTimeString('ko-KR', {
     timeZone: 'Asia/Seoul',
     hour: '2-digit',
@@ -52,7 +60,7 @@ const getKSTTimeString = (isoString?: string): string => {
 };
 
 const getKSTDateString = (isoString?: string): string => {
-  const date = isoString ? new Date(isoString) : new Date();
+  const date = isoString ? parseKSTDate(isoString) : new Date();
   return date.toLocaleDateString('ko-KR', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
@@ -75,6 +83,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
+  const [keyboardPadding, setKeyboardPadding] = useState(0);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const myUserIdRef = useRef<number | null>(null);
@@ -175,6 +184,16 @@ const ChatScreen = ({ route, navigation }: Props) => {
     return () => disconnect();
   }, [isLoading, isMockMode, chatRoomId, connect, disconnect, sendReadReceipt, toMessage]);
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardPadding(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardPadding(0);
+    });
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
   const handleSendMessage = async () => {
     if (inputText.trim().length === 0) return;
     const text = inputText.trim();
@@ -243,11 +262,8 @@ const ChatScreen = ({ route, navigation }: Props) => {
   const firstMessageDate = messages.length > 0 ? getKSTDateString(undefined) : null;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={[]}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <View style={[styles.container, { paddingBottom: keyboardPadding }]}>
         <View style={[styles.topSpacer, { height: Math.max(insets.top, 65) }]} />
 
         {/* 헤더 */}
@@ -256,7 +272,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
             <BackIcon width={24} height={24} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.nickname}>졸린코끼리</Text>
+            <Text style={styles.nickname}>잘자는고양이</Text>
             <Text style={styles.responseTime}>평균응답시간 30분</Text>
           </View>
         </View>
@@ -370,7 +386,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
             <SendIcon width={24} height={24} />
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       <ErrorView
         visible={!!errorMsg}

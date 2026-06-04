@@ -101,7 +101,8 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
         <View style={styles.overlay}>
           {/* 내부 콘텐츠 터치 시 모달 닫히지 않도록 이벤트 전파 방지 */}
           <TouchableWithoutFeedback>
-            <View style={[styles.bottomSheetContainer, { paddingBottom: Math.max(insets.bottom + 15, 40) }]}>
+            <View style={[styles.bottomSheetContainer, { paddingBottom: Math.max(insets.bottom)-20 }]}>
+              <View style={styles.filterContent}>
               {/* 상단 핸들 손잡이 */}
               <View style={styles.handleContainer}>
                 <View style={styles.handle} />
@@ -195,6 +196,7 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
                     </TouchableOpacity>
                   ))}
                 </View>
+              </View>
               </View>
 
               {/* 선택완료 버튼 */}

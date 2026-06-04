@@ -178,7 +178,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 30, // 스크롤 맨 마지막 여유 공간
+    marginBottom: 50,
   },
   submitButtonText: {
     fontSize: 16,

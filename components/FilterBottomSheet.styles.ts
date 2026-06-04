@@ -18,8 +18,10 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 40,
-    minHeight: 530, // 바텀 시트의 기본 높이
+    minHeight: 500,
+    justifyContent: 'space-between',
   },
+  filterContent: {},
   handleContainer: {
     alignItems: 'center',
     marginBottom: 5,
@@ -166,7 +168,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 20,
   },
   submitButton: {
     backgroundColor: colors.main01,
@@ -174,7 +176,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 30, 
+    marginTop: 0,
   },
   submitButtonText: {
     fontSize: 18,

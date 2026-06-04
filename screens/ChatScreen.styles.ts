@@ -174,12 +174,10 @@ export const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    // paddingHorizontal: 5,
     paddingVertical: 10,
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.gray02,
-    marginBottom: 14,
   },
   plusButton: {
     marginLeft: 8,

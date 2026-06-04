@@ -7,9 +7,11 @@
 import { useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import Config from 'react-native-config';
 import { secureStorage } from '../utils/secureStorage';
 
-const WS_BASE_URL = 'http://10.0.2.2:8080/ws';
+// API_BASE_URL: https://example.com/api → WS_BASE_URL: https://example.com/ws
+const WS_BASE_URL = Config.API_BASE_URL!.replace(/\/api$/, '') + '/ws';
 
 export type ChatMessageResponse = {
   messageId: number;

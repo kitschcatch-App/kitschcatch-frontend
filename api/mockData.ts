@@ -275,14 +275,14 @@ export const MOCK_CHAT_ROOMS = {
     {
       chatRoomId: 1,
       opponentId: 52,
-      opponentNickname: '졸린코끼리',
+      opponentNickname: '잘자는고양이',
       lastMessageContent: '네 내일 오후에 직거래 가능해요!',
       lastMessageAt: '2026-05-30T10:30:00',
     },
     {
       chatRoomId: 2,
       opponentId: 7,
-      opponentNickname: '굿즈헌터',
+      opponentNickname: '못자는 강아지',
       lastMessageContent: '상품 아직 판매 중인가요?',
       lastMessageAt: '2026-05-29T18:45:00',
     },

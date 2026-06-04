@@ -122,7 +122,7 @@ const LoginScreen = ({ navigation }: Props) => {
           onPress={() => navigation.navigate('ApiTest')}
           activeOpacity={0.7}
         >
-          <Text style={styles.devTestButtonText}>🛠 API 연동 테스트</Text>
+          {/* <Text style={styles.devTestButtonText}>🛠 API 연동 테스트</Text> */}
         </TouchableOpacity>
       </View>
 
