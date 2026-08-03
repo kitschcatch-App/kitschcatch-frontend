@@ -8,11 +8,13 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 interface MockModeContextType {
   isMockMode: boolean;
   toggleMockMode: () => void;
+  setMockMode: (value: boolean) => void;
 }
 
 const MockModeContext = createContext<MockModeContextType>({
   isMockMode: false,
   toggleMockMode: () => {},
+  setMockMode: () => {},
 });
 
 export const MockModeProvider = ({ children }: { children: ReactNode }) => {
@@ -21,7 +23,7 @@ export const MockModeProvider = ({ children }: { children: ReactNode }) => {
   const toggleMockMode = () => setIsMockMode(prev => !prev);
 
   return (
-    <MockModeContext.Provider value={{ isMockMode, toggleMockMode }}>
+    <MockModeContext.Provider value={{ isMockMode, toggleMockMode, setMockMode: setIsMockMode }}>
       {children}
     </MockModeContext.Provider>
   );
