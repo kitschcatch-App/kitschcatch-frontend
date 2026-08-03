@@ -43,7 +43,9 @@ const SplashScreen = ({ navigation }: Props) => {
           useNativeDriver: true,
         }).start(() => {
           if (isMounted) {
-            navigation.replace(token ? 'ProductList' : 'Login');
+            // 로그인 되어 있으면 자동으로 홈(ProductList)으로 이동하는 로직 (임시 주석 처리)
+            // navigation.replace(token ? 'ProductList' : 'Login');
+            navigation.replace('Login');
           }
         });
       }, 2000);

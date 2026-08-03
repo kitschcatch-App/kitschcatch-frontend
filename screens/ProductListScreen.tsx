@@ -247,7 +247,7 @@ const ProductListScreen = ({ navigation }: Props) => {
           <KitschcatchIcon style={{ marginTop: 8 }} />
 
           {/* Mock 모드 토글 버튼 (개발/테스트용) */}
-          {/* <TouchableOpacity
+          <TouchableOpacity
             style={[styles.mockTogglePill, isMockMode && styles.mockTogglePillActive]}
             onPress={toggleMockMode}
             activeOpacity={0.75}
@@ -255,7 +255,7 @@ const ProductListScreen = ({ navigation }: Props) => {
             <Text style={[styles.mockTogglePillText, isMockMode && styles.mockTogglePillTextActive]}>
               {isMockMode ? '🧪 Mock' : '🔌 Real'}
             </Text>
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
 
         {/* 1. 상단 헤더: 백 버튼 & 검색창 */}
