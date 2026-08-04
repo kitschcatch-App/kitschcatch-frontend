@@ -102,6 +102,19 @@ export const createStyles = (width: number) => StyleSheet.create({
     fontFamily: typography.M,
     color: colors.gray05,
   },
+  mockOptionsContainer: {
+    marginTop: 24,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mockOptionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.gray05,
+  },
   devTestButton: {
     marginTop: 16,
     alignSelf: 'center',

@@ -27,6 +27,7 @@ const LoginScreen = ({ navigation }: Props) => {
   const styles = createStyles(width);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showMockOptions, setShowMockOptions] = useState(false);
   const { setMockMode } = useMockMode();
 
   const handleKakaoLogin = async () => {
@@ -103,9 +104,14 @@ const LoginScreen = ({ navigation }: Props) => {
   };
 
   // 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입
-  const handleMockLogin = () => {
+  const handleMockSignUp = () => {
     setMockMode(true);
     navigation.replace('TermsAgreement');
+  };
+
+  const handleMockHome = () => {
+    setMockMode(true);
+    navigation.replace('ProductList');
   };
 
   return (
@@ -135,13 +141,32 @@ const LoginScreen = ({ navigation }: Props) => {
         </TouchableOpacity>
 
         {/* 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입 */}
-        <TouchableOpacity
-          style={styles.mockButton}
-          onPress={handleMockLogin}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.mockButtonText}>🧪 Mock으로 시작하기</Text>
-        </TouchableOpacity>
+        {showMockOptions ? (
+          <View style={styles.mockOptionsContainer}>
+            <TouchableOpacity
+              style={styles.mockOptionButton}
+              onPress={handleMockSignUp}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.mockButtonText}>회원가입 창</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.mockOptionButton}
+              onPress={handleMockHome}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.mockButtonText}>홈으로 가기</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.mockButton}
+            onPress={() => setShowMockOptions(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.mockButtonText}>🧪 Mock으로 시작하기</Text>
+          </TouchableOpacity>
+        )}
 
         {/* 개발자 전용: API 테스트 화면 진입 버튼 */}
         <TouchableOpacity

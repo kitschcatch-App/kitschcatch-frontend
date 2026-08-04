@@ -85,18 +85,29 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16, // 리스트 시작과 끝에 여백 추가
   },
   categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
     borderRadius: 40,
     borderWidth: 1.5,
-    borderColor: colors.gray04,
+    borderColor: colors.gray03,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryButtonActive: {
-    borderColor: colors.main01,
-    backgroundColor: `${colors.main01}26`, // 15% opacity
+    borderColor: colors.main03,
+    backgroundColor: `${colors.main05}80`, // 50% opacity
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    gap: 4,
+  },
+  resetButtonText: {
+    fontSize: 14,
+    fontFamily: typography.SB,
+    color: colors.gray07,
   },
   categoryText: {
     fontSize: 14,
@@ -104,7 +115,7 @@ export const styles = StyleSheet.create({
     color: colors.black,
   },
   categoryTextActive: {
-    color: colors.sub02,
+    color: colors.black,
   },
   // 필터 스타일
   filterContainer: {
@@ -122,46 +133,29 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
     marginLeft: 8,
   },
+  productList: {
+    marginHorizontal: -16, // 부모 여백(padding 16) 상쇄해 화면 양끝까지 이미지가 꽉 차도록 함
+  },
   productListContent: {
     paddingBottom: 100, // 플로팅 버튼과 바텀 내비를 가리지 않도록 하단 여백 추가
   },
   row: {
     justifyContent: 'space-between',
-    gap: 28,
-    marginBottom: 20,
+    marginBottom: 8,
   },
   productCard: {
     flex: 1,
     backgroundColor: colors.white,
-    maxWidth: '48%', // 상품이 1개만 남았을 때 전체 너비를 차지하는 것을 방지
+    maxWidth: '50%', // 이미지가 화면 양끝에 꽉 차도록 정확히 절반씩 차지
   },
   productImage: {
     width: '100%',
     aspectRatio: 1, // 정사각형 비율
     backgroundColor: colors.gray02,
-    borderRadius: 8,
-  },
-  statusBadge: {
-    position: 'absolute',
-    top: 5,
-    left: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  statusBadgeActive: {
-    backgroundColor: colors.main01,
-  },
-  statusBadgeSoldOut: {
-    backgroundColor: colors.gray04,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontFamily: typography.M,
-    color: colors.black,
   },
   productInfo: {
     marginTop: 8,
+    paddingHorizontal: 10, // 이미지는 화면 끝까지, 텍스트는 여백 유지
   },
   productName: {
     fontSize: 14,
@@ -177,7 +171,17 @@ export const styles = StyleSheet.create({
   },
   productMetaContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  metaTimeText: {
+    fontSize: 11,
+    fontFamily: typography.M,
+    color: colors.gray07,
+  },
+  metaIconsContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   metaIcon: {
@@ -187,7 +191,7 @@ export const styles = StyleSheet.create({
   metaText: {
     fontSize: 11,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
   },
   // 상품 등록 버튼
   floatingButton: {
@@ -198,9 +202,17 @@ export const styles = StyleSheet.create({
     padding: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: colors.main01,
+    gap: 4,
+    backgroundColor: colors.main05,
     borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 1.5,
+    elevation: 2,
   },
   floatingButtonText: {
     fontSize: 14,

@@ -16,10 +16,11 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
 import SearchIcon from '../assets/search.svg';
-import AddIcon from '../assets/registration.svg';
+import AddIcon from '../assets/plus.svg';
 import BottomNav from '../components/BottomNav';
 import FilterIcon from '../assets/filter.svg';
 import KitschcatchIcon from '../assets/kitschcatch.svg';
+import ResetIcon from '../assets/reset.svg';
 import HeartIcon from '../assets/detail_heart.svg';
 import ChatIcon from '../assets/detail_chat.svg';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -32,7 +33,8 @@ import FilterBottomSheet, { FilterState } from '../components/FilterBottomSheet'
 import { filterProducts, Product } from '../utils/filterProducts';
 import ErrorView from '../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
-import { STATUS_DISPLAY_MAP, CATEGORY_REVERSE_MAP } from '../constants/displayMaps';
+import { CATEGORY_REVERSE_MAP } from '../constants/displayMaps';
+import { formatTime } from '../utils/formatTime';
 
 import { styles } from './ProductListScreen.styles';
 
@@ -192,26 +194,7 @@ const ProductListScreen = ({ navigation }: Props) => {
         productImageUrl: item.imageUrl
       })}
     >
-      <View>
-        <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
-        {item.status && (
-          <View
-            style={[
-              styles.statusBadge,
-              item.status === 'SOLD_OUT' ? styles.statusBadgeSoldOut : styles.statusBadgeActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusBadgeText,
-                item.status === 'SOLD_OUT' ? styles.statusBadgeText : undefined,
-              ]}
-            >
-              {STATUS_DISPLAY_MAP[item.status] || item.status}
-            </Text>
-          </View>
-        )}
-      </View>
+      <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={1}>
           {item.name}
@@ -221,10 +204,13 @@ const ProductListScreen = ({ navigation }: Props) => {
           원
         </Text>
       <View style={styles.productMetaContainer}>
-        <HeartIcon width={8} height={8} style={styles.metaIcon} />
-        <Text style={styles.metaText}>12</Text>
-        <ChatIcon width={8} height={8} style={styles.metaIcon} />
-        <Text style={styles.metaText}>3</Text>
+        <Text style={styles.metaTimeText}>{formatTime(item.createdAt ?? '')}</Text>
+        <View style={styles.metaIconsContainer}>
+          <HeartIcon width={8} height={8} style={styles.metaIcon} />
+          <Text style={styles.metaText}>12</Text>
+          <ChatIcon width={8} height={8} style={styles.metaIcon} />
+          <Text style={styles.metaText}>3</Text>
+        </View>
       </View>
       </View>
     </TouchableOpacity>
@@ -244,7 +230,7 @@ const ProductListScreen = ({ navigation }: Props) => {
             style={{ marginLeft: -8, marginRight: 2, width: 39, height: 40 }}
             resizeMode="contain"
           />
-          <KitschcatchIcon style={{ marginTop: 8 }} />
+          <KitschcatchIcon width={67} height={23} style={{ marginTop: 8 }} />
 
           {/* Mock 모드 토글 버튼 (개발/테스트용) */}
           <TouchableOpacity
@@ -289,6 +275,16 @@ const ProductListScreen = ({ navigation }: Props) => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryScrollContent}
           >
+            {selectedCategories.length > 0 && (
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={() => setSelectedCategories([])}
+                activeOpacity={0.7}
+              >
+                <ResetIcon width={14} height={14} />
+                <Text style={styles.resetButtonText}>초기화</Text>
+              </TouchableOpacity>
+            )}
             {CATEGORIES.map((category) => (
               <TouchableOpacity
                 key={category.value}
@@ -331,6 +327,7 @@ const ProductListScreen = ({ navigation }: Props) => {
             renderItem={renderProductItem}
             showsVerticalScrollIndicator={false}
             numColumns={2}
+            style={styles.productList}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.productListContent}
             onEndReached={handleLoadMore}
@@ -342,11 +339,11 @@ const ProductListScreen = ({ navigation }: Props) => {
 
       {/* 플로팅 상품등록 버튼 */}
       <TouchableOpacity
-        style={[styles.floatingButton, { bottom: Math.max(insets.bottom, 14) + 60 }]}
+        style={[styles.floatingButton, { bottom: Math.max(insets.bottom, 14) + 85 }]}
         onPress={() => navigation.navigate('ProductRegistration')}
       >
-        <Text style={styles.floatingButtonText}>상품등록</Text>
-        <AddIcon width={22} height={22} />
+        <AddIcon width={20} height={20} />
+        <Text style={styles.floatingButtonText}>상품 등록하기</Text>
       </TouchableOpacity>
 
       {/* 필터 바텀 시트 컴포넌트 */}
