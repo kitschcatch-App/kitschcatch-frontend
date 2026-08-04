@@ -55,13 +55,14 @@ export const styles = StyleSheet.create({
   backButton: {
     marginBottom: 7,
     marginTop: 7,
+    marginRight: 4,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 8,
     flex: 1,
-    backgroundColor: colors.gray02,
+    backgroundColor: colors.gray01,
     paddingHorizontal: 10,
     paddingVertical: 10,
     marginHorizontal: 8,
@@ -74,6 +75,7 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
   },
   searchIcon: {
+    marginLeft: 2,
   },
   // 카테고리 필터 스타일
   categoryContainer: {

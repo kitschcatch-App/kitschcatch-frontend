@@ -49,7 +49,7 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
         {/* 헤더: 뒤로가기 & 타이틀 */}
         <View style={styles.headerContainer}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Login')}>
-            <BackIcon width={20} height={30} />
+            <BackIcon width={10} height={18} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>약관동의</Text>
         </View>

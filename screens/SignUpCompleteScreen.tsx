@@ -22,7 +22,7 @@ const SignUpCompleteScreen = ({ navigation, route }: Props) => {
         {/* 헤더: 뒤로가기 & 타이틀 */}
         <View style={styles.headerContainer}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <BackIcon width={20} height={30} />
+            <BackIcon width={10} height={18} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>회원가입</Text>
           <View style={styles.headerSpacer} />

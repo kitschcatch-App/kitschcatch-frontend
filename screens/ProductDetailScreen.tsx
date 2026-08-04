@@ -254,7 +254,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                   <View
                     key={i}
                     style={{
-                      width: i === imageIndex ? 16 : 6,
+                      width: 6,
                       height: 6,
                       borderRadius: 3,
                       backgroundColor: i === imageIndex ? '#fff' : 'rgba(255,255,255,0.5)',
@@ -277,39 +277,37 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             )}
           </View>
 
-          {/* 구분선 */}
-          <View style={styles.divider} />
 
           {/* 2. 상품 정보 영역 */}
           <View style={styles.infoContainer}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              {!isSeller && productDetail.status ? (
-                <Text style={styles.productStatus}>{STATUS_DISPLAY_MAP[productDetail.status] || productDetail.status}</Text>
-              ) : <View />}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Text style={[styles.productName, { flex: 1, marginRight: 10 }]}>{productDetail.name}</Text>
               {!isSeller && (
                 <TouchableOpacity style={styles.wishButton}>
                   <HeartIcon width={25} height={25} />
                 </TouchableOpacity>
               )}
             </View>
-            <Text style={styles.productName}>{productDetail.name}</Text>
             <Text style={styles.productPrice}>
               {Number(productDetail.price).toLocaleString()}원
             </Text>
             <Text style={styles.productDescription}>{productDetail.description}</Text>
 
-            {/* 메타 데이터 영역 (하트, 채팅, 등록시간 / 카테고리, 사용감) */}
+            {/* 뱃지(판매상태/카테고리/사용감) + 메타 정보(등록시간/하트/채팅) 영역 */}
             <View style={styles.metaContainer}>
-              <View style={styles.metaLeft}>
-                <Text style={styles.metaTag}>{CONDITION_DISPLAY_MAP[productDetail.condition] || productDetail.condition}</Text>
-                <Text style={styles.metaTag}>{CATEGORY_DISPLAY_MAP[productDetail.category] || productDetail.category}</Text>
+              <View style={styles.badgeRow}>
+                {!isSeller && productDetail.status ? (
+                  <Text style={styles.tagBadge}>{STATUS_DISPLAY_MAP[productDetail.status] || productDetail.status}</Text>
+                ) : null}
+                <Text style={styles.tagBadge}>{CATEGORY_DISPLAY_MAP[productDetail.category] || productDetail.category}</Text>
+                <Text style={styles.tagBadge}>{CONDITION_DISPLAY_MAP[productDetail.condition] || productDetail.condition}</Text>
               </View>
               <View style={styles.metaRight}>
+                <Text style={styles.metaTime}>{formatTime(productDetail.createdAt)}</Text>
                 <DetailHeartIcon width={8} height={8} style={styles.metaIcon} />
                 <Text style={styles.metaText}>12</Text>
                 <DetailChatIcon width={8} height={8} style={styles.metaIcon} />
                 <Text style={styles.metaText}>3</Text>
-                <Text style={styles.metaTime}>{formatTime(productDetail.createdAt)}</Text>
               </View>
             </View>
           </View>
@@ -337,7 +335,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
         {/* 뒤로가기 버튼 (이미지 위에 겹치도록 설정) */}
         <View style={[styles.header, { top: insets.top + 44 }]}>
           <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-            <BackIcon width={24} height={24} />
+            <BackIcon width={10} height={18} />
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -414,7 +412,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                 }}
               >
                 <Text style={styles.chatButtonText}>
-                  {isChatLoading ? '연결 중...' : '채팅하기'}
+                  {isChatLoading ? '연결 중...' : '1:1 구매문의'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -426,7 +424,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                   productImageUrl: productDetail.imageUrl,
                 })}
               >
-                <Text style={styles.buyButtonText}>결제하기</Text>
+                <Text style={styles.buyButtonText}>바로 결제하기</Text>
               </TouchableOpacity>
             </View>
           )}

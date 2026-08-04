@@ -250,7 +250,7 @@ const ProductListScreen = ({ navigation }: Props) => {
             style={styles.backButton} 
             onPress={() => navigation.navigate('Login')}
           >
-            <BackIcon width={20} height={20} />
+            <BackIcon width={10} height={18} />
           </TouchableOpacity>
           
           <View style={styles.searchContainer}>

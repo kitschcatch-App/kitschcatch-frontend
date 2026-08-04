@@ -101,7 +101,7 @@ const SignUpScreen = ({ navigation }: Props) => {
         {/* 헤더: 뒤로가기 & 타이틀 (뒤로가기는 이전 스텝으로 이동) */}
         <View style={styles.headerContainer}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <BackIcon width={20} height={30} />
+            <BackIcon width={10} height={18} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>회원가입</Text>
           {step === 3 || step === 4 ? (

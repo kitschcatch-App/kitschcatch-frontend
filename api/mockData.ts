@@ -124,45 +124,93 @@ export const MOCK_POST_LIST = {
           sellerNickname: '건프라마니아',
           createdAt: '2026-05-24T11:45:00',
         },
+        {
+          id: 6,
+          title: '스파이패밀리 아냐 굿즈 세트 (사진 여러장)',
+          price: 42000,
+          description: '아크릴스탠드, 키링, 뱃지 세트로 판매합니다. 개별 상태는 사진 참고해주세요.',
+          productCategory: 'GOODS',
+          productCondition: 'LIKE_NEW',
+          productStatus: 'ON_SALE',
+          images: [
+            {
+              imageUrl: 'https://picsum.photos/id/201/400/400',
+              imageKey: 'products/mock-key-006-1.jpg',
+              sortOrder: 0,
+            },
+            {
+              imageUrl: 'https://picsum.photos/id/202/400/400',
+              imageKey: 'products/mock-key-006-2.jpg',
+              sortOrder: 1,
+            },
+            {
+              imageUrl: 'https://picsum.photos/id/203/400/400',
+              imageKey: 'products/mock-key-006-3.jpg',
+              sortOrder: 2,
+            },
+            {
+              imageUrl: 'https://picsum.photos/id/204/400/400',
+              imageKey: 'products/mock-key-006-4.jpg',
+              sortOrder: 3,
+            },
+          ],
+          sellerId: 8,
+          sellerNickname: '민영샵',
+          createdAt: '2026-05-26T09:00:00',
+        },
       ],
       totalPages: 1,
-      totalElements: 5,
+      totalElements: 6,
       number: 0,
-      size: 5,
+      size: 6,
     },
   },
 };
 
 // ─── 상품 상세 (ID별 분기) ───────────────────────────────────────────────────
 
-export const getMockPostDetail = (productId: string | number) => ({
-  status: 200,
-  data: {
-    success: true,
+export const getMockPostDetail = (productId: string | number) => {
+  // id 6번은 이미지 캐러셀(여러 장) 동작을 확인하기 위한 Mock 상품입니다.
+  if (Number(productId) === 6) {
+    const listItem = MOCK_POST_LIST.data.data.content.find(p => p.id === 6)!;
+    return {
+      status: 200,
+      data: {
+        success: true,
+        data: { ...listItem },
+      },
+    };
+  }
+
+  return {
+    status: 200,
     data: {
-      id: Number(productId),
-      title: `[Mock] 상품 ID ${productId} 상세`,
-      price: 50000,
-      description:
-        `이것은 ID ${productId}에 대한 Mock 상세 데이터입니다.\n` +
-        '직거래 및 택배 거래 모두 가능합니다.\n' +
-        '상태: 사용감 적음 / 포장 꼼꼼히 해드립니다.',
-      productCategory: 'GOODS',
-      productCondition: 'LIKE_NEW',
-      productStatus: 'ON_SALE',
-      images: [
-        {
-          imageUrl: `https://picsum.photos/id/${100 + Number(productId)}/400/400`,
-          imageKey: `products/mock-detail-key-${productId}.jpg`,
-          sortOrder: 0,
-        },
-      ],
-      sellerId: 42,
-      sellerNickname: '김민영',
-      createdAt: '2026-05-25T10:00:00',
+      success: true,
+      data: {
+        id: Number(productId),
+        title: `[Mock] 상품 ID ${productId} 상세`,
+        price: 50000,
+        description:
+          `이것은 ID ${productId}에 대한 Mock 상세 데이터입니다.\n` +
+          '직거래 및 택배 거래 모두 가능합니다.\n' +
+          '상태: 사용감 적음 / 포장 꼼꼼히 해드립니다.',
+        productCategory: 'GOODS',
+        productCondition: 'LIKE_NEW',
+        productStatus: 'ON_SALE',
+        images: [
+          {
+            imageUrl: `https://picsum.photos/id/${100 + Number(productId)}/400/400`,
+            imageKey: `products/mock-detail-key-${productId}.jpg`,
+            sortOrder: 0,
+          },
+        ],
+        sellerId: 42,
+        sellerNickname: '김민영',
+        createdAt: '2026-05-25T10:00:00',
+      },
     },
-  },
-});
+  };
+};
 
 // ─── Presigned URL ───────────────────────────────────────────────────────────
 
