@@ -17,6 +17,7 @@ export const styles = StyleSheet.create({
     paddingTop: 10,
     paddingHorizontal: 24,
     paddingBottom: 20,
+    marginBottom: 16,
   },
   navItem: {
     alignItems: 'center',
