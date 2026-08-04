@@ -16,7 +16,7 @@ export const colors = {
   main03: '#CBF8F5',
   main05: '#97F2EC',
   main07: '#73E5DD',
-  sub01: '#E4F7F4',
+  sub01: '#E5F8FA',
   sub02: '#008A71',
   sub03: '#46C9B2',
   sub05: '#4FD0DC',

@@ -278,6 +278,7 @@ export const MOCK_CHAT_ROOMS = {
       opponentNickname: '잘자는고양이',
       lastMessageContent: '네 내일 오후에 직거래 가능해요!',
       lastMessageAt: '2026-05-30T10:30:00',
+      unreadCount: 0,
     },
     {
       chatRoomId: 2,
@@ -285,6 +286,7 @@ export const MOCK_CHAT_ROOMS = {
       opponentNickname: '못자는 강아지',
       lastMessageContent: '상품 아직 판매 중인가요?',
       lastMessageAt: '2026-05-29T18:45:00',
+      unreadCount: 3,
     },
   ],
 };

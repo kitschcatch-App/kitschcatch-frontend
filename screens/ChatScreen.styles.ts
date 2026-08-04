@@ -44,7 +44,7 @@ export const styles = StyleSheet.create({
   responseTime: {
     fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray05,
     marginTop: 4,
   },
   productInfoContainer: {
@@ -56,8 +56,8 @@ export const styles = StyleSheet.create({
     borderBottomColor: colors.gray02,
   },
   productImage: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 10,
     backgroundColor: colors.gray02,
   },
@@ -71,6 +71,7 @@ export const styles = StyleSheet.create({
   chatBackground: {
     flex: 1,
     width: '100%',
+    backgroundColor: colors.sub01,
   },
   chatScrollView: {
     flex: 1,
@@ -87,13 +88,13 @@ export const styles = StyleSheet.create({
   dateLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.gray01,
+    backgroundColor: colors.gray07,
   },
   dateText: {
     marginHorizontal: 12,
     fontSize: 12,
     fontFamily: typography.R,
-    color: colors.gray01,
+    color: colors.gray07,
   },
   messageRowMe: {
     flexDirection: 'row',
@@ -116,7 +117,7 @@ export const styles = StyleSheet.create({
     position: 'relative',
   },
   messageBubbleMe: {
-    backgroundColor: colors.main01, // 내 말풍선 배경색
+    backgroundColor: colors.main05, // 내 말풍선 배경색
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 15,
@@ -132,7 +133,7 @@ export const styles = StyleSheet.create({
   messageTime: {
     fontSize: 11,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
     marginBottom: 4,
   },
   imageMessageBubble: {
@@ -154,7 +155,7 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 5, // 꼬리의 아래쪽 절반 높이
     borderBottomColor: 'transparent',
     borderLeftWidth: 13, // 꼬리의 너비
-    borderLeftColor: colors.main01, 
+    borderLeftColor: colors.main05, 
     transform: [{ rotate: '40deg' }], // 꼬리 각도 조절 (원하는 각도로 숫자 변경)
   },
   tailIconThem: {
@@ -198,7 +199,7 @@ export const styles = StyleSheet.create({
   },
   modalBackground: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)', // 어두운 반투명 배경
+    backgroundColor: 'rgba(40, 40, 40, 0.85)', // 어두운 회색 반투명 배경
     justifyContent: 'center',
     alignItems: 'center',
   },

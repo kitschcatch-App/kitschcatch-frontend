@@ -312,7 +312,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
         </View>
 
         {/* 채팅 내용 */}
-        <View style={[styles.chatBackground, { backgroundColor: colors.main03 }]}>
+        <View style={styles.chatBackground}>
           {isLoading ? (
             <ActivityIndicator style={{ flex: 1 }} />
           ) : (

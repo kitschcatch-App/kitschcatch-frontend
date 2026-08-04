@@ -56,7 +56,11 @@ const BottomNav = () => {
         <Text style={styles.navText}>홈</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem} onPress={() => setManualTab('map')}>
-        {activeTab === 'map' ? <NavMapOnIcon width={23} height={23} /> : <NavMapIcon width={23} height={23} />}
+        {activeTab === 'map' ? (
+          <NavMapOnIcon width={23} height={23} style={{ marginTop: 2 }} />
+        ) : (
+          <NavMapIcon width={23} height={23} style={{ marginTop: 2 }} />
+        )}
         <Text style={styles.navText}>매장정보</Text>
       </TouchableOpacity>
       <TouchableOpacity

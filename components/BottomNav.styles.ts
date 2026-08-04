@@ -9,8 +9,9 @@ import { typography } from '../styles/typography';
 export const styles = StyleSheet.create({
   bottomNav: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'flex-end',
+    gap: 55,
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: '#00ff0000',

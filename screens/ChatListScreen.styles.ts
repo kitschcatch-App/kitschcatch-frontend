@@ -21,9 +21,22 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     color: colors.black,
   },
+  mockToggleButton: {
+    position: 'absolute',
+    right: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: colors.sub07,
+  },
+  mockToggleButtonText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.white,
+  },
   listContainer: {
     flexGrow: 1,
-    backgroundColor: colors.main03,
+    backgroundColor: colors.sub01,
   },
   chatItem: {
     flexDirection: 'row',
@@ -40,7 +53,7 @@ export const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.gray02,
-    marginRight: 15,
+    marginRight: 8,
   },
   chatInfo: {
     flex: 1,
@@ -58,19 +71,66 @@ export const styles = StyleSheet.create({
   },
   sellerName: {
     fontSize: 14,
-    fontFamily: typography.M,
+    fontFamily: typography.SB,
     color: colors.black,
+  },
+  dotText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray07,
   },
   timeText: {
     fontSize: 14,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.black,
     marginRight: 5,
+  },
+  timeTextRead: {
+    color: colors.gray07,
+  },
+  timeTextRightAligned: {
+    marginLeft: 'auto',
   },
   lastMessage: {
     flexShrink: 1,
     fontSize: 14,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.black,
+  },
+  lastMessageRead: {
+    color: colors.gray07,
+  },
+  unreadBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.main05,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  unreadBadgeText: {
+    fontSize: 12,
+    fontFamily: typography.SB,
+    color: colors.black,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: colors.sub01,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontFamily: typography.SB,
+    color: colors.black,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    marginTop: 4,
+    fontSize: 14,
+    fontFamily: typography.SB,
+    color: colors.sub07,
+    textAlign: 'center',
   },
 });
