@@ -36,16 +36,14 @@ export const styles = StyleSheet.create({
   },
   listContainer: {
     flexGrow: 1,
+    paddingTop: 4,
     backgroundColor: colors.sub01,
   },
   chatItem: {
     flexDirection: 'row',
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 8,
-    marginTop: 10,
-    marginHorizontal: 16,
     backgroundColor: colors.white,
   },
   profileImage: {
@@ -107,6 +105,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.main05,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 8,
   },
   unreadBadgeText: {
     fontSize: 12,

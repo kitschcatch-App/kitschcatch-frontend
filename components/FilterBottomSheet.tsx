@@ -3,10 +3,12 @@
  * 역할: 상품 목록 화면에서 필터 버튼을 눌렀을 때 나타나는 하단 모달창입니다.
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, Animated, TextInput } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, Animated, TextInput, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from './FilterBottomSheet.styles';
 import { colors } from '../styles/colors';
+import ExitIcon from '../assets/exit.svg';
+import ResetIcon from '../assets/reset.svg';
 
 export type FilterState = {
   sort: string;
@@ -26,13 +28,14 @@ interface Props {
 const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) => {
   const insets = useSafeAreaInsets();
   const sortOptions = ['추천순', '최신순', '가격 높은 순', '가격 낮은 순'];
-  const [selectedSort, setSelectedSort] = useState('추천순');
+  const DEFAULT_SORT = sortOptions[0];
+  const [selectedSort, setSelectedSort] = useState(DEFAULT_SORT);
   const [isOnSaleOnly, setIsOnSaleOnly] = useState(false);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   
   const conditionOptions = [
-    { label: '새상품', value: 'NEW' },
+    { label: '미개봉', value: 'NEW' },
     { label: '사용감 적음', value: 'LIKE_NEW' },
     { label: '사용감 있음', value: 'USED' },
     { label: '사용감 많음', value: 'DAMAGED' },
@@ -45,6 +48,22 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
         ? prev.filter((c) => c !== value)
         : [...prev, value]
     );
+  };
+
+  // 정렬/사용감에서 선택된 항목을 "초기화" 버튼 옆에 누적 표시하기 위한 칩 목록
+  const activeFilterChips: { key: string; label: string; onRemove: () => void }[] = [
+    ...(selectedSort !== DEFAULT_SORT
+      ? [{ key: `sort-${selectedSort}`, label: selectedSort, onRemove: () => setSelectedSort(DEFAULT_SORT) }]
+      : []),
+    ...selectedConditions.map((value) => {
+      const option = conditionOptions.find((o) => o.value === value)!;
+      return { key: `condition-${value}`, label: option.label, onRemove: () => toggleCondition(value) };
+    }),
+  ];
+
+  const handleReset = () => {
+    setSelectedSort(DEFAULT_SORT);
+    setSelectedConditions([]);
   };
 
   // 가격 입력 시 3자리마다 콤마(,) 자동 추가 함수
@@ -80,7 +99,7 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
   // 배경색 부드럽게 전환
   const toggleTrackColor = toggleAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#E5E5E5', colors.main01]
+    outputRange: ['#E5E5E5', colors.main05]
   });
 
   // 동그라미(Thumb) 좌우 이동
@@ -96,12 +115,13 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
       animationType="slide"
       onRequestClose={onClose}
     >
-      {/* 뒷배경(오버레이) 터치 시 모달 닫힘 */}
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          {/* 내부 콘텐츠 터치 시 모달 닫히지 않도록 이벤트 전파 방지 */}
-          <TouchableWithoutFeedback>
-            <View style={[styles.bottomSheetContainer, { paddingBottom: Math.max(insets.bottom)-20 }]}>
+      <View style={styles.overlay}>
+        {/* 뒷배경(빈 공간) 터치 시 모달 닫힘. 시트와 형제 관계로 분리해 시트 내부 제스처(가로 스크롤 등)를 가로채지 않도록 함 */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={{ flex: 1 }} />
+        </TouchableWithoutFeedback>
+
+        <View style={[styles.bottomSheetContainer, { paddingBottom: Math.max(insets.bottom)-20 }]}>
               <View style={styles.filterContent}>
               {/* 상단 핸들 손잡이 */}
               <View style={styles.handleContainer}>
@@ -134,7 +154,7 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
 
               {/* 판매중만 보기 토글 영역 */}
               <View style={styles.toggleContainer}>
-                <Text style={styles.toggleText}>판매중만 보기</Text>
+                <Text style={styles.toggleText}>판매중 상품만 보기</Text>
                 <TouchableOpacity activeOpacity={0.8} onPress={() => setIsOnSaleOnly((prev) => !prev)}>
                   <Animated.View style={[styles.customToggleTrack, { backgroundColor: toggleTrackColor }]}>
                     <Animated.View style={[styles.customToggleThumb, { transform: [{ translateX: toggleThumbPosition }] }]} />
@@ -199,6 +219,31 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
               </View>
               </View>
 
+              {/* 초기화 버튼 + 선택된 필터 칩 목록 */}
+              {activeFilterChips.length > 0 && (
+                <View style={styles.activeFilterRow}>
+                  <TouchableOpacity style={styles.resetButton} onPress={handleReset} activeOpacity={0.7}>
+                    <ResetIcon width={14} height={14} />
+                    <Text style={styles.resetButtonText}>초기화</Text>
+                  </TouchableOpacity>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.chipScrollView}
+                    contentContainerStyle={styles.chipScrollContent}
+                  >
+                    {activeFilterChips.map((chip) => (
+                      <View key={chip.key} style={styles.chip}>
+                        <Text style={styles.chipText}>{chip.label}</Text>
+                        <TouchableOpacity onPress={chip.onRemove} activeOpacity={0.7}>
+                          <ExitIcon width={8} height={8} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
               {/* 선택완료 버튼 */}
               <TouchableOpacity
                 style={styles.submitButton}
@@ -210,10 +255,8 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
               >
                 <Text style={styles.submitButtonText}>선택완료</Text>
               </TouchableOpacity>
-            </View>
-          </TouchableWithoutFeedback>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };

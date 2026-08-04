@@ -37,15 +37,14 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nickname: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: typography.SB,
     color: colors.black,
   },
   responseTime: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: typography.M,
     color: colors.gray05,
-    marginTop: 4,
   },
   productInfoContainer: {
     flexDirection: 'row',
@@ -175,10 +174,8 @@ export const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 9,
     backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.gray02,
   },
   plusButton: {
     marginLeft: 8,
@@ -189,10 +186,10 @@ export const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     minHeight: 44,
-    backgroundColor: colors.gray02,
+    backgroundColor: colors.gray01,
     borderRadius: 10,
     paddingHorizontal: 10,
-    marginHorizontal: 10,
+    marginHorizontal: 4,
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.black,

@@ -97,8 +97,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryButtonActive: {
-    borderColor: colors.main03,
-    backgroundColor: `${colors.main05}80`, // 50% opacity
+    borderColor: '#B1F5F0',
+    backgroundColor: colors.main03,
   },
   resetButton: {
     flexDirection: 'row',

@@ -9,6 +9,7 @@ import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
 import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP, CATEGORY_REVERSE_MAP } from '../constants/displayMaps';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import BackIcon from '../assets/back.svg';
 import { styles } from './ProductDetailScreen.styles';
 import HeartIcon from '../assets/heart.svg';
@@ -263,6 +264,21 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                 ))}
               </View>
             )}
+
+            {/* 상단 그라데이션 (뒤로가기 버튼 가독성 확보용) */}
+            <View pointerEvents="none" style={styles.topGradient}>
+              <Svg width="100%" height="100%">
+                <Defs>
+                  <LinearGradient id="topFade" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0" stopColor="#000000" stopOpacity={0.55} />
+                    <Stop offset="0.35" stopColor="#000000" stopOpacity={0.28} />
+                    <Stop offset="0.7" stopColor="#000000" stopOpacity={0.08} />
+                    <Stop offset="1" stopColor="#000000" stopOpacity={0} />
+                  </LinearGradient>
+                </Defs>
+                <Rect x="0" y="0" width="100%" height="100%" fill="url(#topFade)" />
+              </Svg>
+            </View>
 
             {/* Mock 모드 배지 (이미지 좌측 상단) */}
             {isMockMode && (

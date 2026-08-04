@@ -29,6 +29,14 @@ export const styles = StyleSheet.create({
   imageContainer: {
     position: 'relative',
   },
+  topGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    zIndex: 5,
+  },
   productImage: {
     backgroundColor: colors.gray02,
   },
@@ -202,6 +210,7 @@ export const styles = StyleSheet.create({
   actionBar: {
     flexDirection: 'row',
     paddingHorizontal: 20,
+    paddingTop: 8,
     backgroundColor: colors.white,
     gap: 10,
   },

@@ -291,7 +291,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
         {/* 헤더 */}
         <View style={styles.headerContainer}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <BackIcon width={24} height={24} />
+            <BackIcon width={10} height={18} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.nickname}>{opponentNickname}</Text>
@@ -401,19 +401,19 @@ const ChatScreen = ({ route, navigation }: Props) => {
           >
             {isSendingImage
               ? <ActivityIndicator size="small" />
-              : <PlusIcon width={28} height={28} />
+              : <PlusIcon width={22} height={22} />
             }
           </TouchableOpacity>
           <TextInput
             style={styles.textInput}
-            placeholder="메시지 입력"
+            placeholder="메세지를 입력하세요"
             value={inputText}
             onChangeText={setInputText}
             multiline
             blurOnSubmit={false}
           />
           <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-            <SendIcon width={24} height={24} />
+            <SendIcon width={20} height={20} />
           </TouchableOpacity>
         </View>
       </View>
