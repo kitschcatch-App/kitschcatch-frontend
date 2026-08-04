@@ -3,11 +3,11 @@
  * 역할: 카카오 소셜 로그인을 통해 앱에 접속하고 인증 토큰을 발급받는 화면입니다.
  */
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
-import { styles } from './LoginScreen.styles';
+import { createStyles } from './LoginScreen.styles';
 import KitschcatchIcon from '../assets/kitschcatch.svg';
 import KakaoIcon from '../assets/kakao.svg';
 import NaverIcon from '../assets/naver.svg';
@@ -23,6 +23,8 @@ import { useMockMode } from '../contexts/MockModeContext';
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 const LoginScreen = ({ navigation }: Props) => {
+  const { width } = useWindowDimensions();
+  const styles = createStyles(width);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const { setMockMode } = useMockMode();
@@ -103,7 +105,7 @@ const LoginScreen = ({ navigation }: Props) => {
   // 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입
   const handleMockLogin = () => {
     setMockMode(true);
-    navigation.replace('ProductList');
+    navigation.replace('TermsAgreement');
   };
 
   return (

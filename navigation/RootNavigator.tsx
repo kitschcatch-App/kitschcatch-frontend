@@ -14,6 +14,9 @@ import ProductRegistrationScreen from '../screens/ProductRegistrationScreen';
 import ProductEditScreen from '../screens/ProductEditScreen';
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
+import TermsAgreementScreen from '../screens/TermsAgreementScreen';
+import SignUpScreen from '../screens/SignUpScreen';
+import SignUpCompleteScreen from '../screens/SignUpCompleteScreen';
 import PaymentCompleteScreen from '../screens/PaymentCompleteScreen';
 import ApiTestScreen from '../screens/ApiTestScreen';
 import ChatListScreen from '../screens/ChatListScreen';
@@ -21,6 +24,11 @@ import ChatListScreen from '../screens/ChatListScreen';
 export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
+  TermsAgreement: undefined;
+  SignUp: undefined;
+  SignUpComplete: {
+    nickname: string;
+  };
   ProductList: undefined;
   ProductRegistration: undefined;
   ProductDetail: {
@@ -72,6 +80,9 @@ const RootNavigator = () => {
       <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="TermsAgreement" component={TermsAgreementScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="SignUp" component={SignUpScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="SignUpComplete" component={SignUpCompleteScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ChatList" component={ChatListScreen} options={{ animation: 'fade' }} />

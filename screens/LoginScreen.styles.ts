@@ -1,16 +1,14 @@
 /**
  * 스타일: 로그인 화면 스타일 (LoginScreen.styles)
  * 역할: LoginScreen 화면의 레이아웃 및 UI 요소(로고, 카카오 로그인 버튼 등)의 스타일을 정의합니다.
+ * 로고 크기가 화면 너비에 비례하므로 useWindowDimensions 값을 받아 스타일을 생성하는 팩토리 함수로 export합니다.
  */
 
-
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
 
-const { width } = Dimensions.get('window');
-
-export const styles = StyleSheet.create({
+export const createStyles = (width: number) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.white,
@@ -116,3 +114,5 @@ export const styles = StyleSheet.create({
     color: colors.gray05,
   },
 });
+
+export type LoginStyles = ReturnType<typeof createStyles>;
