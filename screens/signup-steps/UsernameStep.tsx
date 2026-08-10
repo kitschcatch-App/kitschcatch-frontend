@@ -16,7 +16,9 @@ interface Props {
 
 const UsernameStep = ({ value, onChange, showError }: Props) => (
   <View style={styles.stepContainer}>
-    <Text style={styles.stepGuideText}>아이디를 입력해주세요!</Text>
+    <Text style={styles.stepGuideText}>
+      아이디를 입력해주세요!<Text style={styles.requireText}> *</Text>
+    </Text>
     <CommonInput
       placeholder="아이디를 입력해주세요"
       value={value}

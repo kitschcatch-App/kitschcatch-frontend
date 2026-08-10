@@ -336,7 +336,12 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             <Text style={styles.transactionCount}>판매자 거래 횟수 3회</Text>
             <View style={styles.sellerRight}>
               <Text style={styles.sellerName}>졸린코끼리</Text>
-              <Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.sellerProfileImage} />
+              <View style={styles.sellerProfileImageWrapper}>
+                <Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.sellerProfileImage} />
+                <View style={styles.sellerRatingBadge}>
+                  <Text style={styles.sellerRatingText}>3.8</Text>
+                </View>
+              </View>
             </View>
           </View>
         </ScrollView>

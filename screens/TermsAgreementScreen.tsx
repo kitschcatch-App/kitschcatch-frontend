@@ -52,6 +52,7 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
             <BackIcon width={10} height={18} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>약관동의</Text>
+          <View style={styles.headerSpacer} />
         </View>
 
         {/* 안내 문구 & 약관 동의 목록: 작은 화면에서 내용이 넘칠 수 있어 스크롤 처리 */}
@@ -67,7 +68,7 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
           <View style={styles.termsContainer}>
             <TouchableOpacity style={styles.termRow} onPress={toggleAll} activeOpacity={0.8}>
               {renderRadio(isAllAgreed)}
-              <Text style={styles.termAllText}>약관 전체동의</Text>
+              <Text style={styles.termAllText}>전체동의</Text>
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -75,7 +76,7 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
             <TouchableOpacity style={styles.termRow} onPress={() => setAgreeTerms(v => !v)} activeOpacity={0.8}>
               {renderRadio(agreeTerms)}
               <Text style={styles.termText}>
-                <Text style={styles.termRequired}>(필수) </Text>이용약관 동의
+                <Text style={styles.termRequired}>(필수) </Text>서비스 이용약관 동의
               </Text>
               <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
             </TouchableOpacity>
@@ -83,7 +84,7 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
             <TouchableOpacity style={styles.termRow} onPress={() => setAgreePrivacy(v => !v)} activeOpacity={0.8}>
               {renderRadio(agreePrivacy)}
               <Text style={styles.termText}>
-                <Text style={styles.termRequired}>(필수) </Text>개인정보 처리방침 동의
+                <Text style={styles.termRequired}>(필수) </Text>개인정보 수집 및 이용 동의
               </Text>
               <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
             </TouchableOpacity>
@@ -91,7 +92,22 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
             <TouchableOpacity style={styles.termRow} onPress={() => setAgreeLocation(v => !v)} activeOpacity={0.8}>
               {renderRadio(agreeLocation)}
               <Text style={styles.termText}>
-                <Text style={styles.termRequired}>(필수) </Text>위치기반서비스 이용약관
+                <Text style={styles.termRequired}>(필수) </Text>위치기반서비스 이용약관 동의
+              </Text>
+              <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.termRow} onPress={() => setAgreeLocation(v => !v)} activeOpacity={0.8}>
+              {renderRadio(agreeLocation)}
+              <Text style={styles.termText}>
+                <Text style={styles.termRequired}>(필수) </Text>만 14세 이상입니다.
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.termRow} onPress={() => setAgreeLocation(v => !v)} activeOpacity={0.8}>
+              {renderRadio(agreeLocation)}
+              <Text style={styles.termText}>
+                <Text style={styles.termOptional}>(선택) </Text>마케팅 정보 수신 동의
               </Text>
               <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
             </TouchableOpacity>

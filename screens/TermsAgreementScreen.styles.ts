@@ -18,7 +18,8 @@ export const createStyles = (height: number) => StyleSheet.create({
   },
   headerContainer: {
     height: 65,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   backButton: {
     width: 40,
@@ -26,22 +27,20 @@ export const createStyles = (height: number) => StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    flex: 1,
     textAlign: 'center',
-    textAlignVertical: 'center',
     fontSize: 18,
     fontFamily: typography.SB,
     color: colors.black,
+  },
+  headerSpacer: {
+    width: 40,
   },
   scrollContent: {
     flex: 1,
   },
   introContainer: {
-    marginTop: height * 0.20,
+    marginTop: height * 0.12,
   },
   introTitleRow: {
     flexDirection: 'row',
@@ -92,6 +91,9 @@ export const createStyles = (height: number) => StyleSheet.create({
   termRequired: {
     color: colors.sub07,
   },
+  termOptional: {
+    color: colors.gray05,
+  },
   termArrow: {
     marginLeft: 4,
   },
@@ -101,7 +103,7 @@ export const createStyles = (height: number) => StyleSheet.create({
     marginVertical: 4,
   },
   nextButton: {
-    marginTop: 'auto',
+    marginTop: 30,
     marginBottom: 24,
     height: 52,
     borderRadius: 8,

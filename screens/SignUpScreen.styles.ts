@@ -16,7 +16,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerContainer: {
-    height: 65,
+    height: 64,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -53,32 +53,22 @@ export const styles = StyleSheet.create({
   // ── 단계 진행 바 ──────────────────────────────────────────────────────────
   stepProgressContainer: {
     flexDirection: 'row',
-    height: 25,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: colors.gray02,
+    gap: 4,
     marginBottom: 50,
   },
   stepProgressItem: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: colors.gray02,
   },
   stepProgressItemCompleted: {
-    backgroundColor: colors.main03,
-  },
-  stepProgressItemActive: {
     backgroundColor: colors.main05,
-  },
-  stepProgressText: {
-    fontSize: 14,
-    fontFamily: typography.R,
-    color: colors.black,
   },
 
   nextButton: {
     marginTop: 'auto',
-    marginBottom: 24,
+    marginBottom: 40,
     height: 52,
     borderRadius: 8,
     justifyContent: 'center',
@@ -103,6 +93,11 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     color: colors.black,
     marginBottom: 22,
+  },
+  requireText: {
+    fontSize: 24,
+    fontFamily: typography.SB,
+    color: colors.sub07,
   },
   stepInput: {
     marginTop: 0,

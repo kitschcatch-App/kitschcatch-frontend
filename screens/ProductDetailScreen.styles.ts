@@ -124,10 +124,9 @@ export const styles = StyleSheet.create({
     
   },
   productSeparator: {
-    width: '90%',
     height: 2,
     backgroundColor: colors.gray03,
-    alignSelf: 'center',
+    marginHorizontal: 20,
     marginBottom: 8,
   },
   // 메타 정보 스타일
@@ -193,6 +192,7 @@ export const styles = StyleSheet.create({
   sellerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 12,
   },
   sellerName: {
     fontSize: 12,
@@ -200,11 +200,32 @@ export const styles = StyleSheet.create({
     color: colors.black,
     marginRight: 10,
   },
+  sellerProfileImageWrapper: {
+    position: 'relative',
+  },
   sellerProfileImage: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.gray02,
+  },
+  sellerRatingBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -15,
+    minWidth: 24,
+    // height: 18,
+    paddingVertical: 3,
+    borderRadius: 99,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.main05,
+  },
+  sellerRatingText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.black,
   },
   // 액션 바 스타일 (채팅하기, 결제하기)
   actionBar: {
