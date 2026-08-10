@@ -10,7 +10,6 @@ const validInputs: ProductFormInputs = {
   productDescription: '상품 설명입니다.',
   selectedCondition: '새상품',
   selectedCategory: '굿즈',
-  isPolicyAgreed: true,
   imageCount: 1,
 };
 
@@ -42,11 +41,6 @@ describe('validateProductForm', () => {
   it('카테고리가 선택되지 않으면 에러 메시지를 반환한다', () => {
     expect(validateProductForm({ ...validInputs, selectedCategory: '카테고리 선택' }))
       .toBe('드롭다운 항목을 모두 선택해주세요.');
-  });
-
-  it('정책에 동의하지 않으면 에러 메시지를 반환한다', () => {
-    expect(validateProductForm({ ...validInputs, isPolicyAgreed: false }))
-      .toBe('운영 정책에 동의해주세요.');
   });
 
   it('이미지가 없으면 에러 메시지를 반환한다', () => {

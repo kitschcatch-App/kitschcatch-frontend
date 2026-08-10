@@ -1,6 +1,6 @@
 /**
- * 스타일: 에러 뷰 스타일 (ErrorView.styles)
- * 역할: ErrorView 컴포넌트의 UI 스타일을 정의합니다.
+ * 스타일: 확인 팝업 스타일 (ConfirmView.styles)
+ * 역할: ConfirmView 컴포넌트의 UI 스타일을 정의합니다.
  */
 import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
@@ -18,33 +18,40 @@ export const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: colors.white,
     borderRadius: 8,
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    paddingTop: 24,
+    overflow: 'hidden',
   },
   title: {
-    fontFamily: typography.SB,
-    fontSize: 16,
-    color: colors.black,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontFamily: typography.M,
-    fontSize: 12,
-    color: colors.black,
-    marginBottom: 24,
-  },
-  button: {
-    alignSelf: 'flex-end',
-    backgroundColor: colors.main03,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    gap: 10,
-  },
-  buttonText: {
     fontFamily: typography.M,
     fontSize: 14,
+    color: colors.black,
+    textAlign: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: colors.gray02,
+  },
+  cancelButtonText: {
+    fontFamily: typography.M,
+    fontSize: 16,
+    color: colors.black,
+  },
+  deleteButton: {
+    backgroundColor: colors.main05,
+  },
+  deleteButtonText: {
+    fontFamily: typography.M,
+    fontSize: 16,
     color: colors.black,
   },
 });

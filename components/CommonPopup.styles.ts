@@ -1,6 +1,6 @@
 /**
- * 스타일: 에러 뷰 스타일 (ErrorView.styles)
- * 역할: ErrorView 컴포넌트의 UI 스타일을 정의합니다.
+ * 스타일: 공용 팝업 스타일 (CommonPopup.styles)
+ * 역할: CommonPopup 컴포넌트의 UI 스타일을 정의합니다.
  */
 import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
@@ -12,39 +12,40 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 70,
+    padding: 40,
   },
   container: {
     width: '100%',
     backgroundColor: colors.white,
     borderRadius: 8,
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
   },
   title: {
     fontFamily: typography.SB,
-    fontSize: 16,
+    fontSize: 18,
     color: colors.black,
-    marginBottom: 4,
+    marginBottom: 14,
   },
   subtitle: {
     fontFamily: typography.M,
-    fontSize: 12,
+    fontSize: 14,
     color: colors.black,
+    // textAlign: 'center',
     marginBottom: 24,
   },
   button: {
-    alignSelf: 'flex-end',
-    backgroundColor: colors.main03,
+    alignSelf: 'stretch',
+    backgroundColor: colors.main05,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderRadius: 8,
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'center',
   },
   buttonText: {
     fontFamily: typography.M,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.black,
   },
 });

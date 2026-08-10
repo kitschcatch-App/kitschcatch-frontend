@@ -6,6 +6,8 @@ import { StyleSheet } from 'react-native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
 
+export const placeholderColor = colors.gray07;
+
 export const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -41,6 +43,18 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  tempSaveButton: {
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  tempSaveButtonText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.sub07,
+    textDecorationLine: 'underline',
+  },
   // 사진 등록 레이아웃
   photoLayout: {
     paddingTop: 20,
@@ -56,17 +70,16 @@ export const styles = StyleSheet.create({
   photoBox: {
     width: 130,
     height: 130,
-    backgroundColor: colors.gray03,
+    backgroundColor: colors.gray01,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   photoCountText: {
-    position: 'absolute',
-    bottom: 8,
+    marginTop: 6,
     fontSize: 14,
     fontFamily: typography.M,
-    color: colors.sub01,
+    color: colors.sub05,
   },
   imageWrapper: {
     width: 130,
@@ -124,36 +137,49 @@ export const styles = StyleSheet.create({
     paddingTop: 20,
   },
   policyContainer: {
+    alignItems: 'flex-start',
+  },
+  policyRadioGroup: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 6,
+  },
+  requiredText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.sub07,
+    marginRight: -3,
+  },
+  policyErrorText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.error,
   },
   policyText: {
-    fontSize: 12,
-    fontFamily: typography.R,
-    color: colors.gray01,
-    textDecorationLine: 'underline',
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
   },
   policyTextActive: {
-    color: colors.main02,
+    color: colors.sub07,
   },
   radioButton: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.gray01,
+    borderColor: colors.gray07,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioButtonActive: {
-    borderColor: colors.main02,
+    borderColor: colors.main05,
   },
   radioButtonInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.main02,
+    backgroundColor: colors.main05,
   },
   toastOverlay: {
     position: 'absolute',
@@ -173,17 +199,20 @@ export const styles = StyleSheet.create({
   },
   // 상품 등록 버튼
   submitButton: {
-    backgroundColor: colors.main01,
+    backgroundColor: colors.gray03,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 50,
+    marginBottom: 80,
   },
   submitButtonText: {
     fontSize: 16,
     fontFamily: typography.SB,
     color: colors.black,
+  },
+  submitButtonActive: {
+    backgroundColor: colors.main05,
   },
   submitButtonDisabled: {
     opacity: 0.6,

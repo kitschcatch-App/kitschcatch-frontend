@@ -16,26 +16,26 @@ export const styles = StyleSheet.create({
   conditionDropdownButton: {
     flexDirection: 'row',
     borderRadius: 8,
-    backgroundColor: colors.gray03,
+    backgroundColor: colors.gray01,
     padding: 12,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   conditionDropdownText: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
   },
   conditionDropdownTextSelected: {
     color: colors.black,
   },
   conditionDropdownIcon: {
-    color: colors.main02,
+    color: colors.sub05,
     fontFamily: typography.M,
     fontSize: 14,
   },
   dropdownContent: {
-    backgroundColor: colors.gray03,
+    backgroundColor: colors.gray01,
     borderRadius: 8,
     marginTop: 5,
     paddingHorizontal: 10,
@@ -48,6 +48,6 @@ export const styles = StyleSheet.create({
   dropdownOptionText: {
     fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.black,
   },
 });

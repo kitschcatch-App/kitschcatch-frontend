@@ -5,12 +5,13 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Animated } from 'react-native';
 import ErrorView from '../components/ErrorView';
-import SuccessView from '../components/SuccessView';
+import ConfirmView from '../components/ConfirmView';
+import CommonPopup from '../components/CommonPopup';
 import { ERROR_MESSAGES, ErrorMessage } from '../constants/errorMessages';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ExitIcon from '../assets/exit.svg';
 import CameraIcon from '../assets/camera.svg';
-import { styles } from './ProductRegistrationScreen.styles';
+import { styles, placeholderColor } from './ProductRegistrationScreen.styles';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import CommonInput from '../components/CommonInput';
@@ -40,9 +41,13 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   const [selectedImages, setSelectedImages] = useState<Asset[]>([]);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const [isPolicyAgreed, setIsPolicyAgreed] = useState(false);
+  const [showPolicyError, setShowPolicyError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteComplete, setShowDeleteComplete] = useState(false);
+  const [showTempSaveComplete, setShowTempSaveComplete] = useState(false);
 
   const CONDITION_OPTIONS = ['새상품', '사용감 적음', '사용감 있음', '사용감 많음'];
   const CATEGORY_OPTIONS = ['애니/만화', '게임', '굿즈', '코스프레', '서적', '음반/영상', '기타'];
@@ -61,6 +66,18 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
 
   const isPriceOverLimit = Number(productPrice.replace(/,/g, '')) > 1000000000; // 10억 초과 여부 확인
 
+  // 필수 항목이 모두 채워지고 운영정책에 동의했는지 여부 (등록 버튼 활성화 표시용)
+  const isFormValid =
+    !!productName && !!productPrice && !!productDescription &&
+    selectedCondition !== '사용감 선택' && selectedCategory !== '카테고리 선택' &&
+    selectedImages.length > 0 && isPolicyAgreed;
+
+  // 하나라도 입력된 내용이 있는지 여부 (뒤로가기 시 삭제 확인 팝업 표시용)
+  const hasUnsavedContent =
+    !!productName || !!productPrice || !!productDescription ||
+    selectedCondition !== '사용감 선택' || selectedCategory !== '카테고리 선택' ||
+    selectedImages.length > 0 || isPolicyAgreed;
+
   const handleSelectCondition = (option: string) => {
     setSelectedCondition(option);
     setConditionExpanded(false);
@@ -69,6 +86,33 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   const handleSelectCategory = (option: string) => {
     setSelectedCategory(option);
     setCategoryExpanded(false);
+  };
+
+  const handleTogglePolicy = () => {
+    setIsPolicyAgreed(prev => !prev);
+    setShowPolicyError(false);
+  };
+
+  const handleExitPress = () => {
+    if (hasUnsavedContent) {
+      setShowDeleteConfirm(true);
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    setShowDeleteConfirm(false);
+    setShowDeleteComplete(true);
+  };
+
+  const handleGoHome = () => {
+    setShowDeleteComplete(false);
+    navigation.navigate('ProductList');
+  };
+
+  const handleTempSave = () => {
+    setShowTempSaveComplete(true);
   };
 
   const showLimitToast = () => {
@@ -106,10 +150,14 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
     const validationError = validateProductForm({
       productName, productPrice, productDescription,
       selectedCondition, selectedCategory,
-      isPolicyAgreed, imageCount: selectedImages.length,
+      imageCount: selectedImages.length,
     });
     if (validationError) {
       setErrorMsg(ERROR_MESSAGES.PRODUCT.MISSING_FIELDS);
+      return;
+    }
+    if (!isPolicyAgreed) {
+      setShowPolicyError(true);
       return;
     }
 
@@ -160,7 +208,9 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
 
         {/* 헤더 영역 */}
         <View style={styles.headerContainer}>
-          <View style={styles.headerIconPlaceholder} />
+          <TouchableOpacity style={styles.exitButton} onPress={handleExitPress}>
+            <ExitIcon width={14} height={14} />
+          </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={styles.headerTitle}>상품등록</Text>
@@ -174,8 +224,8 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
             )}
           </View>
 
-          <TouchableOpacity style={styles.exitButton} onPress={() => navigation.goBack()}>
-            <ExitIcon width={20} height={20} />
+          <TouchableOpacity style={styles.tempSaveButton} onPress={handleTempSave}>
+            <Text style={styles.tempSaveButtonText}>임시저장</Text>
           </TouchableOpacity>
         </View>
 
@@ -204,7 +254,7 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
             ))}
 
             {/* 빈 슬롯 (남은 자리) */}
-            {Array.from({ length: Math.max(0, 5 - selectedImages.length) }).map((_, index) => (
+            {Array.from({ length: Math.max(0, 6 - selectedImages.length) }).map((_, index) => (
               <View key={`empty-${index}`} style={styles.photoBox} />
             ))}
           </ScrollView>
@@ -214,6 +264,7 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
         <CommonInput
           label="상품명"
           placeholder="상품명을 입력해주세요"
+          placeholderTextColor={placeholderColor}
           value={productName}
           onChangeText={setProductName}
           maxLength={50}
@@ -228,6 +279,7 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
         <CommonInput
           label="가격"
           placeholder="가격을 입력해주세요"
+          placeholderTextColor={placeholderColor}
           value={productPrice}
           onChangeText={handlePriceChange}
           keyboardType="numeric"
@@ -277,28 +329,34 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
         <View style={styles.policyLayout}>
           <TouchableOpacity
             style={styles.policyContainer}
-            onPress={() => setIsPolicyAgreed(!isPolicyAgreed)}
+            onPress={handleTogglePolicy}
             activeOpacity={0.8}
           >
-            <Text style={[styles.policyText, isPolicyAgreed && styles.policyTextActive]}>
-              키치캐치의 운영 정책을 확인하고 동의합니다
-            </Text>
-            <View style={[styles.radioButton, isPolicyAgreed && styles.radioButtonActive]}>
-              {isPolicyAgreed && <View style={styles.radioButtonInner} />}
+            <View style={styles.policyRadioGroup}>
+              <View style={[styles.radioButton, isPolicyAgreed && styles.radioButtonActive]}>
+                {isPolicyAgreed && <View style={styles.radioButtonInner} />}
+              </View>
+              <Text style={styles.requiredText}>(필수)</Text>
+              <Text style={[styles.policyText, isPolicyAgreed && styles.policyTextActive]}>
+                판매금지상품 및 운영정책에 동의합니다.
+              </Text>
             </View>
+            {showPolicyError && (
+              <Text style={styles.policyErrorText}>운영정책 동의가 필요합니다</Text>
+            )}
           </TouchableOpacity>
         </View>
 
         {/* 상품 등록 버튼 */}
-        <TouchableOpacity 
-          style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+        <TouchableOpacity
+          style={[styles.submitButton, isFormValid && styles.submitButtonActive, isLoading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
           disabled={isLoading}
         >
           {isLoading ? (
             <ActivityIndicator/>
           ) : (
-            <Text style={styles.submitButtonText}>상품등록</Text>
+            <Text style={styles.submitButtonText}>상품 등록하기</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -315,13 +373,35 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
         onPress={() => setErrorMsg(null)}
       />
 
-      <SuccessView
+      <CommonPopup
         visible={showSuccess}
         title="상품등록이 완료되었습니다."
-        onDismiss={() => {
+        subtitle={'상품등록이 완료되었습니다.\n게시된 상품은 거래물품에서 확인 가능합니다.'}
+        onPress={() => {
           setShowSuccess(false);
           navigation.goBack();
         }}
+      />
+
+      <ConfirmView
+        visible={showDeleteConfirm}
+        title="상품등록을 삭제하시겠습니까?"
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+      />
+
+      <CommonPopup
+        visible={showDeleteComplete}
+        title="상품 등록이 삭제되었습니다."
+        subtitle="작성중인 상품등록이 삭제되었습니다."
+        onPress={handleGoHome}
+      />
+
+      <CommonPopup
+        visible={showTempSaveComplete}
+        title="상품등록이 임시저장되었습니다."
+        subtitle="작성중인 상품등록이 임시저장되었습니다."
+        onPress={handleGoHome}
       />
     </SafeAreaView>
   );
