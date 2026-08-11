@@ -7,6 +7,9 @@ import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, Ale
 import WebView from 'react-native-webview';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../assets/back.svg';
+import SafeIcon from '../assets/safe.svg';
+import NextIcon from '../assets/next.svg';
+import RadioOnIcon from '../assets/radiobutton-on.svg';
 import { styles } from './PaymentScreen.styles';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -60,13 +63,23 @@ const PaymentScreen = ({ route, navigation }: Props) => {
   const { productId, productName, productImageUrl, productPrice } = route.params;
   const { isMockMode } = useMockMode();
   const webViewRef = useRef<WebView>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const memoSectionY = useRef(0);
+  const paymentSectionY = useRef(0);
+  const termsSectionY = useRef(0);
 
   // 배송 메모 드롭다운
   const [selectedMemo, setSelectedMemo] = useState('배송시 요청사항 선택');
   const [isMemoExpanded, setIsMemoExpanded] = useState(false);
 
-  // 결제 수단 선택
-  const [selectedPayment, setSelectedPayment] = useState('신용카드');
+  // 결제 수단 선택 (기본값 없음)
+  const [selectedPayment, setSelectedPayment] = useState('');
+  const [showPaymentError, setShowPaymentError] = useState(false);
+  const [showMemoError, setShowMemoError] = useState(false);
+
+  // 약관동의
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [showTermsError, setShowTermsError] = useState(false);
 
   // 배송지 바텀시트 및 선택된 주소
   const [isAddressSheetVisible, setIsAddressSheetVisible] = useState(false);
@@ -93,7 +106,8 @@ const PaymentScreen = ({ route, navigation }: Props) => {
   }, []);
 
   const shippingFee = 5000;
-  const totalPrice = productPrice + shippingFee;
+  const safePaymentFee = 6875; // TODO: mock 값, 실제 안심결제 이용료 API 연동 필요
+  const totalPrice = productPrice + shippingFee + safePaymentFee;
 
   const MEMO_OPTIONS = [
     '요청사항 없음',
@@ -162,7 +176,26 @@ ${extraParamsJs}
 </html>`;
   };
 
+  const scrollToError = (y: number) => {
+    scrollViewRef.current?.scrollTo({ y: Math.max(y - 20, 0), animated: true });
+  };
+
   const handlePay = async () => {
+    if (selectedMemo === '배송시 요청사항 선택') {
+      setShowMemoError(true);
+      scrollToError(memoSectionY.current);
+      return;
+    }
+    if (!selectedPayment) {
+      setShowPaymentError(true);
+      scrollToError(paymentSectionY.current);
+      return;
+    }
+    if (!agreeTerms) {
+      setShowTermsError(true);
+      scrollToError(termsSectionY.current);
+      return;
+    }
     setIsLoading(true);
     try {
       const method = PAYMENT_METHODS.find(m => m.label === selectedPayment)!;
@@ -346,7 +379,7 @@ ${extraParamsJs}
           <View style={[styles.topSpacer, { height: Math.max(insets.top, 65) }]} />
           <View style={styles.headerContainer}>
             <TouchableOpacity style={styles.backButton} onPress={() => setWebViewPayment(null)}>
-              <BackIcon width={24} height={24} />
+              <BackIcon width={10} height={18} />
             </TouchableOpacity>
             <View style={styles.headerCenter}>
               <Text style={styles.headerTitle}>결제</Text>
@@ -431,7 +464,7 @@ ${extraParamsJs}
         {/* 헤더 영역 */}
         <View style={styles.headerContainer}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <BackIcon width={24} height={24} />
+            <BackIcon width={10} height={18} />
           </TouchableOpacity>
 
           <View style={styles.headerCenter}>
@@ -447,8 +480,8 @@ ${extraParamsJs}
         )}
 
         {/* 본문 영역 */}
-        <View style={[styles.contentBackground, { backgroundColor: colors.main03 }]}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={[styles.contentBackground, { backgroundColor: colors.main01 }]}>
+          <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
             {/* 1. 상품 정보 컨테이너 */}
             <View style={styles.productInfoContainer}>
@@ -463,7 +496,10 @@ ${extraParamsJs}
             </View>
 
             {/* 2. 배송정보 컨테이너 */}
-            <View style={styles.sectionContainer}>
+            <View
+              style={styles.sectionContainer}
+              onLayout={(e) => { memoSectionY.current = e.nativeEvent.layout.y; }}
+            >
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionTitle}>배송지</Text>
                 <TouchableOpacity onPress={() => setIsAddressSheetVisible(true)}>
@@ -479,12 +515,23 @@ ${extraParamsJs}
               </View>
 
               <TouchableOpacity
-                style={[styles.memoDropdownButton, isMemoExpanded && { marginBottom: 5 }]}
+                style={[
+                  styles.memoDropdownButton,
+                  isMemoExpanded && { marginBottom: 5 },
+                  showMemoError && styles.memoDropdownButtonError,
+                ]}
                 onPress={() => setIsMemoExpanded(!isMemoExpanded)}
               >
-                <Text style={styles.memoDropdownText}>{selectedMemo}</Text>
+                <Text style={[
+                  styles.memoDropdownText,
+                  selectedMemo !== '배송시 요청사항 선택' && styles.memoDropdownTextActive,
+                ]}>{selectedMemo}</Text>
                 <Text style={styles.memoDropdownIcon}>{isMemoExpanded ? '▲' : '▼'}</Text>
               </TouchableOpacity>
+
+              {showMemoError && (
+                <Text style={styles.memoErrorText}>배송시 요청사항을 선택해주세요</Text>
+              )}
 
               {isMemoExpanded && (
                 <View style={styles.memoDropdownList}>
@@ -495,9 +542,10 @@ ${extraParamsJs}
                       onPress={() => {
                         setSelectedMemo(option);
                         setIsMemoExpanded(false);
+                        setShowMemoError(false);
                       }}
                     >
-                      <Text style={[styles.memoDropdownOptionText, selectedMemo === option && styles.activeMemoOptionText]}>
+                      <Text style={[styles.memoDropdownOptionText]}>
                         {option}
                       </Text>
                     </TouchableOpacity>
@@ -507,7 +555,10 @@ ${extraParamsJs}
             </View>
 
             {/* 3. 결제 방법 컨테이너 */}
-            <View style={styles.sectionContainer}>
+            <View
+              style={styles.sectionContainer}
+              onLayout={(e) => { paymentSectionY.current = e.nativeEvent.layout.y; }}
+            >
               <Text style={styles.sectionTitle}>결제 방법</Text>
 
               <View style={styles.paymentMethodContainer}>
@@ -520,7 +571,11 @@ ${extraParamsJs}
                         styles.paymentMethodButton,
                         selectedPayment === label && styles.paymentMethodButtonActive,
                       ]}
-                      onPress={() => !disabled && setSelectedPayment(label)}
+                      onPress={() => {
+                        if (disabled) return;
+                        setSelectedPayment(label);
+                        setShowPaymentError(false);
+                      }}
                     >
                       <Text style={[
                         styles.paymentMethodText,
@@ -535,13 +590,42 @@ ${extraParamsJs}
                     <TouchableOpacity
                       key={label}
                       style={[styles.paymentMethodButton, selectedPayment === label && styles.paymentMethodButtonActive]}
-                      onPress={() => setSelectedPayment(label)}
+                      onPress={() => {
+                        setSelectedPayment(label);
+                        setShowPaymentError(false);
+                      }}
                     >
                       <Text style={[styles.paymentMethodText, selectedPayment === label && styles.paymentMethodTextActive]}>{label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
+              {showPaymentError && (
+                <Text style={styles.paymentErrorText}>결제방법을 선택해주세요</Text>
+              )}
+            </View>
+
+            {/* 3-1. 안심결제 컨테이너 */}
+            <View style={styles.sectionContainer}>
+              <View style={styles.safePaymentHeaderRow}>
+                <View style={styles.safePaymentHeaderLeft}>
+                  <SafeIcon width={16} height={20} />
+                  <Text style={styles.safePaymentTitle}>안심결제</Text>
+                </View>
+                <Text style={styles.safePaymentRequiredText}>[필수 적용]</Text>
+              </View>
+
+              <Text style={styles.safePaymentDescText}>
+                결제대금은 구매 확정 전까지 안전하게 보관되며, 구매 확정 후 판매자에게 지급됩니다.
+              </Text>
+
+              <Text style={styles.safePaymentFeeText}>안심결제 이용료 2,915원</Text>
+              <Text style={styles.safePaymentFeeDescText}>상품금액+배송비의 5.5% (최소 800원 / VAT 포함)</Text>
+
+              <TouchableOpacity style={styles.safePaymentPolicyRow}>
+                <Text style={styles.safePaymentPolicyText}>안심결제 정책</Text>
+                <NextIcon width={5} height={8} />
+              </TouchableOpacity>
             </View>
 
             {/* 4. 최종 결제 금액 컨테이너 */}
@@ -557,6 +641,12 @@ ${extraParamsJs}
                   <Text style={styles.paymentDetailLabel}>배송비</Text>
                   <Text style={styles.paymentDetailValue}>{shippingFee.toLocaleString()}원</Text>
                 </View>
+                <View style={styles.paymentDetailRow}>
+                  <Text style={styles.paymentDetailLabel}>
+                    <Text style={styles.paymentDetailIcon}>ⓘ</Text> 안심결제 이용료
+                  </Text>
+                  <Text style={styles.paymentDetailValue}>{safePaymentFee.toLocaleString()}원</Text>
+                </View>
               </View>
 
               <View style={styles.paymentDivider} />
@@ -567,14 +657,54 @@ ${extraParamsJs}
               </View>
             </View>
 
-            {/* 5. 결제하기 버튼 */}
-            <TouchableOpacity
-              style={[styles.payButton, isLoading && styles.payButtonDisabled]}
-              onPress={handlePay}
-              disabled={isLoading}
+            {/* 4-1. 약관동의 컨테이너 */}
+            <View
+              style={styles.sectionContainer}
+              onLayout={(e) => { termsSectionY.current = e.nativeEvent.layout.y; }}
             >
-              <Text style={styles.payButtonText}>결제하기</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termsHeaderRow}
+                onPress={() => {
+                  setAgreeTerms(v => !v);
+                  setShowTermsError(false);
+                }}
+                activeOpacity={0.8}
+              >
+                {agreeTerms ? (
+                  <RadioOnIcon width={18} height={18} />
+                ) : (
+                  <View style={styles.radioButtonOff} />
+                )}
+                <Text style={styles.termsHeaderText}>결제 진행 필수 동의</Text>
+              </TouchableOpacity>
+
+              <View style={styles.termsDetailRow}>
+                <Text style={styles.termsDetailText}>
+                  <Text style={styles.termsRequiredText}>(필수) </Text>
+                  안심결제 이용료, 구매확정 및 취소·환불 조건을 확인했습니다.
+                </Text>
+                <NextIcon width={6} height={12} />
+              </View>
+
+              {showTermsError && (
+                <Text style={styles.termsErrorText}>필수 약관에 모두 동의해주세요.</Text>
+              )}
+            </View>
+
+            {/* 5. 결제하기 버튼 */}
+            <View style={styles.payButtonContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.payButton,
+                  selectedPayment && agreeTerms && styles.payButtonActive,
+                  isLoading && styles.payButtonDisabled,
+                ]}
+                onPress={handlePay}
+                disabled={isLoading}
+              >
+                <Text style={styles.payButtonText}>{totalPrice.toLocaleString()}원 결제하기</Text>
+              </TouchableOpacity>
+            </View>
 
           </ScrollView>
         </View>

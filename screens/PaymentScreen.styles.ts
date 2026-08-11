@@ -50,7 +50,7 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   sectionContainer: {
     backgroundColor: colors.white,
@@ -63,7 +63,6 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: typography.SB,
     color: colors.black,
-    marginLeft: 10,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -78,7 +77,6 @@ export const styles = StyleSheet.create({
   },
   infoTextGroup: {
     flex: 1,
-    gap: 10,
   },
   infoText: {
     fontSize: 14,
@@ -95,8 +93,9 @@ export const styles = StyleSheet.create({
   infoTel: {
     fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
     marginLeft: 10,
+    marginTop: -2,
   },
   addressText: {
     fontSize: 14,
@@ -104,13 +103,14 @@ export const styles = StyleSheet.create({
     color: colors.black,
     marginLeft: 10,
     marginRight: 40,
+    marginTop: 4,
   },
   memoDropdownButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 0.7,
-    borderColor: colors.gray01,
+    borderColor: colors.gray07,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 10,
@@ -119,19 +119,35 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 10,
   },
+  memoDropdownButtonError: {
+    borderColor: colors.error,
+  },
+  memoErrorText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.error,
+    textAlign: 'right',
+    marginLeft: 10,
+    marginRight: 10,
+    marginTop: -6,
+    marginBottom: 6,
+  },
   memoDropdownText: {
     fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
+  },
+  memoDropdownTextActive: {
+    color: colors.black,
   },
   memoDropdownIcon: {
     fontSize: 14,
     fontFamily: typography.M,
-    color: colors.main02,
+    color: colors.sub05,
   },
   memoDropdownList: {
     borderWidth: 0.7,
-    borderColor: colors.gray01,
+    borderColor: colors.gray07,
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 10,
@@ -146,29 +162,39 @@ export const styles = StyleSheet.create({
   memoDropdownOptionText: {
     fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray01,
-  },
-  activeMemoOptionText: {
-    color: colors.main02,
-    fontFamily: typography.M,
+    color: colors.black,
   },
   changeAddressText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
     marginRight: 10,
+    textDecorationLine: 'underline',
+  },
+  payButtonContainer: {
+    marginTop: 15,
   },
   payButton: {
-    backgroundColor: colors.main01,
+    backgroundColor: colors.gray03,
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 10,
+  },
+  payButtonActive: {
+    backgroundColor: colors.main05,
   },
   payButtonText: {
     color: colors.black,
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: typography.SB,
+  },
+  paymentErrorText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.error,
+    textAlign: 'right',
+    marginTop: 4,
+    marginRight: 10,
   },
   productInfoContainer: {
     backgroundColor: colors.white,
@@ -180,8 +206,8 @@ export const styles = StyleSheet.create({
   productInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 15,
-    marginLeft: 10,
+    marginTop: 12,
+    marginLeft: 16,
   },
   productImage: {
     width: 66,
@@ -195,12 +221,12 @@ export const styles = StyleSheet.create({
     gap: 5,
   },
   productName: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.black,
   },
   productPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: typography.SB,
     color: colors.black,
   },
@@ -215,47 +241,99 @@ export const styles = StyleSheet.create({
     opacity: 0.5,
   },
   paymentMethodContainer: {
-    marginTop: 20,
-    gap: 10,
+    marginTop: 12,
+    gap: 8,
     paddingHorizontal: 15,
   },
   paymentMethodRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: 15,
   },
   paymentMethodRowBottom: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 44,
+    gap: 18,
   },
   paymentMethodButton: {
-    width: 77,
-    height: 44,
+    width: 80,
+    height: 38,
     paddingVertical: 10,
     paddingHorizontal: 10,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
     borderWidth: 0.7,
-    borderColor: colors.gray01,
+    borderColor: colors.gray05,
     borderRadius: 8,
   },
   paymentMethodButtonActive: {
-    backgroundColor: colors.main01,
-    borderColor: colors.main01,
+    backgroundColor: colors.main05,
+    borderColor: colors.main05,
   },
   paymentMethodText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
   },
   paymentMethodTextActive: {
     color: colors.black,
   },
+  // 안심결제
+  safePaymentHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  safePaymentHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  safePaymentTitle: {
+    fontSize: 18,
+    fontFamily: typography.SB,
+    color: colors.black,
+  },
+  safePaymentRequiredText: {
+    fontSize: 14,
+    fontFamily: typography.SB,
+    color: colors.sub07,
+  },
+  safePaymentDescText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
+    marginTop: 12,
+  },
+  safePaymentFeeText: {
+    fontSize: 18,
+    fontFamily: typography.SB,
+    color: colors.sub07,
+    marginTop: 12,
+  },
+  safePaymentFeeDescText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.gray07,
+    marginTop: 4,
+  },
+  safePaymentPolicyRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 12,
+  },
+  safePaymentPolicyText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray07,
+  },
   // 최종 결제 금액
   paymentDetailsContainer: {
-    marginTop: 15,
-    gap: 10,
+    marginTop: 12,
+    gap: 8,
     paddingHorizontal: 10,
   },
   paymentDetailRow: {
@@ -273,6 +351,9 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
     color: colors.black,
   },
+  paymentDetailIcon: {
+    color: colors.sub07,
+  },
   paymentDivider: {
     height: 1,
     backgroundColor: colors.gray04,
@@ -288,6 +369,46 @@ export const styles = StyleSheet.create({
   totalPaymentLabel: {
     fontSize: 20,
     fontFamily: typography.SB,
-    color: colors.main02,
+    color: colors.sub07,
+  },
+  // 약관동의
+  termsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  radioButtonOff: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: colors.gray07,
+  },
+  termsHeaderText: {
+    fontSize: 18,
+    fontFamily: typography.SB,
+    color: colors.black,
+  },
+  termsDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 4,
+  },
+  termsDetailText: {
+    flexShrink: 1,
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
+  termsRequiredText: {
+    color: colors.sub07,
+  },
+  termsErrorText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.error,
+    textAlign: 'right',
+    marginTop: 8,
   },
 });
