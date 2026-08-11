@@ -6,6 +6,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MockModeProvider } from '../contexts/MockModeContext';
+import HomeScreen from '../screens/HomeScreen';
 import ProductListScreen from '../screens/ProductListScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   SignUpComplete: {
     nickname: string;
   };
+  Home: undefined;
   ProductList: undefined;
   ProductRegistration: undefined;
   ProductDetail: {
@@ -84,6 +86,7 @@ const RootNavigator = () => {
         <Stack.Screen name="TermsAgreement" component={TermsAgreementScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="SignUp" component={SignUpScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="SignUpComplete" component={SignUpCompleteScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Home" component={HomeScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ChatList" component={ChatListScreen} options={{ animation: 'fade' }} />
