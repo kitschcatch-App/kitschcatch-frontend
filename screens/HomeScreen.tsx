@@ -265,7 +265,7 @@ const HomeScreen = ({ navigation }: Props) => {
             <TouchableOpacity style={styles.alarmIcon}>
               <AlarmIcon width={22} height={22} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.searchIcon}>
+            <TouchableOpacity style={styles.searchIcon} onPress={() => navigation.navigate('Search')}>
               <SearchIcon width={20} height={20} />
             </TouchableOpacity>
           </View>

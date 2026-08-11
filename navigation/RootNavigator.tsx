@@ -21,6 +21,7 @@ import SignUpCompleteScreen from '../screens/SignUpCompleteScreen';
 import PaymentCompleteScreen from '../screens/PaymentCompleteScreen';
 import ApiTestScreen from '../screens/ApiTestScreen';
 import ChatListScreen from '../screens/ChatListScreen';
+import SearchScreen from '../screens/SearchScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -31,6 +32,7 @@ export type RootStackParamList = {
     nickname: string;
   };
   Home: undefined;
+  Search: undefined;
   ProductList: undefined;
   ProductRegistration: undefined;
   ProductDetail: {
@@ -87,6 +89,7 @@ const RootNavigator = () => {
         <Stack.Screen name="SignUp" component={SignUpScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="SignUpComplete" component={SignUpCompleteScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Search" component={SearchScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ChatList" component={ChatListScreen} options={{ animation: 'fade' }} />
