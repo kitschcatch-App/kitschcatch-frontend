@@ -67,6 +67,7 @@ export type RootStackParamList = {
     totalPrice: number;
     productImageUrl: string;
     pgOrderId: string;
+    paymentMethod?: string;
   };
   ApiTest: undefined;
 };

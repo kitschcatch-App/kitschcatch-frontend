@@ -37,8 +37,8 @@ interface PaymentMethod {
 
 const PAYMENT_METHODS: PaymentMethod[] = [
   { label: '신용카드', backendEnum: 'CARD', tossMethod: '카드' },
-  { label: '가상계좌', backendEnum: 'VIRTUAL_ACCOUNT', tossMethod: '가상계좌', disabled: true },
-  { label: '간편결제', backendEnum: 'EASY_PAY', tossMethod: '간편결제', disabled: true },
+  { label: '가상계좌', backendEnum: 'VIRTUAL_ACCOUNT', tossMethod: '가상계좌' },
+  { label: '간편결제', backendEnum: 'EASY_PAY', tossMethod: '간편결제' },
   { label: '핸드폰결제', backendEnum: 'MOBILE_PHONE', tossMethod: '휴대폰' },
   { label: '무통장입금', backendEnum: 'TRANSFER', tossMethod: '계좌이체' },
 ];
@@ -48,6 +48,7 @@ interface WebViewPaymentData {
   html: string;
   paymentId: string;
   pgOrderId: string;
+  paymentMethod: string; // 결제수단 backendEnum (VIRTUAL_ACCOUNT, TRANSFER 등)
   successUrlBase: string; // 성공 리다이렉트 URL 감지용 prefix
   failUrlBase: string;    // 실패 리다이렉트 URL 감지용 prefix
 }
@@ -210,6 +211,7 @@ ${extraParamsJs}
           totalPrice,
           productImageUrl,
           pgOrderId: mockOrderId,
+          paymentMethod: method.backendEnum,
         });
         return;
       }
@@ -257,6 +259,7 @@ ${extraParamsJs}
         html,
         paymentId,
         pgOrderId: orderId,
+        paymentMethod: method.backendEnum,
         successUrlBase: TOSS_SUCCESS_URL,
         failUrlBase: TOSS_FAIL_URL,
       });
@@ -274,6 +277,7 @@ ${extraParamsJs}
     if (isMockMode) {
       navigation.navigate('PaymentComplete', {
         productName, productPrice, totalPrice, productImageUrl, pgOrderId: data.pgOrderId,
+        paymentMethod: data.paymentMethod,
       });
       setIsLoading(false);
       return;
@@ -289,6 +293,7 @@ ${extraParamsJs}
         }
         navigation.navigate('PaymentComplete', {
           productName, productPrice, totalPrice, productImageUrl, pgOrderId: data.pgOrderId,
+          paymentMethod: data.paymentMethod,
         });
       })
       .catch((error) => Alert.alert('결제 오류', getErrorMessage(error)))
