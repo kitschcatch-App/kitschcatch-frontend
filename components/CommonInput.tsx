@@ -3,15 +3,17 @@
  * 역할: 상품 등록 폼 등에서 텍스트를 입력받을 때 재사용할 수 있는 범용 TextInput 컴포넌트입니다.
  */
 import React from 'react';
-import { View, Text, TextInput, TextInputProps, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, TextInput, TextInputProps, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { styles } from './CommonInput.styles';
 
 interface CommonInputProps extends TextInputProps {
-  label: string;
+  label?: string;
   containerStyle?: StyleProp<ViewStyle>;
   showCharCount?: boolean;
   currentLength?: number;
   warningText?: string | false;
+  charCounterStyle?: StyleProp<TextStyle>;
+  warningTextStyle?: StyleProp<TextStyle>;
 }
 
 const CommonInput = ({
@@ -20,21 +22,24 @@ const CommonInput = ({
   showCharCount,
   currentLength = 0,
   warningText,
+  charCounterStyle,
+  warningTextStyle,
+  style,
   ...textInputProps
 }: CommonInputProps) => {
   const { maxLength } = textInputProps;
 
   return (
     <View style={containerStyle}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <TextInput style={styles.textInput} {...textInputProps} />
-      
+      {label ? <Text style={styles.inputLabel}>{label}</Text> : null}
+      <TextInput style={[styles.textInput, style]} {...textInputProps} />
+
       {showCharCount && maxLength && (
-        <Text style={[styles.charCounter, currentLength >= maxLength && styles.charCounterMax]}>
+        <Text style={[styles.charCounter, currentLength >= maxLength && styles.charCounterMax, charCounterStyle]}>
           {`${currentLength}/${maxLength}`}
         </Text>
       )}
-      {warningText ? <Text style={styles.warningText}>{warningText}</Text> : null}
+      {warningText ? <Text style={[styles.warningText, warningTextStyle]}>{warningText}</Text> : null}
     </View>
   );
 };

@@ -18,8 +18,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 40,
-    minHeight: 500,
-    justifyContent: 'space-between',
   },
   filterContent: {},
   handleContainer: {
@@ -29,7 +27,7 @@ export const styles = StyleSheet.create({
   handle: {
     width: 100,
     height: 4,
-    backgroundColor: colors.gray04,
+    backgroundColor: colors.gray03,
   },
   header: {
     flexDirection: 'row',
@@ -49,10 +47,10 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    gap: 8, // 버튼 사이의 간격
+    gap: 4, // 버튼 사이의 간격
   },
   optionButton: {
-    paddingVertical: 9,
+    paddingVertical: 7,
     paddingHorizontal: 2,
     borderRadius: 40,
     borderWidth: 1.5,
@@ -61,8 +59,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   optionButtonActive: {
-    borderColor: colors.main01,
-    backgroundColor: `${colors.main01}26`, // 15% opacity
+    borderColor: '#B1F5F0',
+    backgroundColor: colors.main03,
   },
   optionText: {
     fontSize: 14, 
@@ -71,8 +69,7 @@ export const styles = StyleSheet.create({
     color: colors.black,
   },
   optionTextActive: {
-    color: colors.sub02,
-    zIndex: 1,
+    color: colors.black,
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -88,10 +85,10 @@ export const styles = StyleSheet.create({
     color: colors.black,
   },
   customToggleTrack: {
-    width: 54,
-    height: 30,
+    width: 55,
+    height: 28,
     borderRadius: 22,
-    backgroundColor: colors.gray04,
+    backgroundColor: colors.gray03,
     justifyContent: 'center',
   },
   customToggleThumb: {
@@ -123,7 +120,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
-    height: 44,
+    height: 36,
   },
   priceInput: {
     flex: 1,
@@ -137,12 +134,12 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.black,
-    marginLeft: 8,
+    marginLeft: 3,
   },
   priceDash: {
     fontSize: 16,
     fontFamily: typography.SB,
-    color: colors.black,
+    color: colors.gray05,
     marginHorizontal: 18,
   },
   conditionContainer: {
@@ -161,22 +158,64 @@ export const styles = StyleSheet.create({
   conditionSubLabel: {
     fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
     marginLeft: 10,
   },
   conditionOptionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
+    gap: 4,
+    marginBottom: 24,
+  },
+  activeFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+  },
+  resetButtonText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray07,
+  },
+  chipScrollView: {
+    flex: 1,
+  },
+  chipScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 20,
+    backgroundColor: colors.gray02,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  chipText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
   },
   submitButton: {
-    backgroundColor: colors.main01,
+    backgroundColor: colors.main05,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 0,
+    marginTop: 8,
   },
   submitButtonText: {
     fontSize: 18,

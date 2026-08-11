@@ -21,22 +21,22 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.black,
-    backgroundColor: colors.gray03,
+    backgroundColor: colors.gray01,
     textAlignVertical: 'top',
   },
   charCounter: {
     textAlign: 'right',
     fontFamily: typography.M,
     fontSize: 12,
-    color: colors.gray01,
+    color: colors.gray07,
   },
   charCounterMax: {
-    color: colors.red,
+    color: colors.error,
   },
   warningText: {
     textAlign: 'right',
     fontFamily: typography.M,
     fontSize: 12,
-    color: colors.red,
+    color: colors.error,
   },
 });

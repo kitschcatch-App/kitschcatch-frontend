@@ -29,6 +29,14 @@ export const styles = StyleSheet.create({
   imageContainer: {
     position: 'relative',
   },
+  topGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    zIndex: 5,
+  },
   productImage: {
     backgroundColor: colors.gray02,
   },
@@ -96,31 +104,17 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 5,
   },
-  productStatus: {
-    fontSize: 14,
-    fontFamily: typography.M,
-    color: colors.black,
-    marginBottom: 5,
-    backgroundColor: colors.main01,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    alignSelf: 'flex-start',
-    justifyContent: 'center',
-  },
   productName: {
     fontSize: 18,
     fontFamily: typography.SB,
     color: colors.black,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   productPrice: {
     fontSize: 18,
     fontFamily: typography.SB,
     color: colors.black,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   productDescription: {
     fontSize: 14,
@@ -130,11 +124,10 @@ export const styles = StyleSheet.create({
     
   },
   productSeparator: {
-    width: '90%',
     height: 2,
-    backgroundColor: colors.gray04,
-    alignSelf: 'center',
-    marginBottom: 10,
+    backgroundColor: colors.gray03,
+    marginHorizontal: 20,
+    marginBottom: 8,
   },
   // 메타 정보 스타일
   metaContainer: {
@@ -144,13 +137,10 @@ export const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 0, // 하단 마진 제거
   },
-  metaLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   metaRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: -13,
   },
   metaIcon: {
     marginRight: 4,
@@ -158,19 +148,32 @@ export const styles = StyleSheet.create({
   metaText: {
     fontSize: 11,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
     marginRight: 8,
   },
   metaTime: {
     fontSize: 11,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.gray07,
+    marginRight: 8,
   },
-  metaTag: {
+  // 뱃지 영역 스타일 (판매상태 / 카테고리 / 사용감)
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  tagBadge: {
     fontSize: 11,
     fontFamily: typography.M,
-    color: colors.gray01,
-    marginRight: 6,
+    color: colors.black,
+    backgroundColor: colors.main03,
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.main05,
   },
   // 판매자 정보 스타일
   sellerContainer: {
@@ -184,11 +187,12 @@ export const styles = StyleSheet.create({
   transactionCount: {
     fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray01,
+    color: colors.black,
   },
   sellerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 12,
   },
   sellerName: {
     fontSize: 12,
@@ -196,16 +200,38 @@ export const styles = StyleSheet.create({
     color: colors.black,
     marginRight: 10,
   },
+  sellerProfileImageWrapper: {
+    position: 'relative',
+  },
   sellerProfileImage: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.gray02,
   },
+  sellerRatingBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -15,
+    minWidth: 24,
+    // height: 18,
+    paddingVertical: 3,
+    borderRadius: 99,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.main05,
+  },
+  sellerRatingText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
   // 액션 바 스타일 (채팅하기, 결제하기)
   actionBar: {
     flexDirection: 'row',
     paddingHorizontal: 20,
+    paddingTop: 8,
     backgroundColor: colors.white,
     gap: 10,
   },
@@ -219,7 +245,7 @@ export const styles = StyleSheet.create({
   },
   chatButton: {
     flex: 1,
-    backgroundColor: colors.gray02,
+    backgroundColor: colors.gray01,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
@@ -232,7 +258,7 @@ export const styles = StyleSheet.create({
   },
   buyButton: {
     flex: 1,
-    backgroundColor: colors.main01,
+    backgroundColor: colors.main05,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
@@ -242,10 +268,5 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: typography.SB,
     color: colors.black,
-  },
-  divider: {
-    width: '100%',
-    height: 8,
-    backgroundColor: colors.main03,
   },
 });

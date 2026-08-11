@@ -22,6 +22,7 @@ type ChatRoom = {
   opponentNickname: string;
   lastMessageContent: string | null;
   lastMessageAt: string | null;
+  unreadCount?: number;
 };
 
 const formatLastMessageTime = (isoString: string | null): string => {
@@ -70,40 +71,78 @@ const ChatListScreen = ({ navigation }: Props) => {
     }, [isMockMode])
   );
 
-  const renderItem = ({ item }: { item: ChatRoom }) => (
-    <TouchableOpacity
-      style={styles.chatItem}
-      onPress={() => navigation.navigate('Chat', {
-        chatRoomId: item.chatRoomId,
-        opponentNickname: item.opponentNickname,
-      })}
-      activeOpacity={0.8}
-    >
-      <View style={styles.profileImage} />
-      <View style={styles.chatInfo}>
-        <View style={styles.chatHeader}>
-          <Text style={styles.sellerName}>{item.opponentNickname}</Text>
+  const renderItem = ({ item }: { item: ChatRoom }) => {
+    const isUnread = (item.unreadCount ?? 0) > 0;
+
+    return (
+      <TouchableOpacity
+        style={styles.chatItem}
+        onPress={() => navigation.navigate('Chat', {
+          chatRoomId: item.chatRoomId,
+          opponentNickname: item.opponentNickname,
+        })}
+        activeOpacity={0.8}
+      >
+        <View style={styles.profileImage} />
+        <View style={styles.chatInfo}>
+          <View style={styles.chatHeader}>
+            <Text style={styles.sellerName}>{item.opponentNickname}</Text>
+          </View>
+          <View style={styles.messageRow}>
+            <Text
+              style={[styles.lastMessage, !isUnread && styles.lastMessageRead]}
+              numberOfLines={1}
+            >
+              {item.lastMessageContent ?? ''}
+            </Text>
+            {item.lastMessageAt && (
+              <Text style={[styles.dotText, !isUnread && styles.timeTextRightAligned]}>
+                {' '}
+                ·{' '}
+              </Text>
+            )}
+            {item.lastMessageAt && (
+              <Text style={[styles.timeText, !isUnread && styles.timeTextRead]}>
+                {formatLastMessageTime(item.lastMessageAt)}
+              </Text>
+            )}
+            {isUnread && (
+              <View style={[styles.unreadBadge, styles.timeTextRightAligned]}>
+                <Text style={styles.unreadBadgeText}>{item.unreadCount}</Text>
+              </View>
+            )}
+          </View>
         </View>
-        <View style={styles.messageRow}>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessageContent ?? ''}
-          </Text>
-          {item.lastMessageAt && (
-            <Text style={styles.timeText}> · {formatLastMessageTime(item.lastMessageAt)}</Text>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>채팅</Text>
+        {isMockMode && (
+          <TouchableOpacity
+            style={styles.mockToggleButton}
+            onPress={() => setChatRooms((prev) => (prev.length === 0 ? MOCK_CHAT_ROOMS.data : []))}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.mockToggleButtonText}>
+              {chatRooms.length === 0 ? '목록 채우기' : '빈 상태 보기'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {isLoading ? (
         <ActivityIndicator style={{ flex: 1 }} />
+      ) : chatRooms.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>아직 채팅이 없어요!</Text>
+          <Text style={styles.emptySubtitle}>
+            관심있는 상품을 둘러보고 판매자와 대화를 시작해보세요.
+          </Text>
+        </View>
       ) : (
         <FlatList
           data={chatRooms}

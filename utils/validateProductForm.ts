@@ -27,7 +27,6 @@ export interface ProductFormInputs {
   productDescription: string;
   selectedCondition: string;
   selectedCategory: string;
-  isPolicyAgreed: boolean;
   imageCount: number;
 }
 
@@ -37,9 +36,6 @@ export function validateProductForm(inputs: ProductFormInputs): string | null {
   }
   if (inputs.selectedCondition === '사용감 선택' || inputs.selectedCategory === '카테고리 선택') {
     return '드롭다운 항목을 모두 선택해주세요.';
-  }
-  if (!inputs.isPolicyAgreed) {
-    return '운영 정책에 동의해주세요.';
   }
   if (inputs.imageCount === 0) {
     return '상품 사진을 1장 이상 등록해주세요.';

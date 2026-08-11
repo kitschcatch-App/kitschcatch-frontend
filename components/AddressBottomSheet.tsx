@@ -82,12 +82,12 @@ const AddressBottomSheet = ({ visible, onClose, onSelect }: Props) => {
                           </View>
                         )}
                       </View>
-                      <TouchableOpacity><Text style={styles.deleteText}>삭제</Text></TouchableOpacity>
                     </View>
                     <Text style={styles.addressPhone}>{item.phone}</Text>
                     <Text style={styles.addressText}>{item.address}</Text>
                   </TouchableOpacity>
                 ))}
+                <Text style={styles.noticeText}>추가 배송지 등록 및 수정,삭제는 회원정보 {'>'} 배송지 관리에서 가능합니다. </Text>
               </ScrollView>
 
               <TouchableOpacity
@@ -99,7 +99,7 @@ const AddressBottomSheet = ({ visible, onClose, onSelect }: Props) => {
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.submitButtonText}>배송지 변경완료</Text>
+                <Text style={styles.submitButtonText}>선택완료</Text>
               </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>
