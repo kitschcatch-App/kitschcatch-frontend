@@ -20,6 +20,7 @@ import { styles } from './BottomNav.styles';
 type TabKey = 'home' | 'map' | 'chat' | 'profile';
 
 const ROUTE_TO_TAB: Partial<Record<keyof RootStackParamList, TabKey>> = {
+  Home: 'home',
   ProductList: 'home',
   ProductDetail: 'home',
   ChatList: 'chat',
@@ -49,7 +50,7 @@ const BottomNav = () => {
         style={styles.navItem}
         onPress={() => {
           setManualTab(null);
-          navigation.navigate('ProductList');
+          navigation.navigate('Home');
         }}
       >
         {activeTab === 'home' ? <NavHomeOnIcon width={18} height={18} /> : <NavHomeIcon width={18} height={18} />}
