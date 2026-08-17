@@ -1,10 +1,14 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { styles } from './MyPageScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import NextIcon from '../assets/next.svg';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
 
-const MyPageScreen = () => {
+type Props = NativeStackScreenProps<RootStackParamList, 'Mypage'>;
+
+const MyPageScreen = ({ navigation }: Props) => {
     
     
     
@@ -28,11 +32,17 @@ const MyPageScreen = () => {
                             <Text style={styles.username}>졸린코끼리</Text>
                             <Text style={styles.introduction}>원신, 하이큐 굿즈 모아요</Text>
                         </View>
-                        <NextIcon
-                          width={7}
-                          height={20}
-                          style={styles.NextIcon}
-                        />
+                        <TouchableOpacity
+                            style={styles.NextIcon}
+                            onPress={() => navigation.navigate('EditProfile')}
+                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        >
+                            <NextIcon
+                            width={7}
+                            height={20}
+                            />
+                        </TouchableOpacity>
+                        
                     </View>
 
                     <View style={styles.followCountContainer}>

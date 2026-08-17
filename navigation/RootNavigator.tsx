@@ -23,6 +23,7 @@ import ApiTestScreen from '../screens/ApiTestScreen';
 import ChatListScreen from '../screens/ChatListScreen';
 import SearchScreen from '../screens/SearchScreen';
 import MyPageScreen from '../screens/MyPageScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -75,6 +76,7 @@ export type RootStackParamList = {
     paymentMethod?: string;
   };
   Mypage: undefined;
+  EditProfile: undefined;
   ApiTest: undefined;
 };
 
@@ -92,6 +94,7 @@ const RootNavigator = () => {
         <Stack.Screen name="SignUpComplete" component={SignUpCompleteScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Mypage" component={MyPageScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Search" component={SearchScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
