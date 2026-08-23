@@ -1,0 +1,224 @@
+/**
+ * 스타일: 상품 목록 화면 스타일 (ProductListScreen.styles)
+ * 역할: ProductListScreen에서 사용하는 헤더, 검색창, 필터 드롭다운(모달), 상품 카드 등의 UI 스타일을 정의하는 파일입니다.
+ */
+import { StyleSheet } from 'react-native';
+import { colors } from '../../styles/colors';
+import { typography } from '../../styles/typography';
+
+export const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  topSpacer: {
+    width: '100%',
+  },
+  // 로고 컨테이너
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  // Mock 모드 토글 버튼 (개발/테스트용)
+  mockTogglePill: {
+    marginLeft: 'auto',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.gray04,
+    backgroundColor: colors.gray03,
+  },
+  mockTogglePillActive: {
+    borderColor: colors.sub01,
+    backgroundColor: `${colors.sub01}22`,
+  },
+  mockTogglePillText: {
+    fontSize: 11,
+    fontFamily: typography.SB,
+    color: colors.gray01,
+  },
+  mockTogglePillTextActive: {
+    color: colors.sub02,
+  },
+  // 헤더 스타일
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  backButton: {
+    marginBottom: 7,
+    marginTop: 7,
+    marginRight: 4,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    flex: 1,
+    backgroundColor: colors.gray01,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    marginHorizontal: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.black,
+    padding: 0, // 안드로이드 기본 패딩 제거
+    fontFamily: typography.M,
+  },
+  searchIcon: {
+    marginLeft: 2,
+  },
+  // 카테고리 필터 스타일
+  categoryContainer: {
+    marginBottom: 10,
+    marginHorizontal: -16, // 화면 양끝까지 스와이프 되도록 부모 여백(padding 16) 상쇄
+  },
+  categoryScrollContent: {
+    gap: 5,
+    paddingHorizontal: 16, // 리스트 시작과 끝에 여백 추가
+  },
+  categoryButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 40,
+    borderWidth: 1.5,
+    borderColor: colors.gray03,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryButtonActive: {
+    borderColor: '#B1F5F0',
+    backgroundColor: colors.main03,
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    gap: 4,
+  },
+  resetButtonText: {
+    fontSize: 14,
+    fontFamily: typography.SB,
+    color: colors.gray07,
+  },
+  categoryText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
+  categoryTextActive: {
+    color: colors.black,
+  },
+  // 필터 스타일
+  filterContainer: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterText: {
+    fontSize: 14,
+    color: colors.black,
+    fontFamily: typography.M,
+    marginLeft: 8,
+  },
+  productList: {
+    marginHorizontal: -16, // 부모 여백(padding 16) 상쇄해 화면 양끝까지 이미지가 꽉 차도록 함
+  },
+  productListContent: {
+    paddingBottom: 100, // 플로팅 버튼과 바텀 내비를 가리지 않도록 하단 여백 추가
+  },
+  row: {
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  productCard: {
+    flex: 1,
+    backgroundColor: colors.white,
+    maxWidth: '50%', // 이미지가 화면 양끝에 꽉 차도록 정확히 절반씩 차지
+  },
+  productImage: {
+    width: '100%',
+    aspectRatio: 1, // 정사각형 비율
+    backgroundColor: colors.gray02,
+  },
+  productInfo: {
+    marginTop: 8,
+    paddingHorizontal: 10, // 이미지는 화면 끝까지, 텍스트는 여백 유지
+  },
+  productName: {
+    fontSize: 14,
+    color: colors.black,
+    fontFamily: typography.M,
+    marginBottom: 4, 
+  },
+  productPrice: {
+    fontSize: 14,
+    color: colors.black,
+    fontFamily: typography.SB,
+    marginBottom: 4,
+  },
+  productMetaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  metaTimeText: {
+    fontSize: 11,
+    fontFamily: typography.M,
+    color: colors.gray07,
+  },
+  metaIconsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaIcon: {
+    marginLeft: 8,
+    marginRight: 3,
+  },
+  metaText: {
+    fontSize: 11,
+    fontFamily: typography.M,
+    color: colors.gray07,
+  },
+  // 상품 등록 버튼
+  floatingButton: {
+    position: 'absolute',
+    right: 16,
+    display: 'flex',
+    flexDirection: 'row',
+    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.main05,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  floatingButtonText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
+});

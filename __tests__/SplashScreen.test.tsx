@@ -2,7 +2,7 @@ import React from 'react';
 import { Animated } from 'react-native';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { secureStorage } from '../utils/secureStorage';
-import SplashScreen from '../screens/SplashScreen';
+import SplashScreen from '../screens/auth/SplashScreen';
 
 jest.mock('../utils/secureStorage', () => ({
   secureStorage: {
