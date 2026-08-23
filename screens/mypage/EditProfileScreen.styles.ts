@@ -7,28 +7,8 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
-  headerContainer: {
-    height: 65,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
+  header: {
     marginBottom: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
-    fontFamily: typography.SB,
-    color: colors.black,
-  },
-  headerSpacer: {
-    width: 40,
   },
   profileSection: {
     padding: 16,
@@ -78,6 +58,36 @@ export const styles = StyleSheet.create({
   },
   requiredMark: {
     color: colors.sub07,
+  },
+  idInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  idInputContainer: {
+    flex: 1,
+  },
+  duplicateButton: {
+    display: 'flex',
+    paddingVertical: 14,
+    paddingHorizontal: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: colors.main01,
+    borderWidth: 1,
+    borderColor: colors.main07
+  },
+  duplicateButtonDisabled: {
+    opacity: 0.5,
+  },
+  duplicateButtonText: {
+    fontSize: 16,
+    fontFamily: typography.M,
+    color: colors.sub07
+  },
+  duplicateSuccessText: {
+    color: colors.sucess,
   },
   saveButton: {
     marginTop: 'auto',
