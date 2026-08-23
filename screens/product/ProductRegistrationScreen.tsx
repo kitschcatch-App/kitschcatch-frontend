@@ -376,7 +376,6 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
       <CommonPopup
         visible={showSuccess}
         title="상품등록이 완료되었습니다."
-        subtitle={'상품등록이 완료되었습니다.\n게시된 상품은 거래물품에서 확인 가능합니다.'}
         onPress={() => {
           setShowSuccess(false);
           navigation.goBack();
@@ -393,14 +392,12 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
       <CommonPopup
         visible={showDeleteComplete}
         title="상품 등록이 삭제되었습니다."
-        subtitle="작성중인 상품등록이 삭제되었습니다."
         onPress={handleGoHome}
       />
 
       <CommonPopup
         visible={showTempSaveComplete}
         title="상품등록이 임시저장되었습니다."
-        subtitle="작성중인 상품등록이 임시저장되었습니다."
         onPress={handleGoHome}
       />
     </SafeAreaView>

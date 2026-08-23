@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 70,
+    padding: 65,
   },
   container: {
     width: '100%',
@@ -23,11 +23,11 @@ export const styles = StyleSheet.create({
   },
   title: {
     fontFamily: typography.M,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.black,
     textAlign: 'center',
     paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   buttonRow: {
     flexDirection: 'row',

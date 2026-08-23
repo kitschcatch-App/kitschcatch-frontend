@@ -24,5 +24,6 @@ export const colors = {
   sub07: '#2EB9C6',
   red: '#DE0000',
   error: '#F62D2D',
+  sucess: '#00CC03',
   info: '#1B7AFF',
 } as const;
