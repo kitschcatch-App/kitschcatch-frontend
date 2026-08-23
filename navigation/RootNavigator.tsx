@@ -24,6 +24,8 @@ import ChatListScreen from '../screens/chat/ChatListScreen';
 import SearchScreen from '../screens/home/SearchScreen';
 import MyPageScreen from '../screens/mypage/MyPageScreen';
 import EditProfileScreen from '../screens/mypage/EditProfileScreen';
+import FollowScreen from '../screens/mypage/FollowScreen';
+import WishlistScreen from '../screens/mypage/WishlistScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -77,6 +79,10 @@ export type RootStackParamList = {
   };
   Mypage: undefined;
   EditProfile: undefined;
+  Follow: {
+    initialTab?: 'follower' | 'following';
+  } | undefined;
+  Wishlist: undefined;
   ApiTest: undefined;
 };
 
@@ -95,6 +101,8 @@ const RootNavigator = () => {
         <Stack.Screen name="Home" component={HomeScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Mypage" component={MyPageScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Follow" component={FollowScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Wishlist" component={WishlistScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Search" component={SearchScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
