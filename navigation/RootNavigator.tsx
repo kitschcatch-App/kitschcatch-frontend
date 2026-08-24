@@ -3,6 +3,7 @@
  * 역할: 앱 내의 화면 이동 경로(Stack Navigation)를 설정하고 컴포넌트 간의 네비게이션을 관리하는 파일입니다.
  */
 import React from 'react';
+import { ImageSourcePropType } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MockModeProvider } from '../contexts/MockModeContext';
@@ -26,6 +27,10 @@ import MyPageScreen from '../screens/mypage/MyPageScreen';
 import EditProfileScreen from '../screens/mypage/EditProfileScreen';
 import FollowScreen from '../screens/mypage/FollowScreen';
 import WishlistScreen from '../screens/mypage/WishlistScreen';
+import SalesHistoryScreen from '../screens/mypage/SalesHistoryScreen';
+import PurchaseHistoryScreen from '../screens/mypage/PurchaseHistoryScreen';
+import OrderDetailScreen from '../screens/mypage/OrderDetailScreen';
+import PurchaseOrderDetailScreen from '../screens/mypage/PurchaseOrderDetailScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -83,6 +88,22 @@ export type RootStackParamList = {
     initialTab?: 'follower' | 'following';
   } | undefined;
   Wishlist: undefined;
+  SalesHistory: undefined;
+  PurchaseHistory: undefined;
+  OrderDetail: {
+    orderId: string;
+    orderNumber: string;
+    productTitle: string;
+    productPrice: number;
+    productImage: ImageSourcePropType;
+  };
+  PurchaseOrderDetail: {
+    orderId: string;
+    orderNumber: string;
+    productTitle: string;
+    productPrice: number;
+    productImage: ImageSourcePropType;
+  };
   ApiTest: undefined;
 };
 
@@ -103,6 +124,10 @@ const RootNavigator = () => {
         <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Follow" component={FollowScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Wishlist" component={WishlistScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="SalesHistory" component={SalesHistoryScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="PurchaseHistory" component={PurchaseHistoryScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="PurchaseOrderDetail" component={PurchaseOrderDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Search" component={SearchScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />

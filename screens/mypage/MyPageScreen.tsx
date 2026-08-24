@@ -87,11 +87,11 @@ const MyPageScreen = ({ navigation }: Props) => {
                         <Image source={require('../../assets/Interested_list.png')} style={styles.menuIcon} resizeMode="contain" />
                         <Text style={styles.menuLabel}>관심목록</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+                    <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => navigation.navigate('SalesHistory')}>
                         <SalesDetailsIcon width={28} height={28} />
                         <Text style={styles.menuLabel}>판매내역</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+                    <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => navigation.navigate('PurchaseHistory')}>
                         <PurchaseDetailsIcon width={28} height={28} />
                         <Text style={styles.menuLabel}>구매내역</Text>
                     </TouchableOpacity>
