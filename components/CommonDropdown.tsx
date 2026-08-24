@@ -29,7 +29,7 @@ const CommonDropdown = ({
 }: CommonDropdownProps) => {
   return (
     <View style={containerStyle}>
-      <Text style={styles.inputLabel}>{label}</Text>
+      {label ? <Text style={styles.inputLabel}>{label}</Text> : null}
       <TouchableOpacity style={styles.conditionDropdownButton} onPress={onToggle}>
         <Text style={[styles.conditionDropdownText, value !== placeholder && styles.conditionDropdownTextSelected]}>
           {value}

@@ -11,6 +11,7 @@ export const styles = StyleSheet.create({
     width: 140,
     height: 145,
     marginBottom: 16,
+    alignSelf: 'center',
   },
   title: {
     fontFamily: typography.SB,

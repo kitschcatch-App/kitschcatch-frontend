@@ -13,7 +13,7 @@ export const colors = {
   gray06: '#A2A2A2',
   gray07: '#858585',
   main01: '#97F2EC1A',
-  main02: '#00A37C',
+  main02: '#E0FCFA',
   main03: '#CBF8F5',
   main05: '#97F2EC',
   main07: '#73E5DD',
