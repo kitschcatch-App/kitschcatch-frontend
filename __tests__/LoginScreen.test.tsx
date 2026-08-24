@@ -2,7 +2,7 @@ import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { TouchableOpacity } from 'react-native';
 import { secureStorage } from '../utils/secureStorage';
-import LoginScreen from '../screens/LoginScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
 
 jest.mock('../utils/secureStorage', () => ({
   secureStorage: {

@@ -25,6 +25,7 @@ const ROUTE_TO_TAB: Partial<Record<keyof RootStackParamList, TabKey>> = {
   ProductDetail: 'home',
   ChatList: 'chat',
   Chat: 'chat',
+  Mypage: 'profile',
 };
 
 const BottomNav = () => {
@@ -74,7 +75,14 @@ const BottomNav = () => {
         {activeTab === 'chat' ? <NavChatOnIcon width={17} height={17} /> : <NavChatIcon width={17} height={17} />}
         <Text style={styles.navText}>채팅목록</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.navItem} onPress={() => setManualTab('profile')}>
+      
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => {
+          setManualTab(null);
+          navigation.navigate('Mypage');
+        }}
+      >
         {activeTab === 'profile' ? (
           <NavProfileOnIcon width={17} height={17} />
         ) : (

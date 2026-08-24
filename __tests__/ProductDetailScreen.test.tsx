@@ -6,7 +6,7 @@ import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { Text, Animated } from 'react-native';
 import { secureStorage } from '../utils/secureStorage';
-import ProductDetailScreen from '../screens/ProductDetailScreen';
+import ProductDetailScreen from '../screens/product/ProductDetailScreen';
 import { productAPI, chatAPI } from '../api/apiClient';
 import { useMockMode } from '../contexts/MockModeContext';
 
