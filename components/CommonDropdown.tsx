@@ -15,6 +15,7 @@ interface CommonDropdownProps {
   onToggle: () => void;
   onSelect: (option: string) => void;
   containerStyle?: StyleProp<ViewStyle>;
+  buttonStyle?: StyleProp<ViewStyle>;
 }
 
 const CommonDropdown = ({
@@ -26,11 +27,12 @@ const CommonDropdown = ({
   onToggle,
   onSelect,
   containerStyle,
+  buttonStyle,
 }: CommonDropdownProps) => {
   return (
     <View style={containerStyle}>
       {label ? <Text style={styles.inputLabel}>{label}</Text> : null}
-      <TouchableOpacity style={styles.conditionDropdownButton} onPress={onToggle}>
+      <TouchableOpacity style={[styles.conditionDropdownButton, buttonStyle]} onPress={onToggle}>
         <Text style={[styles.conditionDropdownText, value !== placeholder && styles.conditionDropdownTextSelected]}>
           {value}
         </Text>
