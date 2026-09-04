@@ -31,6 +31,13 @@ import SalesHistoryScreen from '../screens/mypage/SalesHistoryScreen';
 import PurchaseHistoryScreen from '../screens/mypage/PurchaseHistoryScreen';
 import OrderDetailScreen from '../screens/mypage/OrderDetailScreen';
 import PurchaseOrderDetailScreen from '../screens/mypage/PurchaseOrderDetailScreen';
+import SettingsScreen from '../screens/settings/SettingsScreen';
+import LogoutScreen from '../screens/settings/LogoutScreen';
+import WithdrawScreen from '../screens/settings/WithdrawScreen';
+import AddressManagementScreen from '../screens/settings/AddressManagementScreen';
+import BlockedUsersScreen from '../screens/settings/BlockedUsersScreen';
+import NotificationSettingsScreen from '../screens/settings/NotificationSettingsScreen';
+import AddressRegistrationScreen from '../screens/settings/AddressRegistrationScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -83,6 +90,25 @@ export type RootStackParamList = {
     paymentMethod?: string;
   };
   Mypage: undefined;
+  Settings: undefined;
+  Logout: undefined;
+  Withdraw: undefined;
+  AddressManagement: undefined;
+  BlockedUsers: undefined;
+  NotificationSettings: undefined;
+  AddressRegistration:
+    | {
+        address: {
+          id: string;
+          name: string;
+          phone: string;
+          zipCode: string;
+          address: string;
+          detailAddress: string;
+          isDefault?: boolean;
+        };
+      }
+    | undefined;
   EditProfile: undefined;
   Follow: {
     initialTab?: 'follower' | 'following';
@@ -121,6 +147,13 @@ const RootNavigator = () => {
         <Stack.Screen name="SignUpComplete" component={SignUpCompleteScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Mypage" component={MyPageScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Logout" component={LogoutScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Withdraw" component={WithdrawScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="AddressManagement" component={AddressManagementScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="AddressRegistration" component={AddressRegistrationScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Follow" component={FollowScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Wishlist" component={WishlistScreen} options={{ animation: 'fade' }} />
