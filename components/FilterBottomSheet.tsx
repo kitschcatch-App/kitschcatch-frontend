@@ -2,13 +2,14 @@
  * 컴포넌트: 필터 바텀 시트 (FilterBottomSheet)
  * 역할: 상품 목록 화면에서 필터 버튼을 눌렀을 때 나타나는 하단 모달창입니다.
  */
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, Animated, TextInput, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, TextInput, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from './FilterBottomSheet.styles';
 import { colors } from '../styles/colors';
 import ExitIcon from '../assets/exit.svg';
 import ResetIcon from '../assets/reset.svg';
+import ToggleSwitch from './ToggleSwitch';
 
 export type FilterState = {
   sort: string;
@@ -74,17 +75,6 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
     return noLeadingZeros.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
-  // 애니메이션을 위한 값
-  const toggleAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(toggleAnim, {
-      toValue: isOnSaleOnly ? 1 : 0,
-      duration: 250,
-      useNativeDriver: false,
-    }).start();
-  }, [isOnSaleOnly, toggleAnim]);
-
   useEffect(() => {
     if (visible) {
       setSelectedSort(filterState.sort);
@@ -95,18 +85,6 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
-
-  // 배경색 부드럽게 전환
-  const toggleTrackColor = toggleAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#E5E5E5', colors.main05]
-  });
-
-  // 동그라미(Thumb) 좌우 이동
-  const toggleThumbPosition = toggleAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [2, 28]
-  });
 
   return (
     <Modal
@@ -155,11 +133,7 @@ const FilterBottomSheet = ({ visible, onClose, filterState, onApply }: Props) =>
               {/* 판매중만 보기 토글 영역 */}
               <View style={styles.toggleContainer}>
                 <Text style={styles.toggleText}>판매중 상품만 보기</Text>
-                <TouchableOpacity activeOpacity={0.8} onPress={() => setIsOnSaleOnly((prev) => !prev)}>
-                  <Animated.View style={[styles.customToggleTrack, { backgroundColor: toggleTrackColor }]}>
-                    <Animated.View style={[styles.customToggleThumb, { transform: [{ translateX: toggleThumbPosition }] }]} />
-                  </Animated.View>
-                </TouchableOpacity>
+                <ToggleSwitch value={isOnSaleOnly} onValueChange={setIsOnSaleOnly} />
               </View>
 
               {/* 가격 입력 영역 */}
