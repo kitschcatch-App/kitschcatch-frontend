@@ -48,6 +48,9 @@ jest.mock('react-native-svg', () => ({
   G: 'G',
   Rect: 'Rect',
   Circle: 'Circle',
+  Defs: 'Defs',
+  LinearGradient: 'LinearGradient',
+  Stop: 'Stop',
 }));
 
 // useNativeDriver: true 는 네이티브 스레드 콜백을 기다리므로 act()가 무한 대기한다.
@@ -71,7 +74,9 @@ afterAll(() => {
 
 const mockGoBack = jest.fn();
 const mockNavigate = jest.fn();
-const mockNavigation = { goBack: mockGoBack, navigate: mockNavigate };
+// navigation.addListener('focus', ...)는 unsubscribe 함수를 반환한다
+const mockAddListener = jest.fn(() => jest.fn());
+const mockNavigation = { goBack: mockGoBack, navigate: mockNavigate, addListener: mockAddListener };
 
 const mockRoute = {
   params: {
@@ -88,7 +93,8 @@ const mockPost = {
   price: 10000,
   images: [{ imageUrl: 'https://example.com/image.jpg', imageKey: 'key1' }],
   description: 'Test description',
-  seller: { id: 42, nickname: 'seller1' },
+  sellerId: 42,
+  sellerNickname: 'seller1',
   productCategory: 'GAME',
   productCondition: 'NEW',
   productStatus: 'ON_SALE',
@@ -139,7 +145,7 @@ describe('ProductDetailScreen - 판매자 UI', () => {
     (useMockMode as jest.Mock).mockReturnValue({ isMockMode: false });
     // sellerId(42) === currentUserId(42) → isSeller = true
     (productAPI.getPostDetail as jest.Mock).mockResolvedValue({
-      data: { data: { ...mockPost, seller: { id: 42, nickname: 'seller1' } } },
+      data: { data: { ...mockPost } },
     });
     (secureStorage.getItem as jest.Mock).mockResolvedValue('42');
     (productAPI.updatePost as jest.Mock).mockResolvedValue({ status: 200 });
@@ -157,7 +163,7 @@ describe('ProductDetailScreen - 판매자 UI', () => {
 
   it('"채팅하기" 버튼을 표시하지 않는다', async () => {
     const renderer = await renderScreen();
-    expect(hasText(renderer, '채팅하기')).toBe(false);
+    expect(hasText(renderer, '1:1 구매문의')).toBe(false);
   });
 
   it('"상품정보 수정" 클릭 시 ProductEdit 화면으로 이동한다', async () => {
@@ -228,14 +234,14 @@ describe('ProductDetailScreen - 구매자 UI', () => {
     (useMockMode as jest.Mock).mockReturnValue({ isMockMode: false });
     // sellerId(42) !== currentUserId(99) → isSeller = false
     (productAPI.getPostDetail as jest.Mock).mockResolvedValue({
-      data: { data: { ...mockPost, seller: { id: 42, nickname: 'seller1' } } },
+      data: { data: { ...mockPost } },
     });
     (secureStorage.getItem as jest.Mock).mockResolvedValue('99');
   });
 
   it('"채팅하기" 버튼을 표시한다', async () => {
     const renderer = await renderScreen();
-    expect(hasText(renderer, '채팅하기')).toBe(true);
+    expect(hasText(renderer, '1:1 구매문의')).toBe(true);
   });
 
   it('"결제하기" 버튼을 표시한다', async () => {
@@ -269,7 +275,7 @@ describe('ProductDetailScreen - 채팅하기', () => {
     jest.clearAllMocks();
     (useMockMode as jest.Mock).mockReturnValue({ isMockMode: false });
     (productAPI.getPostDetail as jest.Mock).mockResolvedValue({
-      data: { data: { ...mockPost, seller: { id: 42, nickname: 'seller1' } } },
+      data: { data: { ...mockPost } },
     });
     (secureStorage.getItem as jest.Mock).mockResolvedValue('99');
   });
@@ -280,7 +286,7 @@ describe('ProductDetailScreen - 채팅하기', () => {
     });
     const renderer = await renderScreen();
     await act(async () => {
-      findButtonWithText(renderer, '채팅하기')!.props.onPress();
+      findButtonWithText(renderer, '1:1 구매문의')!.props.onPress();
     });
     expect(chatAPI.createChatRoom).toHaveBeenCalledWith(1);
   });
@@ -291,7 +297,7 @@ describe('ProductDetailScreen - 채팅하기', () => {
     });
     const renderer = await renderScreen();
     await act(async () => {
-      findButtonWithText(renderer, '채팅하기')!.props.onPress();
+      findButtonWithText(renderer, '1:1 구매문의')!.props.onPress();
     });
     expect(mockNavigate).toHaveBeenCalledWith('Chat', {
       chatRoomId: 100,
@@ -305,7 +311,7 @@ describe('ProductDetailScreen - 채팅하기', () => {
     });
     const renderer = await renderScreen();
     await act(async () => {
-      findButtonWithText(renderer, '채팅하기')!.props.onPress();
+      findButtonWithText(renderer, '1:1 구매문의')!.props.onPress();
     });
     expect(mockNavigate).toHaveBeenCalledWith('Login');
   });
@@ -337,9 +343,9 @@ describe('ProductDetailScreen - API 데이터 매핑', () => {
     expect(textNodes.some(n => n.props.children === '상세 설명이 없습니다.')).toBe(true);
   });
 
-  it('seller.nickname이 없으면 seller.id를 문자열로 표시한다', async () => {
+  it('sellerNickname이 없으면 sellerId를 문자열로 표시한다', async () => {
     (productAPI.getPostDetail as jest.Mock).mockResolvedValue({
-      data: { data: { ...mockPost, seller: { id: 42 } } },
+      data: { data: { ...mockPost, sellerNickname: undefined } },
     });
     const renderer = await renderScreen();
     const textNodes = renderer.root.findAllByType(Text);
@@ -348,7 +354,7 @@ describe('ProductDetailScreen - API 데이터 매핑', () => {
 
   it('seller 정보가 없으면 "알 수 없음"을 표시한다', async () => {
     (productAPI.getPostDetail as jest.Mock).mockResolvedValue({
-      data: { data: { ...mockPost, seller: undefined } },
+      data: { data: { ...mockPost, sellerId: undefined, sellerNickname: undefined } },
     });
     const renderer = await renderScreen();
     const textNodes = renderer.root.findAllByType(Text);

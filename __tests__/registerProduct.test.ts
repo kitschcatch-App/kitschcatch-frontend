@@ -72,7 +72,7 @@ describe('registerProduct', () => {
       title: '테스트 상품',
       description: '상품 설명',
       price: 10000,
-      productCategory: '굿즈',
+      productCategory: 'GOODS',
       productCondition: 'NEW',
       imageKeys: ['products/key.jpg'],
     });

@@ -335,7 +335,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           <View style={styles.sellerContainer}>
             <Text style={styles.transactionCount}>판매자 거래 횟수 3회</Text>
             <View style={styles.sellerRight}>
-              <Text style={styles.sellerName}>졸린코끼리</Text>
+              <Text style={styles.sellerName}>{productDetail.sellerName}</Text>
               <View style={styles.sellerProfileImageWrapper}>
                 <Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.sellerProfileImage} />
                 <View style={styles.sellerRatingBadge}>

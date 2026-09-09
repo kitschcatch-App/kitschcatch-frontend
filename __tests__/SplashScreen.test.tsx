@@ -31,7 +31,9 @@ describe('SplashScreen', () => {
     jest.restoreAllMocks();
   });
 
-  it('accessToken이 있으면 ProductList로 이동한다', async () => {
+  // 현재 SplashScreen은 자동 로그인이 임시 주석 처리되어 토큰 유무와 무관하게 Login으로 이동한다.
+  // (SplashScreen.tsx의 navigation.replace(token ? 'ProductList' : 'Login') 라인이 활성화되면 이 테스트를 되돌릴 것)
+  it('accessToken이 있어도 (자동 로그인 비활성) Login으로 이동한다', async () => {
     (secureStorage.getItem as jest.Mock).mockResolvedValue('access-token');
 
     // secureStorage.getItem 완료 + setTimeout(2000) 등록까지 진행
@@ -44,7 +46,7 @@ describe('SplashScreen', () => {
     // act 밖에서 타이머 발화 → 애니메이션 콜백(동기 mock) → navigate 호출
     jest.advanceTimersByTime(2000);
 
-    expect(mockReplace).toHaveBeenCalledWith('ProductList');
+    expect(mockReplace).toHaveBeenCalledWith('Login');
   });
 
   it('accessToken이 없으면 Login으로 이동한다', async () => {
