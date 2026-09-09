@@ -1,4 +1,4 @@
-package com.kitschatch
+package com.kitschcatch
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
