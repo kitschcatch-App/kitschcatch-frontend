@@ -53,7 +53,7 @@ export const createStyles = (width: number) => StyleSheet.create({
   naverButton: {
     width: '100%',
     height: 48,
-    marginTop: 24,
+    marginTop: 12,
     backgroundColor: '#03C75A',
     borderRadius: 8,
     flexDirection: 'row',
@@ -72,7 +72,7 @@ export const createStyles = (width: number) => StyleSheet.create({
   appleButton: {
     width: '100%',
     height: 48,
-    marginTop: 24,
+    marginTop: 12,
     backgroundColor: '#1E1E1E',
     borderRadius: 8,
     flexDirection: 'row',
@@ -88,8 +88,26 @@ export const createStyles = (width: number) => StyleSheet.create({
     fontFamily: typography.M,
     color: colors.white,
   },
-  mockButton: {
+  policyRow: {
     marginTop: 24,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: -30,
+  },
+  policyText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray07,
+  },
+  policyDivider: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray03,
+  },
+  mockButton: {
+    marginTop: 12,
     alignSelf: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -103,7 +121,7 @@ export const createStyles = (width: number) => StyleSheet.create({
     color: colors.gray05,
   },
   mockOptionsContainer: {
-    marginTop: 24,
+    marginTop: 12,
     alignSelf: 'center',
     flexDirection: 'row',
     gap: 12,
@@ -116,7 +134,7 @@ export const createStyles = (width: number) => StyleSheet.create({
     borderColor: colors.gray05,
   },
   devTestButton: {
-    marginTop: 16,
+    marginTop: 12,
     alignSelf: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,

@@ -55,7 +55,7 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     // Refresh Token 엔드포인트 자체가 401이면 즉시 로그아웃 처리 (무한 루프 방지)
-    if (originalRequest.url?.includes('/token/refresh')) {
+    if (originalRequest.url?.includes('/auth/token/refresh')) {
       await secureStorage.removeItem('accessToken');
       await secureStorage.removeItem('refreshToken');
       return Promise.reject(error);
@@ -87,8 +87,9 @@ apiClient.interceptors.response.use(
         }
 
         // apiClient 인터셉터를 우회해 순수 axios로 직접 호출 (중복 인터셉터 방지)
+        // API 스펙: POST /api/auth/token/refresh (BASE_URL이 이미 /api로 끝남)
         const refreshResponse = await axios.post(
-          `${BASE_URL}/token/refresh`,
+          `${BASE_URL}/auth/token/refresh`,
           { refreshToken: storedRefreshToken },
           { headers: { 'Content-Type': 'application/json' } },
         );
@@ -136,6 +137,11 @@ export const authAPI = {
   // [Step 2] 카카오 모바일 로그인: ID Token + Nonce 검증 후 JWT 발급
   loginWithKakao: (idToken: string, nonce: string) =>
     authClient.post('/auth/kakao/mobile-login', { idToken, nonce }),
+
+  // 네이버 소셜 로그인: 네이버 SDK Access Token 검증 후 JWT 발급
+  // 네이버는 OIDC 미지원이라 nonce 단계 없이 accessToken만 전송
+  loginWithNaver: (accessToken: string) =>
+    authClient.post('/auth/naver/mobile-login', { accessToken }),
 };
 
 // ─── 상품 관련 API ──────────────────────────────────────────────────────────────
