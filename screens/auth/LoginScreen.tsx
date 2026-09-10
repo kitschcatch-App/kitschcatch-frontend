@@ -161,11 +161,11 @@ const LoginScreen = ({ navigation }: Props) => {
   // };
 
   const handleOpenTerms = () => {
-    // TODO: 서비스 이용약관 화면 연결
+    navigation.navigate('TermsOfService');
   };
 
   const handleOpenPrivacy = () => {
-    // TODO: 개인정보처리방침 화면 연결
+    navigation.navigate('PrivacyPolicy');
   };
 
   return (
