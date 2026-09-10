@@ -26,6 +26,7 @@ const MyPageScreen = ({ navigation }: Props) => {
             <View style={styles.headerContainer}>
                 <Text style={styles.headerTitle}>회원정보</Text>
                 <TouchableOpacity
+                    onPress={() => navigation.navigate('Settings')}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                     <SettingIcon width={23} height={22} />

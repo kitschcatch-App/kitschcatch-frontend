@@ -86,3 +86,6 @@ android/app/release/
 
 # Metro 캐시
 .metro_cache/
+
+# Android UI 덤프 (uiautomator dump 산출물)
+dump*.xml

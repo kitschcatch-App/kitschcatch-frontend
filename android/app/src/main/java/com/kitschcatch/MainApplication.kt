@@ -1,4 +1,4 @@
-package com.kitschatch
+package com.kitschcatch
 
 import android.app.Application
 import com.facebook.react.PackageList

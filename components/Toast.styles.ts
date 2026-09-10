@@ -13,6 +13,10 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 100,
   },
+  overlayCenter: {
+    justifyContent: 'center',
+    paddingBottom: 0,
+  },
   container: {
     display: 'flex',
     flexDirection: 'column',
@@ -21,7 +25,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 22,
     paddingHorizontal: 32,
-    backgroundColor: 'rgba(133, 133, 133, 0.7)',
+    backgroundColor: colors.gray07,
   },
   message: {
     fontFamily: typography.M,

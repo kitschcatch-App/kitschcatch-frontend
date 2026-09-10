@@ -10,9 +10,10 @@ interface ToastProps {
   visible: boolean;
   message: string;
   onDismiss: () => void;
+  position?: 'bottom' | 'center';
 }
 
-const Toast = ({ visible, message, onDismiss }: ToastProps) => {
+const Toast = ({ visible, message, onDismiss, position = 'bottom' }: ToastProps) => {
   const [modalVisible, setModalVisible] = useState(false);
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -34,7 +35,10 @@ const Toast = ({ visible, message, onDismiss }: ToastProps) => {
 
   return (
     <Modal visible={modalVisible} transparent animationType="none" statusBarTranslucent>
-      <Animated.View style={[styles.overlay, { opacity }]} pointerEvents="none">
+      <Animated.View
+        style={[styles.overlay, position === 'center' && styles.overlayCenter, { opacity }]}
+        pointerEvents="none"
+      >
         <Animated.View style={styles.container}>
           <Text style={styles.message}>{message}</Text>
         </Animated.View>

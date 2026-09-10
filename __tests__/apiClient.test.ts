@@ -157,11 +157,11 @@ describe('apiClient - 응답 인터셉터 (토큰 자동 갱신)', () => {
     expect(mockRemoveItem).toHaveBeenCalledWith('refreshToken');
   });
 
-  it('/token/refresh 경로에서 401 발생 시 토큰을 삭제하고 무한 루프 없이 종료한다', async () => {
+  it('/auth/token/refresh 경로에서 401 발생 시 토큰을 삭제하고 무한 루프 없이 종료한다', async () => {
     mockGetItem.mockResolvedValue(null);
 
     await expect(
-      request(async (config) => { throw make401Error(config); }, '/token/refresh'),
+      request(async (config) => { throw make401Error(config); }, '/auth/token/refresh'),
     ).rejects.toMatchObject({ response: { status: 401 } });
 
     expect(mockRemoveItem).toHaveBeenCalledWith('accessToken');

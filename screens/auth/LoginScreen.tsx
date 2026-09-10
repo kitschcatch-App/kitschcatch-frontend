@@ -13,12 +13,23 @@ import KakaoIcon from '../../assets/kakao.svg';
 import NaverIcon from '../../assets/naver.svg';
 import AppleIcon from '../../assets/apple.svg';
 import { login, loginWithNewScopes } from '@react-native-seoul/kakao-login';
+import NaverLogin from '@react-native-seoul/naver-login';
+import Config from 'react-native-config';
 import { authAPI } from '../../api/apiClient';
 import { secureStorage } from '../../utils/secureStorage';
 import ErrorView from '../../components/ErrorView';
 import SuccessView from '../../components/SuccessView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
-import { useMockMode } from '../../contexts/MockModeContext';
+// import { useMockMode } from '../../contexts/MockModeContext';
+
+// 네이버 로그인 SDK 초기화 (앱 실행 시 1회)
+NaverLogin.initialize({
+  appName: Config.NAVER_APP_NAME ?? 'kitschcatch',
+  consumerKey: Config.NAVER_CLIENT_ID ?? '',
+  consumerSecret: Config.NAVER_CLIENT_SECRET ?? '',
+  serviceUrlSchemeIOS: 'kitschcatch', // iOS Info.plist CFBundleURLSchemes와 일치
+  disableNaverAppAuthIOS: true,
+});
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -27,8 +38,8 @@ const LoginScreen = ({ navigation }: Props) => {
   const styles = createStyles(width);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showMockOptions, setShowMockOptions] = useState(false);
-  const { setMockMode } = useMockMode();
+  // const [showMockOptions, setShowMockOptions] = useState(false);
+  // const { setMockMode } = useMockMode();
 
   const handleKakaoLogin = async () => {
     try {
@@ -96,7 +107,42 @@ const LoginScreen = ({ navigation }: Props) => {
   };
 
   const handleNaverLogin = async () => {
-    // TODO: 네이버 로그인 연동
+    try {
+      // Step 1: 네이버 SDK 로그인 → Access Token 발급
+      const result = await NaverLogin.login();
+
+      if (!result.isSuccess || !result.successResponse) {
+        if (result.failureResponse?.isCancel) {
+          setErrorMsg(ERROR_MESSAGES.AUTH.CANCELLED);
+        } else {
+          console.error('[Login] 네이버 SDK 로그인 실패:', result.failureResponse?.message);
+          setErrorMsg(ERROR_MESSAGES.AUTH.FAILED);
+        }
+        return;
+      }
+
+      // Step 2: 백엔드로 네이버 Access Token 전송 → 앱 JWT(Access/Refresh Token) 발급
+      const response = await authAPI.loginWithNaver(result.successResponse.accessToken);
+      const { accessToken, refreshToken } = response.data.data;
+
+      // Step 3: 발급받은 토큰을 기기에 저장
+      await secureStorage.setItem('accessToken', accessToken);
+      await secureStorage.setItem('refreshToken', refreshToken);
+      await secureStorage.setItem('userId', String(response.data.data.user.id));
+
+      // Step 4: 메인 화면으로 이동
+      setShowSuccess(true);
+    } catch (err: any) {
+      if (err.isAxiosError && !err.response) {
+        console.error('[Login] 네트워크 에러 (응답 없음):', err.message, err.code);
+        setErrorMsg(ERROR_MESSAGES.AUTH.NETWORK);
+      } else {
+        console.error('[Login] 네이버 로그인 에러:', err.message);
+        console.error('[Login] HTTP 상태 코드:', err.response?.status);
+        console.error('[Login] 서버 에러 응답:', JSON.stringify(err.response?.data, null, 2));
+        setErrorMsg(ERROR_MESSAGES.AUTH.FAILED);
+      }
+    }
   };
 
   const handleAppleLogin = async () => {
@@ -104,14 +150,22 @@ const LoginScreen = ({ navigation }: Props) => {
   };
 
   // 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입
-  const handleMockSignUp = () => {
-    setMockMode(true);
-    navigation.replace('TermsAgreement');
+  // const handleMockSignUp = () => {
+  //   setMockMode(true);
+  //   navigation.replace('TermsAgreement');
+  // };
+
+  // const handleMockHome = () => {
+  //   setMockMode(true);
+  //   navigation.replace('ProductList');
+  // };
+
+  const handleOpenTerms = () => {
+    navigation.navigate('TermsOfService');
   };
 
-  const handleMockHome = () => {
-    setMockMode(true);
-    navigation.replace('ProductList');
+  const handleOpenPrivacy = () => {
+    navigation.navigate('PrivacyPolicy');
   };
 
   return (
@@ -140,8 +194,19 @@ const LoginScreen = ({ navigation }: Props) => {
           <Text style={styles.appleButtonText}>Apple로 시작하기</Text>
         </TouchableOpacity>
 
+        {/* 서비스 이용약관 / 개인정보처리방침 */}
+        <View style={styles.policyRow}>
+          <TouchableOpacity onPress={handleOpenTerms} activeOpacity={0.7}>
+            <Text style={styles.policyText}>서비스 이용약관</Text>
+          </TouchableOpacity>
+          <Text style={styles.policyDivider}>ㅣ</Text>
+          <TouchableOpacity onPress={handleOpenPrivacy} activeOpacity={0.7}>
+            <Text style={styles.policyText}>개인정보처리방침</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입 */}
-        {showMockOptions ? (
+        {/* {showMockOptions ? (
           <View style={styles.mockOptionsContainer}>
             <TouchableOpacity
               style={styles.mockOptionButton}
@@ -166,7 +231,7 @@ const LoginScreen = ({ navigation }: Props) => {
           >
             <Text style={styles.mockButtonText}>🧪 Mock으로 시작하기</Text>
           </TouchableOpacity>
-        )}
+        )} */}
 
         {/* 개발자 전용: API 테스트 화면 진입 버튼 */}
         <TouchableOpacity

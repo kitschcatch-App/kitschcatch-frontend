@@ -84,19 +84,6 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     color: colors.black,
   },
-  customToggleTrack: {
-    width: 55,
-    height: 28,
-    borderRadius: 22,
-    backgroundColor: colors.gray03,
-    justifyContent: 'center',
-  },
-  customToggleThumb: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.white,
-  },
   priceContainer: {
     marginTop: 10,
     marginBottom: 10,
