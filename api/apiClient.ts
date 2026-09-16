@@ -189,6 +189,23 @@ export const paymentAPI = {
     apiClient.post(`/payments/${paymentId}/cancel`),
 };
 
+// ─── 매장 관련 API ──────────────────────────────────────────────────────────────
+export const storeAPI = {
+  // 현재 위치 기준 주변 매장 조회 (반경 1/3/5km)
+  getNearby: (latitude: number, longitude: number, radiusKm: 1 | 3 | 5) =>
+    apiClient.get('/stores/nearby', { params: { latitude, longitude, radiusKm } }),
+
+  // 매장 상세 및 운영 정보 조회
+  getStore: (storeId: string | number) =>
+    apiClient.get(`/stores/${storeId}`),
+
+  // 관심 매장 등록 / 해제
+  addFavoriteStore: (storeId: string | number) =>
+    apiClient.post(`/stores/${storeId}/favorites`),
+  removeFavoriteStore: (storeId: string | number) =>
+    apiClient.delete(`/stores/${storeId}/favorites`),
+};
+
 // ─── 채팅 관련 API ──────────────────────────────────────────────────────────────
 export const chatAPI = {
   // 채팅방 생성 (이미 존재하면 기존 방 반환)

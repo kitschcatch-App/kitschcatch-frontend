@@ -20,7 +20,7 @@ import { secureStorage } from '../../utils/secureStorage';
 import ErrorView from '../../components/ErrorView';
 import SuccessView from '../../components/SuccessView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
-// import { useMockMode } from '../../contexts/MockModeContext';
+import { useMockMode } from '../../contexts/MockModeContext';
 
 // 네이버 로그인 SDK 초기화 (앱 실행 시 1회)
 NaverLogin.initialize({
@@ -38,8 +38,8 @@ const LoginScreen = ({ navigation }: Props) => {
   const styles = createStyles(width);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  // const [showMockOptions, setShowMockOptions] = useState(false);
-  // const { setMockMode } = useMockMode();
+  const [showMockOptions, setShowMockOptions] = useState(false);
+  const { setMockMode } = useMockMode();
 
   const handleKakaoLogin = async () => {
     try {
@@ -150,15 +150,15 @@ const LoginScreen = ({ navigation }: Props) => {
   };
 
   // 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입
-  // const handleMockSignUp = () => {
-  //   setMockMode(true);
-  //   navigation.replace('TermsAgreement');
-  // };
+  const handleMockSignUp = () => {
+    setMockMode(true);
+    navigation.replace('TermsAgreement');
+  };
 
-  // const handleMockHome = () => {
-  //   setMockMode(true);
-  //   navigation.replace('ProductList');
-  // };
+  const handleMockHome = () => {
+    setMockMode(true);
+    navigation.replace('ProductList');
+  };
 
   const handleOpenTerms = () => {
     navigation.navigate('TermsOfService');
@@ -206,7 +206,7 @@ const LoginScreen = ({ navigation }: Props) => {
         </View>
 
         {/* 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입 */}
-        {/* {showMockOptions ? (
+        {showMockOptions ? (
           <View style={styles.mockOptionsContainer}>
             <TouchableOpacity
               style={styles.mockOptionButton}
@@ -231,7 +231,7 @@ const LoginScreen = ({ navigation }: Props) => {
           >
             <Text style={styles.mockButtonText}>🧪 Mock으로 시작하기</Text>
           </TouchableOpacity>
-        )} */}
+        )}
 
         {/* 개발자 전용: API 테스트 화면 진입 버튼 */}
         <TouchableOpacity

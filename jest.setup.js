@@ -2,6 +2,7 @@
  * jest 전역 셋업: jest에서 로드되지 않는 서드파티 네이티브 모듈을 목으로 대체한다.
  * (App.test 처럼 앱 전체 트리를 렌더하는 테스트가 네이티브 모듈 부재로 깨지는 것을 방지)
  */
+/* eslint-env jest */
 
 jest.mock('@react-native-seoul/kakao-login', () => ({
   login: jest.fn(),
@@ -50,3 +51,21 @@ jest.mock('@stomp/stompjs', () => ({
 }));
 
 jest.mock('sockjs-client', () => jest.fn());
+
+jest.mock('@mj-studio/react-native-naver-map', () => ({
+  NaverMapView: 'NaverMapView',
+  NaverMapMarkerOverlay: 'NaverMapMarkerOverlay',
+  NaverMapCircleOverlay: 'NaverMapCircleOverlay',
+}));
+
+jest.mock('@react-native-community/geolocation', () => ({
+  __esModule: true,
+  default: {
+    requestAuthorization: jest.fn(success => success && success()),
+    getCurrentPosition: jest.fn(success =>
+      success({ coords: { latitude: 37.5666, longitude: 126.9784 } }),
+    ),
+    watchPosition: jest.fn(),
+    clearWatch: jest.fn(),
+  },
+}));

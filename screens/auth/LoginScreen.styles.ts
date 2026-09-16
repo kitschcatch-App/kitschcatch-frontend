@@ -107,7 +107,7 @@ export const createStyles = (width: number) => StyleSheet.create({
     color: colors.gray03,
   },
   mockButton: {
-    marginTop: 12,
+    marginTop: 52,
     alignSelf: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -127,6 +127,7 @@ export const createStyles = (width: number) => StyleSheet.create({
     gap: 12,
   },
   mockOptionButton: {
+    marginTop: 52,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,

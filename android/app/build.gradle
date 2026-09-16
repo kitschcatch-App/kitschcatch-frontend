@@ -86,7 +86,11 @@ android {
         versionCode 1
         versionName "1.0"
         resValue "string", "kakao_app_key", project.env.get("KAKAO_APP_KEY")
-        manifestPlaceholders = [kakaoScheme: "kakao" + project.env.get("KAKAO_APP_KEY")]
+        manifestPlaceholders = [
+            kakaoScheme: "kakao" + project.env.get("KAKAO_APP_KEY"),
+            // 네이버 클라우드 플랫폼 Maps Client ID (.env: NAVER_MAP_CLIENT_ID)
+            naverMapClientId: project.env.get("NAVER_MAP_CLIENT_ID") ?: "",
+        ]
     }
     signingConfigs {
         debug {
