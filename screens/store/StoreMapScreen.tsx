@@ -60,7 +60,9 @@ const StoreMapScreen = ({}: Props) => {
   const [coord, setCoord] = useState<Coord>(DEFAULT_COORD);
   // onInitialized 콜백에서 최신 좌표를 참조하기 위한 미러
   const coordRef = useRef(coord);
-  coordRef.current = coord;
+  useEffect(() => {
+    coordRef.current = coord;
+  }, [coord]);
   const [radiusKm, setRadiusKm] = useState<RadiusKm>(DEFAULT_RADIUS_KM);
   const [stores, setStores] = useState<Store[]>([]);
   const [isLocating, setIsLocating] = useState(true);

@@ -18,7 +18,12 @@ const ScreenHeader = ({ title, onBack, style }: ScreenHeaderProps) => {
   return (
     <View style={[styles.headerContainer, style]}>
       {onBack ? (
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={onBack}
+          accessibilityRole="button"
+          accessibilityLabel="뒤로가기"
+        >
           <BackIcon width={10} height={18} />
         </TouchableOpacity>
       ) : (

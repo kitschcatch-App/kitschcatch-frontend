@@ -40,11 +40,21 @@ const BottomNav = () => {
 
   return (
     <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate('Home')}
+        accessibilityRole="button"
+        accessibilityLabel="홈"
+      >
         {activeTab === 'home' ? <NavHomeOnIcon width={18} height={18} /> : <NavHomeIcon width={18} height={18} />}
         <Text style={styles.navText}>홈</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('StoreMap')}>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate('StoreMap')}
+        accessibilityRole="button"
+        accessibilityLabel="매장정보"
+      >
         {activeTab === 'map' ? (
           <NavMapOnIcon width={23} height={23} style={{ marginTop: 2 }} />
         ) : (
@@ -52,12 +62,22 @@ const BottomNav = () => {
         )}
         <Text style={styles.navText}>매장정보</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ChatList')}>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate('ChatList')}
+        accessibilityRole="button"
+        accessibilityLabel="채팅목록"
+      >
         {activeTab === 'chat' ? <NavChatOnIcon width={17} height={17} /> : <NavChatIcon width={17} height={17} />}
         <Text style={styles.navText}>채팅목록</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Mypage')}>
+
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate('Mypage')}
+        accessibilityRole="button"
+        accessibilityLabel="회원정보"
+      >
         {activeTab === 'profile' ? (
           <NavProfileOnIcon width={17} height={17} />
         ) : (
