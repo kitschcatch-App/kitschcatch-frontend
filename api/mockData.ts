@@ -313,6 +313,61 @@ export const getMockCreatePayment = (orderId: number, method: string, amount: nu
 });
 
 
+// ─── 매장 (주변 매장) ────────────────────────────────────────────────────────
+
+// 기준 좌표 주변에 흩뿌려 놓은 가상 매장. 지도 마커 동작 확인용.
+const MOCK_STORE_SEEDS = [
+  { name: '애니메이트 홍대점', dLat: 0.004, dLng: 0.005, address: '서울 마포구 양화로 188 AK&홍대 5층', phoneNumber: '02-337-1420', businessStatus: 'OPEN', businessHours: '10:00 - 22:00', isFavorite: true },
+  { name: 'Play ONE PIECE 강남', dLat: -0.006, dLng: 0.003, address: '서울 강남구 강남대로 420 지하 1층', phoneNumber: '02-501-7700', businessStatus: 'OPEN', businessHours: '11:00 - 21:00', isFavorite: false },
+  { name: '가챠샵 신촌점', dLat: 0.012, dLng: -0.01, address: '서울 서대문구 연세로 12', phoneNumber: null, businessStatus: 'CLOSED', businessHours: '12:00 - 20:00', isFavorite: false },
+  { name: '피규어프레소', dLat: -0.018, dLng: -0.009, address: '서울 용산구 한강대로 23길 55', phoneNumber: '02-790-3355', businessStatus: 'OPEN', businessHours: '13:00 - 22:00', isFavorite: true },
+  { name: '오타쿠창고 성수', dLat: 0.03, dLng: 0.025, address: '서울 성동구 아차산로 17', phoneNumber: '02-460-1200', businessStatus: 'UNKNOWN', businessHours: null, isFavorite: false },
+];
+
+const haversineKm = (aLat: number, aLng: number, bLat: number, bLng: number) => {
+  const R = 6371;
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(s));
+};
+
+export const getMockNearbyStores = (
+  coord: { latitude: number; longitude: number },
+  radiusKm: 1 | 3 | 5,
+) => {
+  const stores = MOCK_STORE_SEEDS.map((seed, index) => {
+    const latitude = coord.latitude + seed.dLat;
+    const longitude = coord.longitude + seed.dLng;
+    return {
+      storeId: `mock-store-${index + 1}`,
+      name: seed.name,
+      latitude,
+      longitude,
+      address: seed.address,
+      phoneNumber: seed.phoneNumber,
+      businessStatus: seed.businessStatus,
+      businessHours: seed.businessHours,
+      isFavorite: seed.isFavorite,
+      distanceKm: Number(
+        haversineKm(coord.latitude, coord.longitude, latitude, longitude).toFixed(2),
+      ),
+    };
+  }).filter((store) => store.distanceKm <= radiusKm);
+
+  return {
+    status: 200,
+    data: {
+      success: true,
+      data: stores,
+    },
+  };
+};
+
+
 // ─── 채팅 ────────────────────────────────────────────────────────────────────
 
 export const MOCK_MY_USER_ID = 1;
