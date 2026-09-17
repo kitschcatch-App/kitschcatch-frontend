@@ -18,6 +18,8 @@ interface Props {
 const BioStep = ({ value, onChange, showError }: Props) => {
   const isMaxLength = value.length >= 24;
   const isEmpty = showError && value.trim().length === 0;
+  const isErrorState = isEmpty || isMaxLength;
+  const message = isEmpty ? '한줄소개를 입력해주세요' : isMaxLength ? '한줄소개는 24자로 입력해주세요' : '';
 
   return (
     <View style={styles.stepContainer}>
@@ -27,15 +29,14 @@ const BioStep = ({ value, onChange, showError }: Props) => {
         value={value}
         onChangeText={onChange}
         maxLength={24}
-        showCharCount
-        currentLength={value.length}
         containerStyle={styles.stepInput}
-        style={[styles.stepInputField, (isMaxLength || isEmpty) && styles.inputError]}
+        style={[styles.stepInputField, isErrorState && styles.inputError]}
         placeholderTextColor={colors.gray07}
-        charCounterStyle={{ color: isMaxLength ? colors.error : colors.gray07 }}
-        warningText={isEmpty ? '한줄소개를 입력해주세요' : isMaxLength ? '한줄소개는 24자 이하로 입력해주세요' : false}
-        warningTextStyle={{ color: colors.error }}
       />
+      <View style={styles.stepMetaRow}>
+        <Text style={[styles.stepMessage, { color: isErrorState ? colors.error : colors.gray07 }]}>{message}</Text>
+        <Text style={[styles.stepCharCounter, isMaxLength && styles.stepCharCounterMax]}>{`${value.length}/24`}</Text>
+      </View>
     </View>
   );
 };
