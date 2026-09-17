@@ -72,4 +72,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.gray03,
   },
+  loadMoreIndicator: {
+    paddingVertical: 16,
+  },
 });

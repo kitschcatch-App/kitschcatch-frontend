@@ -14,7 +14,7 @@ import { formatTime } from '../../utils/formatTime';
 import { getNotificationTypeLabel } from '../../utils/notificationType';
 import { styles } from './NotificationScreen.styles';
 import { notificationAPI } from '../../api/apiClient';
-import { MOCK_NOTIFICATIONS, mockDelay } from '../../api/mockData';
+import { getMockNotifications, markMockNotificationRead, mockDelay } from '../../api/mockData';
 import { useMockMode } from '../../contexts/MockModeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Notification'>;
@@ -29,32 +29,62 @@ type NotificationItem = {
   productImageUrl?: string;
 };
 
+const PAGE_SIZE = 20;
+
 const NotificationScreen = ({ navigation }: Props) => {
   const { isMockMode } = useMockMode();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const fetchPage = useCallback(
+    async (pageNum: number) => {
+      if (isMockMode) {
+        await mockDelay(300);
+        return getMockNotifications({ unreadOnly: false, page: pageNum, size: PAGE_SIZE }).data.data;
+      }
+      const res = await notificationAPI.getNotifications({ unreadOnly: false, page: pageNum, size: PAGE_SIZE });
+      return res.data.data;
+    },
+    [isMockMode],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      const fetch = async () => {
+      const load = async () => {
         try {
           setIsLoading(true);
-          if (isMockMode) {
-            await mockDelay(300);
-            setNotifications(MOCK_NOTIFICATIONS.data.data.content);
-          } else {
-            const res = await notificationAPI.getNotifications({ unreadOnly: false, page: 0, size: 20 });
-            setNotifications(res.data.data.content);
-          }
+          const data = await fetchPage(0);
+          setNotifications(data.content);
+          setPage(data.page);
+          setTotalPages(data.totalPages);
         } catch (e) {
           console.error('알림 목록 조회 실패:', e);
         } finally {
           setIsLoading(false);
         }
       };
-      fetch();
-    }, [isMockMode]),
+      load();
+    }, [fetchPage]),
   );
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore || isLoading || page + 1 >= totalPages) return;
+
+    try {
+      setIsLoadingMore(true);
+      const data = await fetchPage(page + 1);
+      setNotifications((prev) => [...prev, ...data.content]);
+      setPage(data.page);
+      setTotalPages(data.totalPages);
+    } catch (e) {
+      console.error('알림 추가 조회 실패:', e);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const handlePressItem = async (id: number) => {
     const target = notifications.find((item) => item.id === id);
@@ -67,6 +97,7 @@ const NotificationScreen = ({ navigation }: Props) => {
     try {
       if (isMockMode) {
         await mockDelay(200);
+        markMockNotificationRead(id);
       } else {
         await notificationAPI.readNotification(id);
       }
@@ -102,6 +133,9 @@ const NotificationScreen = ({ navigation }: Props) => {
           data={notifications}
           keyExtractor={(item) => item.id.toString()}
           showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isLoadingMore ? <ActivityIndicator style={styles.loadMoreIndicator} /> : null}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.item, !item.read && styles.itemUnread]}
