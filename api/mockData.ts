@@ -368,6 +368,39 @@ export const getMockNearbyStores = (
 };
 
 
+// ─── 알림 ────────────────────────────────────────────────────────────────────
+
+export const MOCK_NOTIFICATIONS = {
+  status: 200,
+  data: {
+    success: true,
+    data: {
+      content: [
+        { id: 4, type: 'CHAT_MESSAGE', title: '새 메시지가 도착했어요', body: '네고 가능할까요? 15,000원에 가져갈게요!', read: false, createdAt: '2026-09-17T10:20:00' },
+        { id: 3, type: 'PAYMENT_SUCCESS', title: '결제가 완료되었습니다.', body: '나루토 우치하 사스케 피규어 구매가 확정되었어요.', read: false, createdAt: '2026-09-17T09:00:00', productImageUrl: 'https://picsum.photos/id/402/200/200' },
+        { id: 2, type: 'FAVORITE_PRICE_DROP', title: '찜한 상품 가격이 내려갔어요', body: '초코 미니언즈 인형 키링 세트가 15,000원으로 할인되었어요.', read: true, createdAt: '2026-09-16T21:40:00', productImageUrl: 'https://picsum.photos/id/401/200/200' },
+        { id: 1, type: 'POST_SOLD', title: '상품이 판매되었어요', body: '원피스 루피 초베가 한정판 굿즈가 판매 완료되었어요.', read: true, createdAt: '2026-09-15T13:10:00', productImageUrl: 'https://picsum.photos/id/403/200/200' },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 4,
+      totalPages: 1,
+    },
+  },
+};
+
+export const getMockReadNotification = (notificationId: number) => ({
+  status: 200,
+  data: {
+    success: true,
+    data: {
+      id: notificationId,
+      read: true,
+      readAt: new Date().toISOString(),
+    },
+  },
+});
+
 // ─── 채팅 ────────────────────────────────────────────────────────────────────
 
 export const MOCK_MY_USER_ID = 1;

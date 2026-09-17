@@ -34,7 +34,17 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   alarmIcon: {
+    position: 'relative',
     marginRight: 14,
+  },
+  alarmUnreadDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.main07,
   },
   searchIcon: {},
   // 스크롤 영역 (헤더 아래 전체)

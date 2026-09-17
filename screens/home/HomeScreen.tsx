@@ -58,6 +58,9 @@ const CATEGORY_ITEMS = [
   { key: 'ETC', label: '기타', image: require('../../assets/etc.png') },
 ];
 
+// 읽지 않은 알림 존재 여부 (mock)
+const HAS_UNREAD_NOTIFICATIONS = true;
+
 // 오늘의 추천 상품 (mock)
 const RECOMMENDED_PRODUCTS = [
   { id: '1', name: '초코 미니언즈 인형 키링 세트', price: 15000, imageUrl: 'https://picsum.photos/id/401/400/400' },
@@ -262,8 +265,9 @@ const HomeScreen = ({ navigation }: Props) => {
           </View>
 
           <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.alarmIcon}>
+            <TouchableOpacity style={styles.alarmIcon} onPress={() => navigation.navigate('Notification')}>
               <AlarmIcon width={22} height={22} />
+              {HAS_UNREAD_NOTIFICATIONS && <View style={styles.alarmUnreadDot} />}
             </TouchableOpacity>
             <TouchableOpacity style={styles.searchIcon} onPress={() => navigation.navigate('Search')}>
               <SearchIcon width={20} height={20} />

@@ -206,6 +206,21 @@ export const storeAPI = {
     apiClient.delete(`/stores/${storeId}/favorites`),
 };
 
+// ─── 알림 관련 API ──────────────────────────────────────────────────────────────
+export const notificationAPI = {
+  // 알림 목록 조회
+  getNotifications: (params: { unreadOnly?: boolean; page?: number; size?: number }) =>
+    apiClient.get('/notifications', { params }),
+
+  // 알림 읽음 처리
+  readNotification: (notificationId: number) =>
+    apiClient.patch(`/notifications/${notificationId}/read`),
+
+  // 모든 알림 읽음 처리
+  readAllNotifications: () =>
+    apiClient.patch('/notifications/read-all'),
+};
+
 // ─── 채팅 관련 API ──────────────────────────────────────────────────────────────
 export const chatAPI = {
   // 채팅방 생성 (이미 존재하면 기존 방 반환)
