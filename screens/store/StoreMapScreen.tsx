@@ -51,7 +51,7 @@ const MARKER_FOCUS_ZOOM = 16;
 const MARKER_SIZE = 40;
 const MARKER_SIZE_SELECTED = 56;
 
-const StoreMapScreen = ({}: Props) => {
+const StoreMapScreen = ({ navigation }: Props) => {
   const { isMockMode } = useMockMode();
   const mapRef = useRef<NaverMapViewRef>(null);
   const { width: screenWidth } = useWindowDimensions();
@@ -328,6 +328,14 @@ const StoreMapScreen = ({}: Props) => {
                 <TouchableOpacity
                   style={styles.storePopupDetailButton}
                   activeOpacity={0.7}
+                  onPress={() =>
+                    navigation.navigate('StoreDetail', {
+                      storeId: popupStore.storeId,
+                      storeName: popupStore.name,
+                      latitude: popupStore.latitude,
+                      longitude: popupStore.longitude,
+                    })
+                  }
                 >
                   <Text style={styles.storePopupDetailButtonText}>
                     상세정보

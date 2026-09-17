@@ -15,9 +15,10 @@ interface TabBarProps<T extends string> {
   tabs: Tab<T>[];
   activeTab: T;
   onChange: (tab: T) => void;
+  activeTextColor?: string;
 }
 
-function TabBar<T extends string>({ tabs, activeTab, onChange }: TabBarProps<T>) {
+function TabBar<T extends string>({ tabs, activeTab, onChange, activeTextColor }: TabBarProps<T>) {
   return (
     <View style={styles.tabContainer}>
       {tabs.map((tab) => (
@@ -27,7 +28,15 @@ function TabBar<T extends string>({ tabs, activeTab, onChange }: TabBarProps<T>)
           onPress={() => onChange(tab.key)}
           activeOpacity={0.7}
         >
-          <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>{tab.label}</Text>
+          <Text
+            style={[
+              styles.tabLabel,
+              activeTab === tab.key && styles.tabLabelActive,
+              activeTab === tab.key && activeTextColor ? { color: activeTextColor } : null,
+            ]}
+          >
+            {tab.label}
+          </Text>
         </TouchableOpacity>
       ))}
     </View>

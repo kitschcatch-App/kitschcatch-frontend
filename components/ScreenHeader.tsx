@@ -3,7 +3,7 @@
  * 역할: 뒤로가기 버튼과 가운데 정렬된 제목을 보여주는 공통 상단 헤더입니다.
  *       onBack을 넘기지 않으면 뒤로가기 버튼 없이 제목만 가운데 정렬로 표시합니다.
  */
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { styles } from './ScreenHeader.styles';
 import BackIcon from '../assets/back.svg';
@@ -12,9 +12,10 @@ interface ScreenHeaderProps {
   title: string;
   onBack?: () => void;
   style?: StyleProp<ViewStyle>;
+  rightElement?: ReactNode;
 }
 
-const ScreenHeader = ({ title, onBack, style }: ScreenHeaderProps) => {
+const ScreenHeader = ({ title, onBack, style, rightElement }: ScreenHeaderProps) => {
   return (
     <View style={[styles.headerContainer, style]}>
       {onBack ? (
@@ -30,7 +31,7 @@ const ScreenHeader = ({ title, onBack, style }: ScreenHeaderProps) => {
         <View style={styles.headerSpacer} />
       )}
       <Text style={styles.headerTitle}>{title}</Text>
-      <View style={styles.headerSpacer} />
+      {rightElement ?? <View style={styles.headerSpacer} />}
     </View>
   );
 };
