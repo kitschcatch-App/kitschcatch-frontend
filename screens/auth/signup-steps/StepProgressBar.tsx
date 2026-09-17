@@ -16,7 +16,7 @@ const StepProgressBar = ({ currentStep, totalSteps }: Props) => (
     {Array.from({ length: totalSteps }, (_, i) => i + 1).map(step => (
       <View
         key={step}
-        style={[styles.stepProgressItem, step < currentStep && styles.stepProgressItemCompleted]}
+        style={[styles.stepProgressItem, step <= currentStep && styles.stepProgressItemCompleted]}
       />
     ))}
   </View>
