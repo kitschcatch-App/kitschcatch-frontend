@@ -144,6 +144,17 @@ export const authAPI = {
     authClient.post('/auth/naver/mobile-login', { accessToken }),
 };
 
+// ─── 회원 관련 API ──────────────────────────────────────────────────────────────
+export const userAPI = {
+  // 아이디 중복 확인
+  checkUsernameAvailability: (username: string) =>
+    apiClient.get('/users/username-availability', { params: { username } }),
+
+  // 프로필 등록 (회원가입): 아이디, 닉네임, 프로필 이미지 키, 한줄소개
+  registerProfile: (data: { username: string; nickname: string; profileImageKey?: string; bio?: string }) =>
+    apiClient.post('/users/me/profile', data),
+};
+
 // ─── 상품 관련 API ──────────────────────────────────────────────────────────────
 export const productAPI = {
   // 상품 목록 조회
