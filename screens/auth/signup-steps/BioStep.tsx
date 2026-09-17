@@ -17,9 +17,10 @@ interface Props {
 
 const BioStep = ({ value, onChange, showError }: Props) => {
   const isMaxLength = value.length >= 24;
+  const isOverLimit = value.length > 24;
   const isEmpty = showError && value.trim().length === 0;
-  const isErrorState = isEmpty || isMaxLength;
-  const message = isEmpty ? '한줄소개를 입력해주세요' : isMaxLength ? '한줄소개는 24자로 입력해주세요' : '';
+  const isErrorState = isEmpty || isOverLimit;
+  const message = isOverLimit ? '한줄소개는 24자 이하로 입력해주세요' : isEmpty ? '한줄소개를 입력해주세요' : '';
 
   return (
     <View style={styles.stepContainer}>
