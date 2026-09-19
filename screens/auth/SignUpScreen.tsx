@@ -11,7 +11,7 @@ import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './SignUpScreen.styles';
 import BackIcon from '../../assets/back.svg';
 import UsernameStep from './signup-steps/UsernameStep';
-import NicknameStep, { validateNicknameFormat } from './signup-steps/NicknameStep';
+import NicknameStep from './signup-steps/NicknameStep';
 import ProfileImageStep from './signup-steps/ProfileImageStep';
 import BioStep from './signup-steps/BioStep';
 import StepProgressBar from './signup-steps/StepProgressBar';
@@ -47,7 +47,7 @@ const SignUpScreen = ({ navigation }: Props) => {
       case 1:
         return username.trim().length > 0 && isUsernameChecked;
       case 2:
-        return nickname.trim().length > 0 && !validateNicknameFormat(nickname);
+        return nickname.trim().length > 0 && isNicknameChecked;
       case 3:
         return profileImage !== null;
       case 4:

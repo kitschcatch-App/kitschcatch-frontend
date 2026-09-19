@@ -11,10 +11,11 @@ import BackIcon from '../assets/back.svg';
 interface ScreenHeaderProps {
   title: string;
   onBack?: () => void;
+  rightElement?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
-const ScreenHeader = ({ title, onBack, style }: ScreenHeaderProps) => {
+const ScreenHeader = ({ title, onBack, rightElement, style }: ScreenHeaderProps) => {
   return (
     <View style={[styles.headerContainer, style]}>
       {onBack ? (
@@ -30,7 +31,7 @@ const ScreenHeader = ({ title, onBack, style }: ScreenHeaderProps) => {
         <View style={styles.headerSpacer} />
       )}
       <Text style={styles.headerTitle}>{title}</Text>
-      <View style={styles.headerSpacer} />
+      {rightElement ?? <View style={styles.headerSpacer} />}
     </View>
   );
 };

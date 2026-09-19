@@ -2,7 +2,7 @@
  * 화면: 홈 화면 (HomeScreen)
  * 역할: 바텀 네비게이션의 홈 탭 진입점으로, 상단 헤더와 자동으로 넘어가는 이미지 배너를 보여주는 화면 컴포넌트입니다.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import {
   Easing,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient, Stop, Rect, SvgProps } from 'react-native-svg';
 import KitschcatchIcon from '../../assets/kitschcatch.svg';
 import AlarmIcon from '../../assets/alarm.svg';
@@ -33,6 +34,9 @@ import AnimationLogo6 from '../../assets/animation_logo_6.svg';
 import BottomNav from '../../components/BottomNav';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { notificationAPI } from '../../api/apiClient';
+import { getMockUnreadNotificationCount } from '../../api/mockData';
+import { useMockMode } from '../../contexts/MockModeContext';
 
 import { styles } from './HomeScreen.styles';
 
@@ -188,12 +192,33 @@ const NEARBY_STORES: NearbyStore[] = [
 
 const HomeScreen = ({ navigation }: Props) => {
   const insets = useSafeAreaInsets();
+  const { isMockMode } = useMockMode();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [bannerWidth, setBannerWidth] = useState(INITIAL_BANNER_WIDTH);
   const bannerListRef = useRef<FlatList<string>>(null);
   const bannerWidthRef = useRef(INITIAL_BANNER_WIDTH);
   const [selectedProductCategory, setSelectedProductCategory] = useState('ALL');
   const productSlideAnim = useRef(new Animated.Value(0)).current;
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+
+  // 알림 화면을 다녀온 뒤에도 최신 미읽음 상태가 반영되도록 포커스마다 조회
+  useFocusEffect(
+    useCallback(() => {
+      const checkUnreadNotifications = async () => {
+        try {
+          if (isMockMode) {
+            setHasUnreadNotifications(getMockUnreadNotificationCount() > 0);
+          } else {
+            const res = await notificationAPI.getNotifications({ unreadOnly: true, page: 0, size: 1 });
+            setHasUnreadNotifications(res.data.data.totalElements > 0);
+          }
+        } catch (e) {
+          console.error('알림 미읽음 여부 조회 실패:', e);
+        }
+      };
+      checkUnreadNotifications();
+    }, [isMockMode]),
+  );
 
   // 배너 컨테이너의 실제 렌더 너비를 측정해 화면 폭과 정확히 일치시킴
   const handleBannerLayout = (event: LayoutChangeEvent) => {
@@ -262,8 +287,9 @@ const HomeScreen = ({ navigation }: Props) => {
           </View>
 
           <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.alarmIcon}>
+            <TouchableOpacity style={styles.alarmIcon} onPress={() => navigation.navigate('Notification')}>
               <AlarmIcon width={22} height={22} />
+              {hasUnreadNotifications && <View style={styles.alarmUnreadDot} />}
             </TouchableOpacity>
             <TouchableOpacity style={styles.searchIcon} onPress={() => navigation.navigate('Search')}>
               <SearchIcon width={20} height={20} />
