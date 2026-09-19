@@ -16,6 +16,7 @@ import ProfileImageStep from './signup-steps/ProfileImageStep';
 import BioStep from './signup-steps/BioStep';
 import StepProgressBar from './signup-steps/StepProgressBar';
 import { userAPI } from '../../api/apiClient';
+import { uploadProfileImage } from '../../utils/uploadProfileImage';
 import { useMockMode } from '../../contexts/MockModeContext';
 import ErrorView from '../../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
@@ -69,9 +70,9 @@ const SignUpScreen = ({ navigation }: Props) => {
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
-      // TODO: 프로필 이미지는 S3 Presigned URL 발급 API가 명세에 추가되면 연동 (profileImageKey 생략)
       if (!isMockMode) {
-        await userAPI.registerProfile({ username, nickname, bio });
+        const profileImageKey = profileImage ? await uploadProfileImage(profileImage) : undefined;
+        await userAPI.registerProfile({ username, nickname, bio, profileImageKey });
       }
       navigation.replace('SignUpComplete', { nickname });
     } catch (err: any) {

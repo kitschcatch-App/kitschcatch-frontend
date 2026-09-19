@@ -153,6 +153,10 @@ export const userAPI = {
   // 프로필 등록 (회원가입): 아이디, 닉네임, 프로필 이미지 키, 한줄소개
   registerProfile: (data: { username: string; nickname: string; profileImageKey?: string; bio?: string }) =>
     apiClient.post('/users/me/profile', data),
+
+  // 프로필 이미지 업로드 URL 발급
+  getProfileImageUploadUrl: (data: { fileName: string; contentType: string; fileSize: number }) =>
+    apiClient.post('/users/me/profile/image/presigned-url', data),
 };
 
 // ─── 상품 관련 API ──────────────────────────────────────────────────────────────
