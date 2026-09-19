@@ -144,11 +144,23 @@ export const authAPI = {
     authClient.post('/auth/naver/mobile-login', { accessToken }),
 };
 
-// ─── 사용자 관련 API ──────────────────────────────────────────────────────────────
+// ─── 회원 관련 API ──────────────────────────────────────────────────────────────
 export const userAPI = {
+  // 아이디 중복 확인
+  checkUsernameAvailability: (username: string) =>
+    apiClient.get('/users/username-availability', { params: { username } }),
+
   // 닉네임 중복 확인
   checkNicknameAvailability: (nickname: string) =>
     apiClient.get('/users/nickname-availability', { params: { nickname } }),
+
+  // 프로필 등록 (회원가입): 아이디, 닉네임, 프로필 이미지 키, 한줄소개
+  registerProfile: (data: { username: string; nickname: string; profileImageKey?: string; bio?: string }) =>
+    apiClient.post('/users/me/profile', data),
+
+  // 프로필 이미지 업로드 URL 발급
+  getProfileImageUploadUrl: (data: { fileName: string; contentType: string; fileSize: number }) =>
+    apiClient.post('/users/me/profile/image/presigned-url', data),
 };
 
 // ─── 상품 관련 API ──────────────────────────────────────────────────────────────

@@ -15,19 +15,28 @@ import NicknameStep from './signup-steps/NicknameStep';
 import ProfileImageStep from './signup-steps/ProfileImageStep';
 import BioStep from './signup-steps/BioStep';
 import StepProgressBar from './signup-steps/StepProgressBar';
+import { userAPI } from '../../api/apiClient';
+import { uploadProfileImage } from '../../utils/uploadProfileImage';
+import { useMockMode } from '../../contexts/MockModeContext';
+import ErrorView from '../../components/ErrorView';
+import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SignUp'>;
 
 const TOTAL_STEPS = 4;
 
 const SignUpScreen = ({ navigation }: Props) => {
+  const { isMockMode } = useMockMode();
   const [step, setStep] = useState(1);
   const [username, setUsername] = useState('');
+  const [isUsernameChecked, setIsUsernameChecked] = useState(false);
   const [nickname, setNickname] = useState('');
-  const [isNicknameVerified, setIsNicknameVerified] = useState(false);
+  const [isNicknameChecked, setIsNicknameChecked] = useState(false);
   const [profileImage, setProfileImage] = useState<Asset | null>(null);
   const [bio, setBio] = useState('');
   const [attemptedNext, setAttemptedNext] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
 
   useEffect(() => {
     setAttemptedNext(false);
@@ -36,9 +45,9 @@ const SignUpScreen = ({ navigation }: Props) => {
   const isStepValid = (() => {
     switch (step) {
       case 1:
-        return username.trim().length > 0;
+        return username.trim().length > 0 && isUsernameChecked;
       case 2:
-        return nickname.trim().length > 0 && isNicknameVerified;
+        return nickname.trim().length > 0 && isNicknameChecked;
       case 3:
         return profileImage !== null;
       case 4:
@@ -56,10 +65,37 @@ const SignUpScreen = ({ navigation }: Props) => {
     setStep(prev => prev - 1);
   };
 
+  const submitProfile = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    try {
+      if (!isMockMode) {
+        const profileImageKey = profileImage ? await uploadProfileImage(profileImage) : undefined;
+        await userAPI.registerProfile({ username, nickname, bio, profileImageKey });
+      }
+      navigation.replace('SignUpComplete', { nickname });
+    } catch (err: any) {
+      const errorCode = err.response?.data?.error?.code;
+      console.error('[SignUp] 프로필 등록 에러:', err.message);
+      console.error('[SignUp] 서버 에러 응답:', JSON.stringify(err.response?.data, null, 2));
+      if (errorCode === 'USER_002') {
+        setErrorMsg(ERROR_MESSAGES.SIGNUP.DUPLICATE_USERNAME);
+      } else if (errorCode === 'AUTH_004') {
+        setErrorMsg(ERROR_MESSAGES.SIGNUP.INVALID_TOKEN);
+      } else if (errorCode === 'COMMON_001') {
+        setErrorMsg(ERROR_MESSAGES.SIGNUP.INVALID_PROFILE);
+      } else {
+        setErrorMsg(ERROR_MESSAGES.SIGNUP.FAILED);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const advanceStep = () => {
     if (step === TOTAL_STEPS) {
-      // TODO: 회원가입 API 연동 (username, nickname, profileImage, bio)
-      navigation.replace('SignUpComplete', { nickname });
+      submitProfile();
       return;
     }
     setStep(prev => prev + 1);
@@ -79,14 +115,23 @@ const SignUpScreen = ({ navigation }: Props) => {
   const renderStepContent = () => {
     switch (step) {
       case 1:
-        return <UsernameStep value={username} onChange={setUsername} showError={attemptedNext && !isStepValid} />;
+        return (
+          <UsernameStep
+            value={username}
+            onChange={setUsername}
+            showError={attemptedNext && !isStepValid}
+            isChecked={isUsernameChecked}
+            onCheckedChange={setIsUsernameChecked}
+          />
+        );
       case 2:
         return (
           <NicknameStep
             value={nickname}
             onChange={setNickname}
             showError={attemptedNext && !isStepValid}
-            onVerifiedChange={setIsNicknameVerified}
+            isChecked={isNicknameChecked}
+            onCheckedChange={setIsNicknameChecked}
           />
         );
       case 3:
@@ -132,10 +177,18 @@ const SignUpScreen = ({ navigation }: Props) => {
           style={[styles.nextButton, isStepValid && styles.nextButtonActive]}
           onPress={handleNext}
           activeOpacity={isStepValid ? 0.8 : 1}
+          disabled={isSubmitting}
         >
-          <Text style={styles.nextButtonText}>{step === TOTAL_STEPS ? '완료' : '다음'}</Text>
+          <Text style={styles.nextButtonText}>{step === TOTAL_STEPS ? (isSubmitting ? '처리 중...' : '완료') : '다음'}</Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
+
+      <ErrorView
+        visible={!!errorMsg}
+        title={errorMsg?.title ?? ''}
+        subtitle={errorMsg?.subtitle ?? ''}
+        onPress={() => setErrorMsg(null)}
+      />
     </SafeAreaView>
   );
 };

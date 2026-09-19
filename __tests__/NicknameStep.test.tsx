@@ -14,16 +14,27 @@ jest.mock('../api/apiClient', () => ({
   },
 }));
 
-// 실제 SignUpScreen과 동일하게 value/verified 상태를 부모가 들고 있는 구조를 재현
-const Harness = ({ onVerifiedChange }: { onVerifiedChange: (v: boolean) => void }) => {
+// 실제 SignUpScreen과 동일하게 value/checked 상태를 부모가 들고 있는 구조를 재현
+const Harness = ({ onCheckedChange }: { onCheckedChange: (v: boolean) => void }) => {
   const [value, setValue] = useState('키치캐처');
-  return <NicknameStep value={value} onChange={setValue} onVerifiedChange={onVerifiedChange} />;
+  const [isChecked, setIsChecked] = useState(false);
+  return (
+    <NicknameStep
+      value={value}
+      onChange={setValue}
+      isChecked={isChecked}
+      onCheckedChange={checked => {
+        setIsChecked(checked);
+        onCheckedChange(checked);
+      }}
+    />
+  );
 };
 
-const renderHarness = async (onVerifiedChange = jest.fn()) => {
+const renderHarness = async (onCheckedChange = jest.fn()) => {
   let root!: ReactTestRenderer.ReactTestRenderer;
   await act(async () => {
-    root = ReactTestRenderer.create(<Harness onVerifiedChange={onVerifiedChange} />);
+    root = ReactTestRenderer.create(<Harness onCheckedChange={onCheckedChange} />);
   });
   return root;
 };
@@ -43,24 +54,24 @@ describe('NicknameStep', () => {
     (userAPI.checkNicknameAvailability as jest.Mock).mockResolvedValue({
       data: { success: true, data: { nickname: '키치캐처' }, error: null },
     });
-    const onVerifiedChange = jest.fn();
+    const onCheckedChange = jest.fn();
 
-    const root = await renderHarness(onVerifiedChange);
+    const root = await renderHarness(onCheckedChange);
     await pressCheckButton(root);
 
     expect(userAPI.checkNicknameAvailability).toHaveBeenCalledWith('키치캐처');
-    expect(onVerifiedChange).toHaveBeenLastCalledWith(true);
+    expect(onCheckedChange).toHaveBeenLastCalledWith(true);
     expect(root.root.findAllByType(Text).some(node => node.props.children === '사용 가능한 닉네임이에요')).toBe(true);
   });
 
   it('409 응답이면 중복 메시지를 보여주고 검증 상태를 false로 알린다', async () => {
     (userAPI.checkNicknameAvailability as jest.Mock).mockRejectedValue({ response: { status: 409 } });
-    const onVerifiedChange = jest.fn();
+    const onCheckedChange = jest.fn();
 
-    const root = await renderHarness(onVerifiedChange);
+    const root = await renderHarness(onCheckedChange);
     await pressCheckButton(root);
 
-    expect(onVerifiedChange).toHaveBeenLastCalledWith(false);
+    expect(onCheckedChange).toHaveBeenLastCalledWith(false);
     expect(root.root.findAllByType(Text).some(node => node.props.children === '이미 사용 중인 닉네임이에요')).toBe(true);
   });
 
@@ -68,16 +79,16 @@ describe('NicknameStep', () => {
     (userAPI.checkNicknameAvailability as jest.Mock).mockResolvedValue({
       data: { success: true, data: { nickname: '키치캐처' }, error: null },
     });
-    const onVerifiedChange = jest.fn();
+    const onCheckedChange = jest.fn();
 
-    const root = await renderHarness(onVerifiedChange);
+    const root = await renderHarness(onCheckedChange);
     await pressCheckButton(root);
-    expect(onVerifiedChange).toHaveBeenLastCalledWith(true);
+    expect(onCheckedChange).toHaveBeenLastCalledWith(true);
 
     await act(async () => {
       root.root.findByType(TextInput).props.onChangeText('다른닉네임');
     });
 
-    expect(onVerifiedChange).toHaveBeenLastCalledWith(false);
+    expect(onCheckedChange).toHaveBeenLastCalledWith(false);
   });
 });

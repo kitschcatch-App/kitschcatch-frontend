@@ -7,81 +7,138 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import CommonInput from '../../../components/CommonInput';
 import { colors } from '../../../styles/colors';
 import { styles } from '../SignUpScreen.styles';
+import StepRuleList from './StepRuleList';
 import { userAPI } from '../../../api/apiClient';
 
 interface Props {
   value: string;
   onChange: (value: string) => void;
   showError?: boolean;
-  onVerifiedChange: (verified: boolean) => void;
+  isChecked: boolean;
+  onCheckedChange: (checked: boolean) => void;
 }
 
-type CheckResult = 'idle' | 'available' | 'duplicate' | 'error';
+const NICKNAME_MAX_LENGTH = 12;
+const NICKNAME_MIN_LENGTH = 2;
+// TODO: 실제 금칙어/운영진 사칭 판별은 백엔드 정책에 맞춰 서버에서 최종 검증
+const BANNED_NICKNAMES = ['관리자', '운영자', 'admin', 'administrator', 'staff', 'official', 'kitschcatch'];
 
-const NicknameStep = ({ value, onChange, showError, onVerifiedChange }: Props) => {
-  const [checking, setChecking] = useState(false);
-  const [result, setResult] = useState<CheckResult>('idle');
+const NICKNAME_RULES = [
+  '2~12자로 입력해주세요.',
+  '한글,영문, 숫자를 사용할 수 있습니다.',
+  '공백, 특수문자, 이모지는 사용할 수 없습니다.',
+  '중복된 닉네임은 사용할 수 없습니다.',
+  '영문 대소문자만 다른 경우에도 동일한 닉네임으로 처리됩니다.',
+  '닉네임은 회원정보에서 변경할 수 있으며, 변경 시 중복 여부를 확인합니다.',
+  '욕설, 혐오 표현, 운영진 사칭 등 운영 정책에 위반되는 닉네임은 제한될 수 있습니다.',
+  '중복된 닉네임 입력 시 숫자가 자동으로 추가되지 않습니다.',
+];
 
-  const handleChangeText = (text: string) => {
+const validateNicknameFormat = (raw: string): string => {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  if (trimmed.length < NICKNAME_MIN_LENGTH || trimmed.length > NICKNAME_MAX_LENGTH) {
+    return '닉네임은 2~12자로 입력해 주세요.';
+  }
+  if (!/^[가-힣a-zA-Z0-9]+$/.test(trimmed)) return '닉네임에는 한글, 영문, 숫자만 사용할 수 있어요.';
+  // 대소문자만 다른 닉네임도 동일하게 취급
+  const normalized = trimmed.toLowerCase();
+  if (BANNED_NICKNAMES.some(word => normalized.includes(word))) {
+    return '사용할 수 없는 닉네임이에요. 다른 이름을 입력해 주세요.';
+  }
+  return '';
+};
+
+const NicknameStep = ({ value, onChange, showError, isChecked, onCheckedChange }: Props) => {
+  const [isChecking, setIsChecking] = useState(false);
+  const [checkMessage, setCheckMessage] = useState('');
+
+  const formatError = validateNicknameFormat(value);
+
+  const handleChange = (text: string) => {
     onChange(text);
-    setResult('idle');
-    onVerifiedChange(false);
+    setCheckMessage('');
+    onCheckedChange(false);
   };
 
-  const handleCheck = async () => {
-    const nickname = value.trim();
-    if (!nickname || checking) return;
+  const handleCheckDuplicate = async () => {
+    if (isChecking) return;
 
+    const trimmed = value.trim();
+    if (!trimmed) {
+      onCheckedChange(false);
+      setCheckMessage('닉네임을 입력해주세요');
+      return;
+    }
+    if (formatError) return;
+
+    setIsChecking(true);
+    setCheckMessage('');
     try {
-      setChecking(true);
-      await userAPI.checkNicknameAvailability(nickname);
-      setResult('available');
-      onVerifiedChange(true);
-    } catch (e: any) {
-      setResult(e?.response?.status === 409 ? 'duplicate' : 'error');
-      onVerifiedChange(false);
+      await userAPI.checkNicknameAvailability(trimmed);
+      onCheckedChange(true);
+      setCheckMessage('사용 가능한 닉네임이에요');
+    } catch (err: any) {
+      onCheckedChange(false);
+      setCheckMessage(
+        err?.response?.status === 409
+          ? '이미 사용 중인 닉네임이에요'
+          : '중복 확인에 실패했어요. 다시 시도해주세요',
+      );
     } finally {
-      setChecking(false);
+      setIsChecking(false);
     }
   };
 
-  const resultText =
-    result === 'available'
-      ? '사용 가능한 닉네임이에요'
-      : result === 'duplicate'
-        ? '이미 사용 중인 닉네임이에요'
-        : result === 'error'
-          ? '중복 확인에 실패했어요. 다시 시도해주세요'
-          : false;
+  const errorMessage = formatError || checkMessage || (showError ? '닉네임을 입력해주세요' : '');
+  const isErrorMessage = !!formatError || (!!checkMessage && !isChecked);
+  const messageColor = isChecked ? colors.sucess : isErrorMessage ? colors.error : colors.gray07;
 
   return (
     <View style={styles.stepContainer}>
       <Text style={styles.stepGuideText}>
         닉네임을 입력해주세요!<Text style={styles.requireText}> *</Text>
       </Text>
-      <View style={styles.availabilityRow}>
+
+      <View style={styles.stepInputRow}>
         <CommonInput
-          placeholder="닉네임을 입력해주세요"
+          placeholder="ex.키치러버"
           value={value}
-          onChangeText={handleChangeText}
-          maxLength={10}
-          showCharCount
-          currentLength={value.length}
-          containerStyle={styles.availabilityInputContainer}
-          style={[styles.stepInputField, showError && styles.inputError]}
+          onChangeText={handleChange}
+          maxLength={NICKNAME_MAX_LENGTH}
+          containerStyle={styles.stepInputContainer}
+          style={[styles.stepInputField, isErrorMessage && styles.inputError]}
           placeholderTextColor={colors.gray07}
-          warningText={showError ? (value.trim() ? '닉네임 중복 확인을 해주세요' : '닉네임을 입력해주세요') : resultText}
-          warningTextStyle={{ color: result === 'available' ? colors.sucess : colors.error }}
         />
         <TouchableOpacity
-          style={[styles.checkButton, (!value.trim() || checking) && styles.checkButtonDisabled]}
-          onPress={handleCheck}
-          disabled={!value.trim() || checking}
+          style={[
+            styles.duplicateButton,
+            isChecking && styles.duplicateButtonDisabled,
+            isChecked && styles.duplicateButtonChecked,
+          ]}
+          onPress={handleCheckDuplicate}
           activeOpacity={0.8}
+          disabled={isChecking}
         >
-          <Text style={styles.checkButtonText}>{checking ? '확인 중' : '중복확인'}</Text>
+          <Text style={[styles.duplicateButtonText, isChecked && styles.duplicateButtonTextChecked]}>
+            {isChecking ? '확인 중...' : '중복확인'}
+          </Text>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.stepMetaRow}>
+        <Text style={[styles.stepMessage, { color: messageColor }]}>{errorMessage}</Text>
+        <Text
+          style={[
+            styles.stepCharCounter,
+            (value.length >= NICKNAME_MAX_LENGTH || isErrorMessage) && styles.stepCharCounterMax,
+          ]}
+        >
+          {`${value.length}/${NICKNAME_MAX_LENGTH}`}
+        </Text>
+      </View>
+
+      <StepRuleList rules={NICKNAME_RULES} />
     </View>
   );
 };
