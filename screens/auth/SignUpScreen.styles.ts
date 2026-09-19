@@ -116,6 +116,33 @@ export const styles = StyleSheet.create({
     color: colors.error,
   },
 
+  // ── 아이디/닉네임 중복확인 스텝 공통 ──────────────────────────────────────
+  availabilityRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  availabilityInputContainer: {
+    flex: 1,
+    marginTop: 0,
+  },
+  checkButton: {
+    height: 52,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: colors.gray02,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkButtonDisabled: {
+    opacity: 0.5,
+  },
+  checkButtonText: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
+
   // ── 프로필 사진 스텝 ──────────────────────────────────────────────────────
   profileImageWrapper: {
     alignSelf: 'flex-start',

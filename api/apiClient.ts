@@ -144,6 +144,13 @@ export const authAPI = {
     authClient.post('/auth/naver/mobile-login', { accessToken }),
 };
 
+// ─── 사용자 관련 API ──────────────────────────────────────────────────────────────
+export const userAPI = {
+  // 닉네임 중복 확인
+  checkNicknameAvailability: (nickname: string) =>
+    apiClient.get('/users/nickname-availability', { params: { nickname } }),
+};
+
 // ─── 상품 관련 API ──────────────────────────────────────────────────────────────
 export const productAPI = {
   // 상품 목록 조회

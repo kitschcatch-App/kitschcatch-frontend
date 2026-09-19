@@ -24,6 +24,7 @@ const SignUpScreen = ({ navigation }: Props) => {
   const [step, setStep] = useState(1);
   const [username, setUsername] = useState('');
   const [nickname, setNickname] = useState('');
+  const [isNicknameVerified, setIsNicknameVerified] = useState(false);
   const [profileImage, setProfileImage] = useState<Asset | null>(null);
   const [bio, setBio] = useState('');
   const [attemptedNext, setAttemptedNext] = useState(false);
@@ -37,7 +38,7 @@ const SignUpScreen = ({ navigation }: Props) => {
       case 1:
         return username.trim().length > 0;
       case 2:
-        return nickname.trim().length > 0;
+        return nickname.trim().length > 0 && isNicknameVerified;
       case 3:
         return profileImage !== null;
       case 4:
@@ -80,7 +81,14 @@ const SignUpScreen = ({ navigation }: Props) => {
       case 1:
         return <UsernameStep value={username} onChange={setUsername} showError={attemptedNext && !isStepValid} />;
       case 2:
-        return <NicknameStep value={nickname} onChange={setNickname} showError={attemptedNext && !isStepValid} />;
+        return (
+          <NicknameStep
+            value={nickname}
+            onChange={setNickname}
+            showError={attemptedNext && !isStepValid}
+            onVerifiedChange={setIsNicknameVerified}
+          />
+        );
       case 3:
         return (
           <ProfileImageStep value={profileImage} onChange={setProfileImage} showError={attemptedNext && !isStepValid} />
