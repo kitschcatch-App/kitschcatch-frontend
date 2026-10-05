@@ -43,6 +43,21 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.gray07,
   },
+  bottomSheetCompact: {
+    paddingTop: 16,
+  },
+  optionsCompact: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  optionRowCompact: {
+    paddingVertical: 8,
+  },
+  radioOffCompact: {
+    width: 16,
+    height: 16,
+    borderRadius: 9,
+  },
   optionText: {
     fontFamily: typography.M,
     fontSize: 14,

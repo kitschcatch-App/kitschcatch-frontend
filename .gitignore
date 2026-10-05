@@ -89,3 +89,7 @@ android/app/release/
 
 # Android UI 덤프 (uiautomator dump 산출물)
 dump*.xml
+
+# JVM 크래시 로그
+hs_err_pid*.log
+replay_pid*.log
