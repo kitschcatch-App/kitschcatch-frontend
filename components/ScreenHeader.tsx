@@ -13,12 +13,16 @@ interface ScreenHeaderProps {
   onBack?: () => void;
   style?: StyleProp<ViewStyle>;
   rightElement?: ReactNode;
+  /** 지정하면 뒤로가기 버튼/스페이서 대신 왼쪽에 표시 (예: 닫기 버튼) */
+  leftElement?: ReactNode;
 }
 
-const ScreenHeader = ({ title, onBack, style, rightElement }: ScreenHeaderProps) => {
+const ScreenHeader = ({ title, onBack, style, rightElement, leftElement }: ScreenHeaderProps) => {
   return (
     <View style={[styles.headerContainer, style]}>
-      {onBack ? (
+      {leftElement ? (
+        leftElement
+      ) : onBack ? (
         <TouchableOpacity
           style={styles.backButton}
           onPress={onBack}
