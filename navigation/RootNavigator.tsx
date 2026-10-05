@@ -28,6 +28,8 @@ import SearchScreen from '../screens/home/SearchScreen';
 import MyPageScreen from '../screens/mypage/MyPageScreen';
 import StoreMapScreen from '../screens/store/StoreMapScreen';
 import StoreDetailScreen from '../screens/store/StoreDetailScreen';
+import ReviewWriteScreen from '../screens/store/ReviewWriteScreen';
+import ReviewPhotosScreen from '../screens/store/ReviewPhotosScreen';
 import EditProfileScreen from '../screens/mypage/EditProfileScreen';
 import FollowScreen from '../screens/mypage/FollowScreen';
 import WishlistScreen from '../screens/mypage/WishlistScreen';
@@ -61,6 +63,8 @@ export type RootStackParamList = {
     latitude: number;
     longitude: number;
   };
+  ReviewWrite: undefined;
+  ReviewPhotos: undefined;
   Search: undefined;
   ProductList: undefined;
   ProductRegistration: undefined;
@@ -163,6 +167,8 @@ const RootNavigator = () => {
         <Stack.Screen name="Home" component={HomeScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="StoreMap" component={StoreMapScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="StoreDetail" component={StoreDetailScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="ReviewWrite" component={ReviewWriteScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="ReviewPhotos" component={ReviewPhotosScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Mypage" component={MyPageScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Logout" component={LogoutScreen} options={{ animation: 'fade' }} />
