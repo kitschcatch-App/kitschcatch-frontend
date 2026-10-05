@@ -28,6 +28,12 @@ export const ERROR_MESSAGES = {
     SEND_FAILED: { title: '메시지를 보내지 못했어요', subtitle: '네트워크 상태를 확인해주세요.' },
     LOAD_FAILED: { title: '대화 내역을 불러오지 못했어요', subtitle: '네트워크 상태를 확인한 뒤 다시 시도해주세요.' },
   },
+  SIGNUP: {
+    INVALID_PROFILE:    { title: '입력한 정보를 확인해주세요',     subtitle: '필수 프로필 입력값이 올바르지 않아요.' },
+    DUPLICATE_USERNAME: { title: '이미 사용 중인 아이디예요',      subtitle: '다른 아이디로 다시 시도해주세요.' },
+    INVALID_TOKEN:       { title: '로그인이 만료되었어요',         subtitle: '다시 로그인해주세요.' },
+    FAILED:              { title: '회원가입에 실패했어요',         subtitle: '잠시 후 다시 시도해주세요.' },
+  },
 } as const;
 
 export type ErrorMessage = { title: string; subtitle: string };

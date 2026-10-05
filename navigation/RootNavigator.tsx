@@ -25,6 +25,7 @@ import PaymentCompleteScreen from '../screens/payment/PaymentCompleteScreen';
 import ApiTestScreen from '../screens/dev/ApiTestScreen';
 import ChatListScreen from '../screens/chat/ChatListScreen';
 import SearchScreen from '../screens/home/SearchScreen';
+import NotificationScreen from '../screens/home/NotificationScreen';
 import MyPageScreen from '../screens/mypage/MyPageScreen';
 import StoreMapScreen from '../screens/store/StoreMapScreen';
 import StoreDetailScreen from '../screens/store/StoreDetailScreen';
@@ -66,6 +67,7 @@ export type RootStackParamList = {
   ReviewWrite: undefined;
   ReviewPhotos: undefined;
   Search: undefined;
+  Notification: undefined;
   ProductList: undefined;
   ProductRegistration: undefined;
   ProductDetail: {
@@ -185,6 +187,7 @@ const RootNavigator = () => {
         <Stack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="PurchaseOrderDetail" component={PurchaseOrderDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Search" component={SearchScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Notification" component={NotificationScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ChatList" component={ChatListScreen} options={{ animation: 'fade' }} />

@@ -11,6 +11,7 @@ import BackIcon from '../assets/back.svg';
 interface ScreenHeaderProps {
   title: string;
   onBack?: () => void;
+  rightElement?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   rightElement?: ReactNode;
   /** 지정하면 뒤로가기 버튼/스페이서 대신 왼쪽에 표시 (예: 닫기 버튼) */

@@ -144,6 +144,25 @@ export const authAPI = {
     authClient.post('/auth/naver/mobile-login', { accessToken }),
 };
 
+// ─── 회원 관련 API ──────────────────────────────────────────────────────────────
+export const userAPI = {
+  // 아이디 중복 확인
+  checkUsernameAvailability: (username: string) =>
+    apiClient.get('/users/username-availability', { params: { username } }),
+
+  // 닉네임 중복 확인
+  checkNicknameAvailability: (nickname: string) =>
+    apiClient.get('/users/nickname-availability', { params: { nickname } }),
+
+  // 프로필 등록 (회원가입): 아이디, 닉네임, 프로필 이미지 키, 한줄소개
+  registerProfile: (data: { username: string; nickname: string; profileImageKey?: string; bio?: string }) =>
+    apiClient.post('/users/me/profile', data),
+
+  // 프로필 이미지 업로드 URL 발급
+  getProfileImageUploadUrl: (data: { fileName: string; contentType: string; fileSize: number }) =>
+    apiClient.post('/users/me/profile/image/presigned-url', data),
+};
+
 // ─── 상품 관련 API ──────────────────────────────────────────────────────────────
 export const productAPI = {
   // 상품 목록 조회
@@ -204,6 +223,21 @@ export const storeAPI = {
     apiClient.post(`/stores/${storeId}/favorites`),
   removeFavoriteStore: (storeId: string | number) =>
     apiClient.delete(`/stores/${storeId}/favorites`),
+};
+
+// ─── 알림 관련 API ──────────────────────────────────────────────────────────────
+export const notificationAPI = {
+  // 알림 목록 조회
+  getNotifications: (params: { unreadOnly?: boolean; page?: number; size?: number }) =>
+    apiClient.get('/notifications', { params }),
+
+  // 알림 읽음 처리
+  readNotification: (notificationId: number) =>
+    apiClient.patch(`/notifications/${notificationId}/read`),
+
+  // 모든 알림 읽음 처리
+  readAllNotifications: () =>
+    apiClient.patch('/notifications/read-all'),
 };
 
 // ─── 채팅 관련 API ──────────────────────────────────────────────────────────────

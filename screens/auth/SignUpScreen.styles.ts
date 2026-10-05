@@ -116,6 +116,84 @@ export const styles = StyleSheet.create({
     color: colors.error,
   },
 
+  // ── 아이디 / 닉네임 스텝 (중복확인 포함 입력) 공용 ────────────────────────────
+  stepInputRow: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  stepInputContainer: {
+    flex: 1,
+    marginTop: 0,
+  },
+  duplicateButton: {
+    flexShrink: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: colors.main01,
+    borderWidth: 1,
+    borderColor: colors.main07,
+  },
+  duplicateButtonDisabled: {
+    opacity: 0.5,
+  },
+  duplicateButtonChecked: {
+    backgroundColor: 'rgba(133, 133, 133, 0.3)',
+    borderColor: colors.gray06,
+  },
+  duplicateButtonText: {
+    fontSize: 16,
+    fontFamily: typography.M,
+    color: colors.sub07,
+  },
+  duplicateButtonTextChecked: {
+    color: colors.gray07,
+  },
+  stepMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 2,
+  },
+  stepMessage: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: typography.M,
+    marginRight: 8,
+  },
+  stepCharCounter: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.gray07,
+  },
+  stepCharCounterMax: {
+    color: colors.error,
+  },
+  stepRulesContainer: {
+    marginTop: 24,
+    gap: 4,
+  },
+  stepRuleRow: {
+    flexDirection: 'row',
+  },
+  stepRuleDot: {
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray06,
+    marginRight: 2,
+  },
+  stepRuleText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray06,
+    lineHeight: 20,
+  },
+
   // ── 프로필 사진 스텝 ──────────────────────────────────────────────────────
   profileImageWrapper: {
     alignSelf: 'flex-start',

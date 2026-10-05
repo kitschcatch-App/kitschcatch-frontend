@@ -34,7 +34,17 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   alarmIcon: {
+    position: 'relative',
     marginRight: 14,
+  },
+  alarmUnreadDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.main07,
   },
   searchIcon: {},
   // 스크롤 영역 (헤더 아래 전체)
@@ -47,14 +57,14 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.gray02,
   },
   bannerImage: {
-    height: 160,
+    height: 240,
   },
   bannerPagination: {
     position: 'absolute',
     right: 12,
     bottom: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: 99,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },

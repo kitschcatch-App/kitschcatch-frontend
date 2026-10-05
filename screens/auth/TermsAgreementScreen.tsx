@@ -78,7 +78,9 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
               <Text style={styles.termText}>
                 <Text style={styles.termRequired}>(필수) </Text>서비스 이용약관 동의
               </Text>
-              <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
+              <TouchableOpacity onPress={() => navigation.navigate('TermsOfService')}>
+                <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
+              </TouchableOpacity>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.termRow} onPress={() => setAgreePrivacy(v => !v)} activeOpacity={0.8}>
