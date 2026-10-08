@@ -13,8 +13,10 @@ import SettingIcon from '../../assets/setting.svg';
 import { formatTime } from '../../utils/formatTime';
 import { getNotificationTypeLabel } from '../../utils/notificationType';
 import { styles } from './NotificationScreen.styles';
-import { notificationAPI } from '../../api/apiClient';
-import { getMockNotifications, markMockNotificationRead, mockDelay } from '../../api/mockData';
+import { chatAPI, notificationAPI, orderAPI } from '../../api/apiClient';
+import { getMockNotifications, markMockNotificationRead, mockDelay, MOCK_CHAT_ROOMS } from '../../api/mockData';
+import { getNotificationTarget } from '../../utils/notificationTarget';
+import { secureStorage } from '../../utils/secureStorage';
 import { useMockMode } from '../../contexts/MockModeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Notification'>;
@@ -23,11 +25,15 @@ type NotificationItem = {
   id: number;
   type: string;
   title: string;
-  body: string;
+  targetId?: string;
+  body?: string; // 서버 스펙에는 없음. 내려오면 본문으로 표시
   createdAt: string;
   read: boolean;
-  productImageUrl?: string;
+  productImageUrl?: string | null; // 서버 스펙에는 없음. 내려오면 썸네일로 표시
 };
+
+// 서버 응답(readAt) → 화면용 항목(read)
+const toItem = (raw: any): NotificationItem => ({ ...raw, read: !!raw.readAt });
 
 const PAGE_SIZE = 20;
 
@@ -43,9 +49,9 @@ const NotificationScreen = ({ navigation }: Props) => {
     async (pageNum: number) => {
       if (isMockMode) {
         await mockDelay(300);
-        return getMockNotifications({ unreadOnly: false, page: pageNum, size: PAGE_SIZE }).data.data;
+        return getMockNotifications({ page: pageNum, size: PAGE_SIZE }).data.data;
       }
-      const res = await notificationAPI.getNotifications({ unreadOnly: false, page: pageNum, size: PAGE_SIZE });
+      const res = await notificationAPI.getNotifications({ page: pageNum, size: PAGE_SIZE });
       return res.data.data;
     },
     [isMockMode],
@@ -57,7 +63,7 @@ const NotificationScreen = ({ navigation }: Props) => {
         try {
           setIsLoading(true);
           const data = await fetchPage(0);
-          setNotifications(data.content);
+          setNotifications(data.notifications.map(toItem));
           setPage(data.page);
           setTotalPages(data.totalPages);
         } catch (e) {
@@ -76,7 +82,7 @@ const NotificationScreen = ({ navigation }: Props) => {
     try {
       setIsLoadingMore(true);
       const data = await fetchPage(page + 1);
-      setNotifications((prev) => [...prev, ...data.content]);
+      setNotifications((prev) => [...prev, ...data.notifications.map(toItem)]);
       setPage(data.page);
       setTotalPages(data.totalPages);
     } catch (e) {
@@ -86,9 +92,41 @@ const NotificationScreen = ({ navigation }: Props) => {
     }
   };
 
-  const handlePressItem = async (id: number) => {
-    const target = notifications.find((item) => item.id === id);
-    if (!target || target.read) return;
+  // 알림 대상 화면으로 이동. 모르는 type이거나 조회에 실패하면 알림 목록에 머문다.
+  const navigateToTarget = async (item: NotificationItem) => {
+    const dest = getNotificationTarget(item.type, item.targetId ?? '');
+    if (!dest) return;
+
+    try {
+      if (dest.screen === 'Chat') {
+        // 채팅방 상세 응답에 상대방 닉네임이 없어 목록에서 찾는다 (백엔드 추가 예정)
+        const rooms = isMockMode ? MOCK_CHAT_ROOMS.data : (await chatAPI.getChatRooms()).data.data;
+        const room = rooms.find((r: any) => r.chatRoomId === dest.chatRoomId);
+        navigation.navigate('Chat', { chatRoomId: dest.chatRoomId, opponentNickname: room?.opponentNickname ?? '' });
+        return;
+      }
+
+      if (isMockMode) return; // mock에는 주문 상세가 없음
+      // 내가 판매자인지 구매자인지는 거래 상세로 판별
+      const order = (await orderAPI.getOrder(dest.orderNumber)).data.data;
+      const myId = await secureStorage.getItem('userId');
+      const params = {
+        orderId: order.orderId,
+        orderNumber: order.orderId,
+        productTitle: order.post.title,
+        productPrice: order.amount,
+        productImage: { uri: order.post.thumbnailUrl ?? '' },
+      };
+      navigation.navigate(String(order.seller.id) === myId ? 'OrderDetail' : 'PurchaseOrderDetail', params);
+    } catch (e) {
+      console.error('알림 이동 실패:', e);
+    }
+  };
+
+  const handlePressItem = async (item: NotificationItem) => {
+    navigateToTarget(item);
+    const id = item.id;
+    if (item.read) return;
 
     setNotifications((prev) =>
       prev.map((item) => (item.id === id ? { ...item, read: true } : item)),
@@ -140,7 +178,7 @@ const NotificationScreen = ({ navigation }: Props) => {
             <TouchableOpacity
               style={[styles.item, !item.read && styles.itemUnread]}
               activeOpacity={0.7}
-              onPress={() => handlePressItem(item.id)}
+              onPress={() => handlePressItem(item)}
             >
               <View style={styles.itemContent}>
                 <View style={styles.itemHeaderRow}>
@@ -149,9 +187,11 @@ const NotificationScreen = ({ navigation }: Props) => {
                     {item.title}
                   </Text>
                 </View>
-                <Text style={styles.bodyText} numberOfLines={2} ellipsizeMode="tail">
-                  {item.body}
-                </Text>
+                {!!item.body && (
+                  <Text style={styles.bodyText} numberOfLines={2} ellipsizeMode="tail">
+                    {item.body}
+                  </Text>
+                )}
                 <Text style={styles.timeText}>{formatTime(item.createdAt)}</Text>
               </View>
               {item.productImageUrl && (

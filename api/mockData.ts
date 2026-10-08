@@ -337,7 +337,7 @@ const haversineKm = (aLat: number, aLng: number, bLat: number, bLng: number) => 
 
 export const getMockNearbyStores = (
   coord: { latitude: number; longitude: number },
-  radiusKm: 1 | 3 | 5,
+  radiusKm: number,
 ) => {
   const stores = MOCK_STORE_SEEDS.map((seed, index) => {
     const latitude = coord.latitude + seed.dLat;
@@ -372,29 +372,39 @@ export const getMockNearbyStores = (
 
 // 읽음 처리 결과가 NotificationScreen과 HomeScreen(미읽음 배지) 양쪽에 반영되도록
 // 모듈 레벨의 공유 상태로 관리합니다.
-let mockNotificationList = [
-  { id: 4, type: 'CHAT_MESSAGE', title: '새 메시지가 도착했어요', body: '네고 가능할까요? 15,000원에 가져갈게요!', read: false, createdAt: '2026-09-17T10:20:00' },
-  { id: 3, type: 'PAYMENT_SUCCESS', title: '결제가 완료되었습니다.', body: '나루토 우치하 사스케 피규어 구매가 확정되었어요.', read: false, createdAt: '2026-09-17T09:00:00', productImageUrl: 'https://picsum.photos/id/402/200/200' },
-  { id: 2, type: 'FAVORITE_PRICE_DROP', title: '찜한 상품 가격이 내려갔어요', body: '초코 미니언즈 인형 키링 세트가 15,000원으로 할인되었어요.', read: true, createdAt: '2026-09-16T21:40:00', productImageUrl: 'https://picsum.photos/id/401/200/200' },
-  { id: 1, type: 'POST_SOLD', title: '상품이 판매되었어요', body: '원피스 루피 초베가 한정판 굿즈가 판매 완료되었어요.', read: true, createdAt: '2026-09-15T13:10:00', productImageUrl: 'https://picsum.photos/id/403/200/200' },
+let mockNotificationList: {
+  id: number;
+  type: 'CHAT_MESSAGE' | 'PAYMENT_SUCCESS' | 'PAYMENT_CANCELED';
+  title: string;
+  targetId: string;
+  createdAt: string;
+  readAt: string | null;
+}[] = [
+  { id: 4, type: 'CHAT_MESSAGE', title: '새 메시지가 도착했어요', targetId: '1', createdAt: '2026-09-17T10:20:00', readAt: null },
+  { id: 3, type: 'PAYMENT_SUCCESS', title: '결제가 완료되었습니다.', targetId: 'ORD-3', createdAt: '2026-09-17T09:00:00', readAt: null },
+  { id: 2, type: 'PAYMENT_CANCELED', title: '결제가 취소되었습니다.', targetId: 'ORD-2', createdAt: '2026-09-16T21:40:00', readAt: '2026-09-16T22:00:00' },
+  { id: 1, type: 'PAYMENT_SUCCESS', title: '결제가 완료되었습니다.', targetId: 'ORD-1', createdAt: '2026-09-15T13:10:00', readAt: '2026-09-15T14:00:00' },
 ];
 
-export const getMockNotifications = (params: { unreadOnly?: boolean; page?: number; size?: number }) => {
-  const { unreadOnly = false, page = 0, size = 20 } = params;
-  const filtered = unreadOnly ? mockNotificationList.filter((item) => !item.read) : mockNotificationList;
-  const totalElements = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalElements / size));
+export const getMockUnreadNotificationCount = () =>
+  mockNotificationList.filter((item) => !item.readAt).length;
+
+// GET /notifications 응답 (Swagger 스펙: notifications/unreadCount, unreadOnly 파라미터 없음)
+export const getMockNotifications = (params: { page?: number; size?: number }) => {
+  const { page = 0, size = 20 } = params;
+  const totalElements = mockNotificationList.length;
 
   return {
     status: 200,
     data: {
       success: true,
       data: {
-        content: filtered.slice(page * size, page * size + size),
+        notifications: mockNotificationList.slice(page * size, page * size + size),
         page,
         size,
         totalElements,
-        totalPages,
+        totalPages: Math.max(1, Math.ceil(totalElements / size)),
+        unreadCount: getMockUnreadNotificationCount(),
       },
     },
   };
@@ -402,24 +412,11 @@ export const getMockNotifications = (params: { unreadOnly?: boolean; page?: numb
 
 export const markMockNotificationRead = (notificationId: number) => {
   mockNotificationList = mockNotificationList.map((item) =>
-    item.id === notificationId ? { ...item, read: true } : item,
+    item.id === notificationId && !item.readAt ? { ...item, readAt: new Date().toISOString() } : item,
   );
 
-  return {
-    status: 200,
-    data: {
-      success: true,
-      data: {
-        id: notificationId,
-        read: true,
-        readAt: new Date().toISOString(),
-      },
-    },
-  };
+  return { status: 200, data: { success: true, data: {} } };
 };
-
-export const getMockUnreadNotificationCount = () =>
-  mockNotificationList.filter((item) => !item.read).length;
 
 // ─── 채팅 ────────────────────────────────────────────────────────────────────
 

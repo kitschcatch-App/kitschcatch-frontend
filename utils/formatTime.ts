@@ -3,9 +3,10 @@ export function formatTime(dateString: string): string {
 
   const timePart = dateString.split('T')[1] || '';
   const hasTimezone = timePart.includes('Z') || timePart.includes('+') || timePart.includes('-');
-  const kstDateString = hasTimezone ? dateString : `${dateString}+09:00`;
+  // 서버(LocalDateTime)가 타임존 없이 UTC 기준으로 내려주므로 표시가 없으면 UTC로 해석
+  const utcDateString = hasTimezone ? dateString : `${dateString}Z`;
 
-  const date = new Date(kstDateString);
+  const date = new Date(utcDateString);
   if (isNaN(date.getTime())) return dateString;
 
   const now = new Date();
