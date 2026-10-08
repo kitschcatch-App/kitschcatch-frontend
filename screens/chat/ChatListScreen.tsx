@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import BottomNav from '../../components/BottomNav';
+import ChatIcon from '../../assets/chat.svg';
 import { styles } from './ChatListScreen.styles';
 import { chatAPI } from '../../api/apiClient';
 import { MOCK_CHAT_ROOMS, mockDelay } from '../../api/mockData';
@@ -138,6 +139,7 @@ const ChatListScreen = ({ navigation }: Props) => {
         <ActivityIndicator style={{ flex: 1 }} />
       ) : chatRooms.length === 0 ? (
         <View style={styles.emptyContainer}>
+          <ChatIcon width={144} height={120} style={styles.emptyImage} />
           <Text style={styles.emptyTitle}>아직 채팅이 없어요!</Text>
           <Text style={styles.emptySubtitle}>
             관심있는 상품을 둘러보고 판매자와 대화를 시작해보세요.

@@ -119,6 +119,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 32,
     backgroundColor: colors.sub01,
   },
+  emptyImage: {
+    marginBottom: 16,
+  },
   emptyTitle: {
     fontSize: 16,
     fontFamily: typography.SB,

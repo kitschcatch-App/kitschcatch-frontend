@@ -235,12 +235,6 @@ export const styles = StyleSheet.create({
     lineHeight: 17,
     textAlign: 'center',
   },
-  popularNextIcon: {
-    marginLeft: 4,
-  },
-  popularNextIconTight: {
-    marginLeft: 1,
-  },
   popularCount: {
     fontSize: 12,
     fontFamily: typography.M,

@@ -34,6 +34,7 @@ type Message = {
   imageUrl: string | null;
   time: string;
   sender: 'me' | 'them';
+  isRead: boolean;
 };
 
 type ProductInfo = {
@@ -98,6 +99,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
     imageUrl: raw.imageUrl,
     time: getKSTTimeString(raw.createdAt),
     sender: raw.senderId === userId ? 'me' : 'them',
+    isRead: raw.isRead,
   }), []);
 
   // 초기 데이터 로딩: userId, 상품 정보, 메시지 이력
@@ -179,6 +181,12 @@ const ChatScreen = ({ route, navigation }: Props) => {
         setMessages((prev) => [...prev, toMessage(msg, userId)]);
         sendReadReceipt(chatRoomId);
       },
+      // 상대가 읽으면 서버가 내 미확인 메시지를 모두 읽음 처리하므로 내 메시지 전체를 읽음으로 바꾼다
+      // (낙관적 추가분은 임시 ID라 readMessageIds로 매칭 불가)
+      onReadUpdate: (data) => {
+        if (data.readCount === 0 || data.readerId === myUserIdRef.current) return;
+        setMessages((prev) => prev.map((m) => (m.sender === 'me' ? { ...m, isRead: true } : m)));
+      },
     });
 
     return () => disconnect();
@@ -210,6 +218,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
       imageUrl: null,
       time: getKSTTimeString(),
       sender: 'me',
+      isRead: false,
     }]);
 
     if (!isMockMode) {
@@ -239,6 +248,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
         imageUrl: asset.uri!,
         time: getKSTTimeString(),
         sender: 'me',
+        isRead: false,
       }]);
       return;
     }

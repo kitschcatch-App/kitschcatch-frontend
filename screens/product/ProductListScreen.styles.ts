@@ -125,6 +125,9 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     alignItems: 'center',
   },
+  filterContainerRight: {
+    justifyContent: 'flex-end',
+  },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',

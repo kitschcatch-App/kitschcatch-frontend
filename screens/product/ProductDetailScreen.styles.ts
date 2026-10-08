@@ -58,14 +58,14 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: typography.SB,
     color: colors.black,
-    marginBottom: 10,
-    textAlign: 'left',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   modalOptionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 21,
-    gap: 5,
+    marginBottom: 16,
+    gap: 4,
   },
   modalOptionBtn: {
     flex: 1,
@@ -73,12 +73,11 @@ export const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: colors.gray04,
+    borderColor: colors.gray02,
   },
   modalOptionBtnActive: {
-    backgroundColor: `${colors.sub01}22`,
-    borderColor: colors.main01,
-
+    backgroundColor: colors.main03,
+    borderColor: colors.main03,
   },
   modalOptionText: {
     fontSize: 14,
@@ -86,18 +85,18 @@ export const styles = StyleSheet.create({
     color: colors.black,
   },
   modalOptionTextActive: {
-    color: colors.sub02,
+    color: colors.black,
   },
   modalSubmitBtn: {
-    backgroundColor: colors.main01,
-    paddingVertical: 10,
+    backgroundColor: colors.main05,
+    paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',
   },
   modalSubmitText: {
     color: colors.black,
-    fontSize: 18,
-    fontFamily: typography.SB,
+    fontSize: 16,
+    fontFamily: typography.M,
   },
   infoContainer: {
     paddingTop: 10,

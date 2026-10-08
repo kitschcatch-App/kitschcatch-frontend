@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Image, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './WishlistScreen.styles';
@@ -12,6 +13,9 @@ import EmptyState from '../../components/EmptyState';
 import ScreenHeader from '../../components/ScreenHeader';
 import TabBar from '../../components/TabBar';
 import { formatTime } from '../../utils/formatTime';
+import { storeAPI } from '../../api/apiClient';
+import { useMockMode } from '../../contexts/MockModeContext';
+import { getOpenStatus, type BusinessHour } from '../../utils/storeHours';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Wishlist'>;
 
@@ -24,35 +28,144 @@ const MOCK_WISHLIST_PRODUCTS = [
   { id: '4', name: '주술회전 고죠 피규어', price: 68000, createdAt: '2026-08-15T11:00:00', heartCount: 20, chatCount: 6, image: require('../../assets/product_img.png') },
 ];
 
-const MOCK_WISHLIST_STORES = [
-  {
-    id: '1',
-    name: 'Play ONE PIECE',
-    rating: 4.2,
-    status: '영업 중',
-    closeTime: '21:00에 영업 종료',
-    address: '서울 마포구 양화로 188 AK&홍대 5층',
-  },
-  {
-    id: '2',
-    name: '애니메이트 홍대점',
-    rating: 4.6,
-    status: '영업 중',
-    closeTime: '20:00에 영업 종료',
-    address: '서울 마포구 양화로 188 AK&홍대 5층',
-  },
-  {
-    id: '3',
-    name: '가챠샵',
-    rating: 3.9,
-    status: '영업 중',
-    closeTime: '22:00에 영업 종료',
-    address: '서울 마포구 양화로 188 AK&홍대 5층',
-  },
+type WishlistStore = {
+  id: number;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  thumbnailUrl?: string | null;
+};
+
+const STORE_PAGE_SIZE = 20;
+
+// Mock 모드용 (서버 응답 GET /users/me/favorite-stores 와 같은 모양)
+const MOCK_WISHLIST_STORES: WishlistStore[] = [
+  { id: 1, name: 'Play ONE PIECE', address: '서울 마포구 양화로 188 AK&홍대 5층', latitude: 37.5568, longitude: 126.9236 },
+  { id: 2, name: '애니메이트 홍대점', address: '서울 마포구 양화로 188 AK&홍대 5층', latitude: 37.5563, longitude: 126.9236 },
+  { id: 3, name: '가챠샵', address: '서울 마포구 양화로 188 AK&홍대 5층', latitude: 37.5598, longitude: 126.9425 },
 ];
 
+// ponytail: 매장 평점 API가 없어 매장 상세/지도 팝업과 같은 임시값 사용. API 붙으면 교체.
+const STORE_RATING_PLACEHOLDER = 4.5;
+
+// Mock 모드용 영업시간 (매일 11:00~21:00)
+const MOCK_BUSINESS_HOURS: BusinessHour[] = [
+  'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY',
+].map(dayOfWeek => ({ dayOfWeek, openTime: '11:00', closeTime: '21:00', closed: false }));
+
+// 관심 매장 한 줄. 목록 API에는 영업시간이 없어 매장 상세 API로 영업 여부를 채운다.
+const WishlistStoreItem = ({
+  store,
+  isMockMode,
+  onPressDetail,
+}: {
+  store: WishlistStore;
+  isMockMode: boolean;
+  onPressDetail: () => void;
+}) => {
+  const [hours, setHours] = useState<BusinessHour[] | null>(isMockMode ? MOCK_BUSINESS_HOURS : null);
+
+  useEffect(() => {
+    if (isMockMode) return;
+    let cancelled = false;
+    storeAPI
+      .getStore(store.id)
+      .then(res => {
+        if (!cancelled) setHours(res.data?.data?.businessHours ?? []);
+      })
+      .catch(e => console.warn('매장 영업시간 조회 실패:', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [store.id, isMockMode]);
+
+  const status = hours ? getOpenStatus(hours) : null;
+
+  return (
+    <View style={styles.storeItem}>
+      <Image
+        source={store.thumbnailUrl ? { uri: store.thumbnailUrl } : require('../../assets/product_img.png')}
+        style={styles.storeImage}
+        resizeMode="cover"
+      />
+      <View style={styles.storeInfo}>
+        <View style={styles.storeNameRow}>
+          <Text style={styles.storeName}>{store.name}</Text>
+          <View style={styles.storeRatingContainer}>
+            <StarIcon width={14} height={14} />
+            <Text style={styles.storeRating}>{STORE_RATING_PLACEHOLDER}</Text>
+          </View>
+        </View>
+        <View style={styles.storeStatusRow}>
+          {status?.status === 'OPEN' && (
+            <>
+              <Text style={styles.storeStatusOpen}>영업 중</Text>
+              <Text style={styles.storeStatusDivider}>|</Text>
+              <Text style={styles.storeStatusClose}>{status.closeTime}에 영업 종료</Text>
+            </>
+          )}
+          {status?.status === 'CLOSED' && <Text style={styles.storeStatusClose}>영업 종료</Text>}
+        </View>
+        <Text style={styles.storeAddress}>{store.address}</Text>
+        <View style={styles.storeDetailRow}>
+          <TouchableOpacity style={styles.storeDetailButton} activeOpacity={0.7} onPress={onPressDetail}>
+            <Text style={styles.storeDetailButtonText}>상세정보</Text>
+            <NextIcon width={5} height={10} style={styles.storeDetailButtonIcon} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 const WishlistScreen = ({ navigation }: Props) => {
+  const { isMockMode } = useMockMode();
   const [activeTab, setActiveTab] = useState<TabType>('product');
+  const [stores, setStores] = useState<WishlistStore[]>([]);
+  const [storePage, setStorePage] = useState(0);
+  const [storeTotalPages, setStoreTotalPages] = useState(1);
+  const [isLoadingStores, setIsLoadingStores] = useState(false);
+
+  // 관심 매장 목록: 화면에 들어올 때마다 새로 조회 (매장 상세에서 해제하고 돌아온 경우 반영)
+  useFocusEffect(
+    useCallback(() => {
+      if (isMockMode) {
+        setStores(MOCK_WISHLIST_STORES);
+        return;
+      }
+      let cancelled = false;
+      storeAPI
+        .getFavoriteStores(0, STORE_PAGE_SIZE)
+        .then(res => {
+          if (cancelled) return;
+          const data = res.data.data;
+          setStores(data.content);
+          setStorePage(data.page);
+          setStoreTotalPages(data.totalPages);
+        })
+        .catch(e => console.error('관심 매장 조회 실패:', e));
+      return () => {
+        cancelled = true;
+      };
+    }, [isMockMode]),
+  );
+
+  const handleLoadMoreStores = async () => {
+    if (isMockMode || isLoadingStores || storePage + 1 >= storeTotalPages) return;
+    try {
+      setIsLoadingStores(true);
+      const res = await storeAPI.getFavoriteStores(storePage + 1, STORE_PAGE_SIZE);
+      const data = res.data.data;
+      setStores(prev => [...prev, ...data.content]);
+      setStorePage(data.page);
+      setStoreTotalPages(data.totalPages);
+    } catch (e) {
+      console.error('관심 매장 추가 조회 실패:', e);
+    } finally {
+      setIsLoadingStores(false);
+    }
+  };
   const { width: screenWidth } = useWindowDimensions();
   const productImageSize = screenWidth / 2;
 
@@ -126,34 +239,24 @@ const WishlistScreen = ({ navigation }: Props) => {
           key="store-list"
           style={styles.storeList}
           contentContainerStyle={styles.storeListContent}
-          data={MOCK_WISHLIST_STORES}
-          keyExtractor={(item) => item.id}
+          data={stores}
+          keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMoreStores}
+          onEndReachedThreshold={0.5}
           renderItem={({ item }) => (
-            <View style={styles.storeItem}>
-              <Image source={require('../../assets/product_img.png')} style={styles.storeImage} resizeMode="cover" />
-              <View style={styles.storeInfo}>
-                <View style={styles.storeNameRow}>
-                  <Text style={styles.storeName}>{item.name}</Text>
-                  <View style={styles.storeRatingContainer}>
-                    <StarIcon width={14} height={14} />
-                    <Text style={styles.storeRating}>{item.rating}</Text>
-                  </View>
-                </View>
-                <View style={styles.storeStatusRow}>
-                  <Text style={styles.storeStatusOpen}>{item.status}</Text>
-                  <Text style={styles.storeStatusDivider}>|</Text>
-                  <Text style={styles.storeStatusClose}>{item.closeTime}</Text>
-                </View>
-                <Text style={styles.storeAddress}>{item.address}</Text>
-                <View style={styles.storeDetailRow}>
-                  <TouchableOpacity style={styles.storeDetailButton} activeOpacity={0.7}>
-                    <Text style={styles.storeDetailButtonText}>상세정보</Text>
-                    <NextIcon width={5} height={10} style={styles.storeDetailButtonIcon} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+            <WishlistStoreItem
+              store={item}
+              isMockMode={isMockMode}
+              onPressDetail={() =>
+                navigation.navigate('StoreDetail', {
+                  storeId: String(item.id),
+                  storeName: item.name,
+                  latitude: item.latitude,
+                  longitude: item.longitude,
+                })
+              }
+            />
           )}
           ListEmptyComponent={
             <EmptyState
