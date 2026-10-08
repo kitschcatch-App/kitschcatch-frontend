@@ -79,8 +79,10 @@ const SignUpScreen = ({ navigation }: Props) => {
       const errorCode = err.response?.data?.error?.code;
       console.error('[SignUp] 프로필 등록 에러:', err.message);
       console.error('[SignUp] 서버 에러 응답:', JSON.stringify(err.response?.data, null, 2));
-      if (errorCode === 'USER_002') {
+      if (errorCode === 'USER_002' || errorCode === 'USER_008') {
         setErrorMsg(ERROR_MESSAGES.SIGNUP.DUPLICATE_USERNAME);
+      } else if (errorCode === 'USER_004') {
+        setErrorMsg(ERROR_MESSAGES.SIGNUP.DUPLICATE_NICKNAME);
       } else if (errorCode === 'AUTH_004') {
         setErrorMsg(ERROR_MESSAGES.SIGNUP.INVALID_TOKEN);
       } else if (errorCode === 'COMMON_001') {

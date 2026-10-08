@@ -12,7 +12,7 @@ export async function uploadProfileImage(image: Asset): Promise<string> {
     throw new Error('프로필 이미지 업로드 URL 발급에 실패했습니다.');
   }
 
-  const { uploadUrl, imageKey } = presignedRes.data.data;
-  const [profileImageKey] = await uploadImagesToS3([image], [{ uploadUrl, imageKey }]);
+  const { uploadUrl, imageKey, uploadHeaders } = presignedRes.data.data;
+  const [profileImageKey] = await uploadImagesToS3([image], [{ uploadUrl, imageKey, uploadHeaders }]);
   return profileImageKey;
 }

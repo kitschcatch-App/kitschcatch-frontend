@@ -138,10 +138,17 @@ export const authAPI = {
   loginWithKakao: (idToken: string, nonce: string) =>
     authClient.post('/auth/kakao/mobile-login', { idToken, nonce }),
 
-  // 네이버 소셜 로그인: 네이버 SDK Access Token 검증 후 JWT 발급
-  // 네이버는 OIDC 미지원이라 nonce 단계 없이 accessToken만 전송
-  loginWithNaver: (accessToken: string) =>
-    authClient.post('/auth/naver/mobile-login', { accessToken }),
+  // [Step 1] 네이버 인증 요청 발급: 서버 state + 브라우저에서 열 authorizationUrl
+  getNaverState: () =>
+    authClient.post('/auth/naver/state'),
+
+  // [Step 2] 네이버 모바일 로그인: 브라우저 콜백의 authorizationCode + 서버 state 검증 후 JWT 발급
+  loginWithNaver: (authorizationCode: string, state: string) =>
+    authClient.post('/auth/naver/mobile-login', { authorizationCode, state }),
+
+  // 로그아웃: refresh token 폐기
+  logout: (refreshToken: string) =>
+    authClient.post('/auth/logout', { refreshToken }),
 };
 
 // ─── 회원 관련 API ──────────────────────────────────────────────────────────────
@@ -161,6 +168,10 @@ export const userAPI = {
   // 프로필 이미지 업로드 URL 발급
   getProfileImageUploadUrl: (data: { fileName: string; contentType: string; fileSize: number }) =>
     apiClient.post('/users/me/profile/image/presigned-url', data),
+
+  // 회원 탈퇴 (진행 중인 거래가 있으면 409)
+  withdraw: () =>
+    apiClient.delete('/users/me'),
 };
 
 // ─── 상품 관련 API ──────────────────────────────────────────────────────────────
@@ -191,6 +202,10 @@ export const orderAPI = {
   // 주문 생성 (15분 홀드)
   createOrder: (data: { postId: number; amount: number; paymentMethod: string }) =>
     apiClient.post('/orders', data),
+
+  // 거래 상세 조회 (orderId = ORD-로 시작하는 공개 주문번호, 구매자/판매자만 조회 가능)
+  getOrder: (orderNumber: string) =>
+    apiClient.get(`/orders/${orderNumber}`),
 };
 
 // ─── 결제 관련 API ──────────────────────────────────────────────────────────────
@@ -210,13 +225,21 @@ export const paymentAPI = {
 
 // ─── 매장 관련 API ──────────────────────────────────────────────────────────────
 export const storeAPI = {
+  // 전국 매장 목록 (region 생략 시 전국, ID 오름차순)
+  getAll: (page = 0, size = 100) =>
+    apiClient.get('/stores', { params: { page, size } }),
+
   // 현재 위치 기준 주변 매장 조회 (반경 1/3/5km)
-  getNearby: (latitude: number, longitude: number, radiusKm: 1 | 3 | 5) =>
-    apiClient.get('/stores/nearby', { params: { latitude, longitude, radiusKm } }),
+  getNearby: (latitude: number, longitude: number, radiusKm: 1 | 3 | 5, page = 0, size = 100) =>
+    apiClient.get('/stores/nearby', { params: { latitude, longitude, radiusKm, page, size } }),
 
   // 매장 상세 및 운영 정보 조회
   getStore: (storeId: string | number) =>
     apiClient.get(`/stores/${storeId}`),
+
+  // 내 관심 매장 목록 (페이지네이션)
+  getFavoriteStores: (page = 0, size = 20) =>
+    apiClient.get('/users/me/favorite-stores', { params: { page, size } }),
 
   // 관심 매장 등록 / 해제
   addFavoriteStore: (storeId: string | number) =>
@@ -228,7 +251,7 @@ export const storeAPI = {
 // ─── 알림 관련 API ──────────────────────────────────────────────────────────────
 export const notificationAPI = {
   // 알림 목록 조회
-  getNotifications: (params: { unreadOnly?: boolean; page?: number; size?: number }) =>
+  getNotifications: (params: { page?: number; size?: number }) =>
     apiClient.get('/notifications', { params }),
 
   // 알림 읽음 처리

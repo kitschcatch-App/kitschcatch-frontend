@@ -11,14 +11,27 @@ import { styles } from './LogoutScreen.styles';
 import ScreenHeader from '../../components/ScreenHeader';
 import SuccessView from '../../components/SuccessView';
 import LogoutImage from '../../assets/logout.svg';
+import { authAPI } from '../../api/apiClient';
+import { useMockMode } from '../../contexts/MockModeContext';
+import { clearSession } from '../../utils/clearSession';
+import { secureStorage } from '../../utils/secureStorage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Logout'>;
 
 const LogoutScreen = ({ navigation }: Props) => {
   const [isSuccessVisible, setSuccessVisible] = useState(false);
 
-  const handleLogout = () => {
-    // TODO: 로그아웃 API 연동
+  const { isMockMode } = useMockMode();
+
+  const handleLogout = async () => {
+    try {
+      const refreshToken = await secureStorage.getItem('refreshToken');
+      if (!isMockMode && refreshToken) await authAPI.logout(refreshToken);
+    } catch (e) {
+      // 서버 폐기에 실패해도 기기의 로그인 정보는 반드시 지운다
+      console.error('로그아웃 API 실패:', e);
+    }
+    await clearSession();
     setSuccessVisible(true);
   };
 

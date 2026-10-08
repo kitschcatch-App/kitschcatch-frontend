@@ -19,6 +19,9 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import TermsAgreementScreen from '../screens/auth/TermsAgreementScreen';
 import TermsOfServiceScreen from '../screens/auth/TermsOfServiceScreen';
 import PrivacyPolicyScreen from '../screens/auth/PrivacyPolicyScreen';
+import PrivacyConsentScreen from '../screens/auth/PrivacyConsentScreen';
+import LocationTermsScreen from '../screens/auth/LocationTermsScreen';
+import MarketingConsentScreen from '../screens/auth/MarketingConsentScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import SignUpCompleteScreen from '../screens/auth/SignUpCompleteScreen';
 import PaymentCompleteScreen from '../screens/payment/PaymentCompleteScreen';
@@ -52,6 +55,9 @@ export type RootStackParamList = {
   TermsAgreement: undefined;
   TermsOfService: undefined;
   PrivacyPolicy: undefined;
+  PrivacyConsent: undefined;
+  LocationTerms: undefined;
+  MarketingConsent: undefined;
   SignUp: undefined;
   SignUpComplete: {
     nickname: string;
@@ -68,7 +74,7 @@ export type RootStackParamList = {
   ReviewPhotos: undefined;
   Search: undefined;
   Notification: undefined;
-  ProductList: undefined;
+  ProductList: { keyword?: string; category?: string } | undefined;
   ProductRegistration: undefined;
   ProductDetail: {
     productId: string;
@@ -164,6 +170,9 @@ const RootNavigator = () => {
         <Stack.Screen name="TermsAgreement" component={TermsAgreementScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="PrivacyConsent" component={PrivacyConsentScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="LocationTerms" component={LocationTermsScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="MarketingConsent" component={MarketingConsentScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="SignUp" component={SignUpScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="SignUpComplete" component={SignUpCompleteScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ animation: 'fade' }} />

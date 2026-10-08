@@ -36,7 +36,7 @@ const SignUpCompleteScreen = ({ navigation, route }: Props) => {
           {/* 홈 화면으로 이동 버튼 */}
           <TouchableOpacity
             style={styles.nextButton}
-            onPress={() => navigation.replace('ProductList')}
+            onPress={() => navigation.replace('Home')}
             activeOpacity={0.8}
           >
             <Text style={styles.nextButtonText}>홈 화면으로 이동</Text>

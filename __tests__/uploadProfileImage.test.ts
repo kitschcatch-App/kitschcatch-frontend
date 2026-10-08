@@ -51,6 +51,21 @@ describe('uploadProfileImage', () => {
     });
   });
 
+  it('서버가 내려준 uploadHeaders를 S3 업로드에 전달한다', async () => {
+    const uploadHeaders = { 'Content-Type': 'image/jpeg', 'x-amz-meta-a': '1' };
+    mockGetProfileImageUploadUrl.mockResolvedValue({
+      data: { success: true, data: { ...presignedResponse.data.data, uploadHeaders } },
+    });
+    mockUploadImagesToS3.mockResolvedValue(['profiles/123/uuid.jpg']);
+
+    await uploadProfileImage(image);
+
+    expect(mockUploadImagesToS3).toHaveBeenCalledWith(
+      [image],
+      [{ uploadUrl: 'https://s3.example.com/upload', imageKey: 'profiles/123/uuid.jpg', uploadHeaders }],
+    );
+  });
+
   it('presigned URL 발급 실패 시 에러를 던진다', async () => {
     mockGetProfileImageUploadUrl.mockResolvedValue({ data: { success: false } });
 
