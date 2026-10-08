@@ -3,7 +3,7 @@
  * 역할: 매장지도 화면의 매장 팝업에서 '상세정보'를 눌렀을 때 진입하며,
  *       매장의 홈/사진/정보/리뷰 탭을 전환하며 보여줍니다.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,9 @@ import PhotoViewerModal, {
 } from '../../components/PhotoViewerModal';
 import SortBottomSheet, { SortOption } from '../../components/SortBottomSheet';
 import { colors } from '../../styles/colors';
+import { storeAPI } from '../../api/apiClient';
+import { useMockMode } from '../../contexts/MockModeContext';
+import { formatWeeklyHours, getOpenStatus, type BusinessHour } from '../../utils/storeHours';
 import HeartIcon from '../../assets/storeheart.svg';
 import HeartFilledIcon from '../../assets/storeheart-m.svg';
 import StarIcon from '../../assets/star.svg';
@@ -191,10 +194,51 @@ const OTHER_STORES = Array.from({ length: 6 }, (_, index) => ({
   image: require('../../assets/product_img.png'),
 }));
 
+type StoreDetail = {
+  address: string;
+  phone: string | null;
+  businessHours: BusinessHour[];
+};
+
 const StoreDetailScreen = ({ navigation, route }: Props) => {
-  const { storeName, latitude, longitude } = route.params;
+  const { storeId, storeName, latitude, longitude } = route.params;
+  const { isMockMode } = useMockMode();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [detail, setDetail] = useState<StoreDetail | null>(null);
+
+  // 매장 상세(주소·전화·영업시간·관심 여부) 조회. Mock 모드에는 해당 데이터가 없어 건너뜀.
+  useEffect(() => {
+    if (isMockMode) return;
+    let cancelled = false;
+    storeAPI
+      .getStore(storeId)
+      .then(res => {
+        if (cancelled) return;
+        const d = res.data.data;
+        setDetail({ address: d.address, phone: d.phone ?? null, businessHours: d.businessHours ?? [] });
+        setIsFavorite(!!d.favorited);
+      })
+      .catch(e => console.error('매장 상세 조회 실패:', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, isMockMode]);
+
+  // 관심 매장 등록/해제: 먼저 화면에 반영하고 실패하면 되돌린다.
+  const toggleFavorite = async () => {
+    const next = !isFavorite;
+    setIsFavorite(next);
+    if (isMockMode) return;
+    try {
+      await (next ? storeAPI.addFavoriteStore(storeId) : storeAPI.removeFavoriteStore(storeId));
+    } catch (e) {
+      console.error('관심 매장 변경 실패:', e);
+      setIsFavorite(!next);
+    }
+  };
+
+  const openStatus = detail ? getOpenStatus(detail.businessHours) : null;
   const [isHoursOpen, setIsHoursOpen] = useState(false);
   const [photoCategory, setPhotoCategory] = useState<PhotoCategory>('all');
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -225,7 +269,7 @@ const StoreDetailScreen = ({ navigation, route }: Props) => {
         rightElement={
           <TouchableOpacity
             style={styles.favoriteButton}
-            onPress={() => setIsFavorite(prev => !prev)}
+            onPress={toggleFavorite}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             {isFavorite ? (
@@ -272,39 +316,55 @@ const StoreDetailScreen = ({ navigation, route }: Props) => {
               ))}
             </ScrollView>
 
-            <View style={styles.hoursRow}>
-              <TimeIcon width={16} height={16} />
-              <Text style={styles.hoursText}>
-                영업 중 <Text style={styles.hoursDivider}>ㅣ</Text> 21:00에
-                영업종료
-              </Text>
-              <TouchableOpacity
-                style={styles.dropdownButton}
-                onPress={() => setIsHoursOpen(prev => !prev)}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                {isHoursOpen ? (
-                  <DropdownReIcon width={14} height={8} />
-                ) : (
-                  <DropdownIcon width={12} height={7} />
+            {openStatus && (
+              <View style={styles.hoursRow}>
+                <TimeIcon width={16} height={16} />
+                <Text style={styles.hoursText}>
+                  {openStatus.status === 'OPEN' ? (
+                    <>
+                      영업 중 <Text style={styles.hoursDivider}>ㅣ</Text>{' '}
+                      {openStatus.closeTime}에 영업종료
+                    </>
+                  ) : openStatus.status === 'CLOSED' ? (
+                    '영업 종료'
+                  ) : (
+                    '영업시간 정보 없음'
+                  )}
+                </Text>
+                {openStatus.status !== 'UNKNOWN' && (
+                  <TouchableOpacity
+                    style={styles.dropdownButton}
+                    onPress={() => setIsHoursOpen(prev => !prev)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    {isHoursOpen ? (
+                      <DropdownReIcon width={14} height={8} />
+                    ) : (
+                      <DropdownIcon width={12} height={7} />
+                    )}
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
-            </View>
-            {isHoursOpen && (
-              <Text style={styles.hoursDetailText}>매일 11:00 ~ 21:00</Text>
+              </View>
+            )}
+            {isHoursOpen && detail && (
+              <Text style={styles.hoursDetailText}>
+                {formatWeeklyHours(detail.businessHours).join('\n')}
+              </Text>
             )}
 
-            <View style={styles.infoRow}>
-              <CallIcon width={16} height={16} />
-              <Text style={styles.infoText}>02-322-2176</Text>
-            </View>
+            {!!detail?.phone && (
+              <View style={styles.infoRow}>
+                <CallIcon width={16} height={16} />
+                <Text style={styles.infoText}>{detail.phone}</Text>
+              </View>
+            )}
 
-            <View style={styles.infoRow}>
-              <MapGrayIcon width={16} height={21} />
-              <Text style={styles.infoText}>
-                서울 마포구 양화로 188 AK&홍대 5층
-              </Text>
-            </View>
+            {!!detail?.address && (
+              <View style={styles.infoRow}>
+                <MapGrayIcon width={16} height={21} />
+                <Text style={styles.infoText}>{detail.address}</Text>
+              </View>
+            )}
 
             <View style={styles.subwayRow}>
               <View style={styles.subwayCapsule}>

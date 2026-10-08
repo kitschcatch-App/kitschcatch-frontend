@@ -12,6 +12,7 @@ export type Coord = { latitude: number; longitude: number };
 
 export type RadiusKm = 1 | 3 | 5;
 export const RADIUS_OPTIONS: RadiusKm[] = [1, 3, 5];
+// 반경이 선택되지 않았을 때(전국 매장 표시) 카메라를 맞추는 기준 반경
 export const DEFAULT_RADIUS_KM: RadiusKm = 3;
 
 // 위치 권한 거부/실패 시 사용할 기본 좌표 (서울시청)
@@ -107,8 +108,8 @@ export function normalizeStores(raw: unknown): Store[] {
       const distanceKm =
         s.distanceKm != null
           ? Number(s.distanceKm)
-          : s.distance != null
-          ? Number(s.distance) / 1000
+          : s.distanceMeters != null || s.distance != null
+          ? Number(s.distanceMeters ?? s.distance) / 1000
           : null;
 
       return {
@@ -122,7 +123,7 @@ export function normalizeStores(raw: unknown): Store[] {
         businessHours: s.businessHours ?? s.operatingHours ?? null,
         distanceKm:
           distanceKm != null && Number.isFinite(distanceKm) ? distanceKm : null,
-        isFavorite: Boolean(s.isFavorite ?? s.isFavoriteStore ?? false),
+        isFavorite: Boolean(s.favorited ?? s.isFavorite ?? s.isFavoriteStore ?? false),
       };
     })
     .filter(
@@ -141,6 +142,44 @@ function normalizeBusinessStatus(s: Record<string, any>): BusinessStatus {
   return 'UNKNOWN';
 }
 
+const NEARBY_PAGE_SIZE = 100;
+// ponytail: 반경 5km 안 매장이 500개를 넘으면 잘림. 필요해지면 지도 영역 기준 조회로 교체.
+const MAX_NEARBY_PAGES = 5;
+
+/** 반경 선택에 따라 조회한다. 반경이 null이면 전국 매장 전체를 조회한다. */
+export function fetchStores(
+  coord: Coord,
+  radiusKm: RadiusKm | null,
+  isMockMode: boolean,
+): Promise<Store[]> {
+  return radiusKm === null
+    ? fetchAllStores(coord, isMockMode)
+    : fetchNearbyStores(coord, radiusKm, isMockMode);
+}
+
+// ponytail: 전국 매장이 1000개를 넘으면 잘림. 필요해지면 지도 영역 기준 조회로 교체.
+const MAX_ALL_PAGES = 10;
+
+/** 전국 매장 목록을 조회한다. (Mock 모드면 가상 매장 전체) */
+export async function fetchAllStores(
+  coord: Coord,
+  isMockMode: boolean,
+): Promise<Store[]> {
+  if (isMockMode) {
+    await mockDelay(300);
+    return normalizeStores(getMockNearbyStores(coord, Infinity).data.data);
+  }
+
+  const all: unknown[] = [];
+  for (let page = 0; page < MAX_ALL_PAGES; page++) {
+    const res = await storeAPI.getAll(page, NEARBY_PAGE_SIZE);
+    const body = res.data?.data ?? res.data;
+    all.push(...(Array.isArray(body) ? body : body?.content ?? []));
+    if (page + 1 >= (body?.totalPages ?? 1)) break;
+  }
+  return normalizeStores(all);
+}
+
 /** 주변 매장 목록을 조회한다. (Mock 모드면 가상 데이터) */
 export async function fetchNearbyStores(
   coord: Coord,
@@ -152,12 +191,19 @@ export async function fetchNearbyStores(
     return normalizeStores(getMockNearbyStores(coord, radiusKm).data.data);
   }
 
-  const res = await storeAPI.getNearby(
-    coord.latitude,
-    coord.longitude,
-    radiusKm,
-  );
-  const body = res.data?.data ?? res.data;
-  const list = Array.isArray(body) ? body : body?.content ?? body?.stores ?? [];
-  return normalizeStores(list);
+  // 서버는 페이지 단위(hasNext)로 내려주므로 다음 페이지가 없을 때까지 모은다.
+  const all: unknown[] = [];
+  for (let page = 0; page < MAX_NEARBY_PAGES; page++) {
+    const res = await storeAPI.getNearby(
+      coord.latitude,
+      coord.longitude,
+      radiusKm,
+      page,
+      NEARBY_PAGE_SIZE,
+    );
+    const body = res.data?.data ?? res.data;
+    all.push(...(Array.isArray(body) ? body : body?.content ?? body?.stores ?? []));
+    if (!body?.hasNext) break;
+  }
+  return normalizeStores(all);
 }

@@ -14,6 +14,8 @@ jest.mock('../components/BottomNav', () => 'BottomNav');
 jest.mock('../api/apiClient', () => ({
   storeAPI: {
     getNearby: jest.fn(),
+    getAll: jest.fn(),
+    getStore: jest.fn(),
   },
 }));
 
@@ -34,7 +36,7 @@ const NEARBY_STORES = [
   },
 ];
 
-const navigation: any = { navigate: jest.fn() };
+const navigation: any = { navigate: jest.fn(), addListener: jest.fn(() => jest.fn()) };
 const route: any = { key: 'StoreMap', name: 'StoreMap' };
 
 const flush = async () => {
@@ -61,6 +63,9 @@ describe('StoreMapScreen', () => {
     (storeAPI.getNearby as jest.Mock).mockResolvedValue({
       data: { data: NEARBY_STORES },
     });
+    (storeAPI.getAll as jest.Mock).mockResolvedValue({
+      data: { data: { content: NEARBY_STORES, page: 0, size: 100, totalPages: 1 } },
+    });
     (Geolocation.getCurrentPosition as jest.Mock).mockImplementation(success =>
       success({ coords: { latitude: 37.5563, longitude: 126.9236 } }),
     );
@@ -80,11 +85,12 @@ describe('StoreMapScreen', () => {
     expect(texts).toContain('매장지도');
   });
 
-  it('위치 권한 요청 후 현재 위치로 주변 매장을 조회한다', async () => {
+  it('처음에는 반경을 선택하지 않고 전국 매장을 조회한다', async () => {
     await render();
 
     expect(Geolocation.getCurrentPosition).toHaveBeenCalled();
-    expect(storeAPI.getNearby).toHaveBeenCalledWith(37.5563, 126.9236, 3);
+    expect(storeAPI.getAll).toHaveBeenCalledWith(0, 100);
+    expect(storeAPI.getNearby).not.toHaveBeenCalled();
   });
 
   it('조회된 매장 수만큼 마커(NaverMapMarkerOverlay)를 표시한다', async () => {
@@ -94,20 +100,39 @@ describe('StoreMapScreen', () => {
     expect(markers).toHaveLength(NEARBY_STORES.length);
   });
 
-  it('반경 칩을 바꾸면 해당 반경으로 다시 조회한다', async () => {
-    const renderer = await render();
-
-    const chip5 = renderer.root.findAllByType(TouchableOpacity).find(node => {
+  const findChip5 = (renderer: ReactTestRenderer.ReactTestRenderer) =>
+    renderer.root.findAllByType(TouchableOpacity).find(node => {
       const label = node.findAllByType(Text)[0]?.props.children;
       return Array.isArray(label) ? label.join('') === '5km' : label === '5km';
     });
 
+  it('반경 칩을 누르면 해당 반경으로 다시 조회한다', async () => {
+    const renderer = await render();
+
     await act(async () => {
-      chip5?.props.onPress();
+      findChip5(renderer)?.props.onPress();
     });
     await flush();
 
-    expect(storeAPI.getNearby).toHaveBeenLastCalledWith(37.5563, 126.9236, 5);
+    expect(storeAPI.getNearby).toHaveBeenLastCalledWith(37.5563, 126.9236, 5, 0, 100);
+  });
+
+  it('선택한 반경 칩을 다시 누르면 해제되어 전국 매장을 다시 조회한다', async () => {
+    const renderer = await render();
+
+    await act(async () => {
+      findChip5(renderer)?.props.onPress();
+    });
+    await flush();
+    expect(storeAPI.getAll).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      findChip5(renderer)?.props.onPress();
+    });
+    await flush();
+
+    expect(storeAPI.getNearby).toHaveBeenCalledTimes(1);
+    expect(storeAPI.getAll).toHaveBeenCalledTimes(2);
   });
 
   it('위치 권한이 거부되면 기본 위치 안내 배너를 보여준다', async () => {
