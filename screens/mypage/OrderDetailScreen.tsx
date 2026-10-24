@@ -2,12 +2,14 @@
  * 화면: 주문 상세 화면 (OrderDetailScreen)
  * 역할: 판매내역에서 상품을 선택했을 때 주문의 진행 상태를 단계별로 보여주는 화면입니다.
  */
-import React, { useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, Image, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './OrderDetailScreen.styles';
+import { orderAPI } from '../../api/apiClient';
+import { CARRIERS, getOrderProgress } from '../../utils/mypage';
 import { colors } from '../../styles/colors';
 import ScreenHeader from '../../components/ScreenHeader';
 import CommonDropdown from '../../components/CommonDropdown';
@@ -30,8 +32,6 @@ const PROCESS_STEPS = [
   { label: '구매 확정', subtitle: '', Icon: Process5Icon },
 ];
 
-const COURIER_OPTIONS = ['A사', 'B사', 'C사', 'D사'];
-
 const parseShipDate = (value: string): SelectedDate | null => {
   const match = value.match(/^(\d{4})\.(\d{2})\.(\d{2})$/);
   if (!match) return null;
@@ -46,19 +46,65 @@ const BUYER_INFO = {
   requestValue: '문 앞에 놓아주세요',
 };
 
+const formatDate = (iso: string) => iso.slice(0, 10).replace(/-/g, '.');
+
+const COURIER_OPTIONS = CARRIERS.map(c => c.label);
+
 const OrderDetailScreen = ({ navigation, route }: Props) => {
-  const { orderNumber, productTitle, productPrice, productImage } = route.params;
-  const currentStepIndex = 0;
-  const currentStep = PROCESS_STEPS[currentStepIndex];
+  const { orderId, orderNumber, productTitle, productPrice, productImage } = route.params;
+  const [order, setOrder] = useState<any>(null);
 
   const [selectedCourier, setSelectedCourier] = useState('택배사 선택');
   const [isCourierExpanded, setCourierExpanded] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [shipDate, setShipDate] = useState('');
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  const loadOrder = useCallback(async () => {
+    try {
+      const res = await orderAPI.getOrder(orderId);
+      setOrder(res.data.data);
+    } catch (e) {
+      console.error('주문 상세 조회 실패:', e);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
+
+  const shipment = order?.shipment ?? null;
+  const progress = getOrderProgress(order ?? { status: 'PAID' });
+  const currentStep = PROCESS_STEPS[Math.max(progress.index, 0)];
+  const title = order?.post?.title ?? productTitle;
+  const price = order?.amount ?? productPrice;
+  const image = order?.post?.thumbnailUrl ? { uri: order.post.thumbnailUrl } : productImage;
 
   const isRegisterEnabled =
-    selectedCourier !== '택배사 선택' && trackingNumber.trim() !== '' && shipDate.trim() !== '';
+    !isRegistering && !shipment && order?.status === 'PAID' && selectedCourier !== '택배사 선택' && trackingNumber.trim() !== '';
+
+  const handleRegisterShipment = async () => {
+    const carrier = CARRIERS.find(c => c.label === selectedCourier);
+    if (!carrier || !isRegisterEnabled) return;
+    setIsRegistering(true);
+    try {
+      await orderAPI.registerShipment(orderId, { carrierCode: carrier.code, trackingNumber: trackingNumber.trim() });
+      await loadOrder();
+    } catch (err: any) {
+      const status = err.response?.status;
+      Alert.alert(
+        '발송 정보 등록',
+        status === 400
+          ? '택배사 또는 운송장 번호(하이픈 없는 숫자 8~40자리)를 확인해주세요.'
+          : status === 409
+            ? '이미 다른 운송장이 등록되었거나 등록할 수 없는 주문 상태예요.'
+            : '등록 중 오류가 발생했어요. 다시 시도해주세요.',
+      );
+    } finally {
+      setIsRegistering(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -66,13 +112,13 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.processContainer}>
-          <Text style={styles.processTitle}>{currentStep.label}</Text>
-          <Text style={styles.processSubtitle}>{currentStep.subtitle}</Text>
+          <Text style={styles.processTitle}>{progress.title ?? currentStep.label}</Text>
+          <Text style={styles.processSubtitle}>{progress.title ? '' : currentStep.subtitle}</Text>
 
           <View style={styles.processStepsRow}>
             {PROCESS_STEPS.map((step, index) => {
               const StepIcon = step.Icon;
-              const isActive = index === currentStepIndex;
+              const isActive = index === progress.index;
               return (
                 <View key={step.label} style={styles.processStep}>
                   <View style={[styles.processCircle, isActive && styles.processCircleActive]}>
@@ -88,14 +134,14 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
         <View style={styles.orderContainer}>
           <View style={styles.orderHeaderRow}>
             <Text style={styles.orderTitle}>주문 상품</Text>
-            <Text style={styles.orderNumberText}>주문번호 {orderNumber}</Text>
+            <Text style={styles.orderNumberText}>주문번호 {order?.orderId ?? orderNumber}</Text>
           </View>
 
           <View style={styles.orderProductRow}>
-            <Image source={productImage} style={styles.orderProductImage} resizeMode="cover" />
+            <Image source={image} style={styles.orderProductImage} resizeMode="cover" />
             <View style={styles.orderProductInfo}>
-              <Text style={styles.orderProductTitle}>{productTitle}</Text>
-              <Text style={styles.orderProductPrice}>{productPrice.toLocaleString()}원</Text>
+              <Text style={styles.orderProductTitle}>{title}</Text>
+              <Text style={styles.orderProductPrice}>{price.toLocaleString()}원</Text>
             </View>
           </View>
         </View>
@@ -135,11 +181,11 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
             <Text style={[styles.formLabel, styles.formLabelTop]}>택배사</Text>
             <CommonDropdown
               label=""
-              value={selectedCourier}
-              options={COURIER_OPTIONS}
+              value={shipment?.carrierName ?? selectedCourier}
+              options={shipment ? [] : COURIER_OPTIONS}
               placeholder="택배사 선택"
               isExpanded={isCourierExpanded}
-              onToggle={() => setCourierExpanded(!isCourierExpanded)}
+              onToggle={() => !shipment && setCourierExpanded(!isCourierExpanded)}
               onSelect={(option) => {
                 setSelectedCourier(option);
                 setCourierExpanded(false);
@@ -152,8 +198,10 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
             <Text style={styles.formLabel}>운송장</Text>
             <View style={styles.formInputWrapper}>
               <CommonInput
-                value={trackingNumber}
+                value={shipment?.trackingNumber ?? trackingNumber}
                 onChangeText={setTrackingNumber}
+                editable={!shipment}
+                keyboardType="number-pad"
                 placeholder="운송장 번호 입력"
                 placeholderTextColor={colors.gray06}
                 containerStyle={styles.formInput}
@@ -169,11 +217,11 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
             <TouchableOpacity
               style={styles.dateInputWrapper}
               activeOpacity={0.7}
-              onPress={() => setDatePickerVisible(true)}
+              onPress={() => !shipment && setDatePickerVisible(true)}
             >
               <View pointerEvents="none">
                 <CommonInput
-                  value={shipDate}
+                  value={shipment?.shippedAt ? formatDate(shipment.shippedAt) : shipDate}
                   editable={false}
                   placeholder="발송일 입력"
                   placeholderTextColor={colors.gray06}
@@ -184,13 +232,16 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={[styles.registerButton, !isRegisterEnabled && styles.registerButtonDisabled]}
-            activeOpacity={0.7}
-            disabled={!isRegisterEnabled}
-          >
-            <Text style={styles.registerButtonText}>발송 정보 등록하기</Text>
-          </TouchableOpacity>
+          {!shipment && (
+            <TouchableOpacity
+              style={[styles.registerButton, !isRegisterEnabled && styles.registerButtonDisabled]}
+              activeOpacity={0.7}
+              disabled={!isRegisterEnabled}
+              onPress={handleRegisterShipment}
+            >
+              <Text style={styles.registerButtonText}>{isRegistering ? '등록 중...' : '발송 정보 등록하기'}</Text>
+            </TouchableOpacity>
+          )}
 
           <Text style={styles.shippingNoticeText}>
             · 운송장만 등록된 상태는 실제 발송상태로 인정하지 않습니다.택배사 집하가 확인되어야 발송상태가 인정됩니다.

@@ -5,15 +5,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './WishlistScreen.styles';
-import HeartIcon from '../../assets/detail_heart.svg';
-import ChatIcon from '../../assets/detail_chat.svg';
 import StarIcon from '../../assets/star.svg';
 import NextIcon from '../../assets/next-b.svg';
 import EmptyState from '../../components/EmptyState';
 import ScreenHeader from '../../components/ScreenHeader';
 import TabBar from '../../components/TabBar';
 import { formatTime } from '../../utils/formatTime';
-import { storeAPI } from '../../api/apiClient';
+import { productAPI, storeAPI } from '../../api/apiClient';
 import { useMockMode } from '../../contexts/MockModeContext';
 import { getOpenStatus, type BusinessHour } from '../../utils/storeHours';
 
@@ -21,11 +19,22 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Wishlist'>;
 
 type TabType = 'product' | 'store';
 
-const MOCK_WISHLIST_PRODUCTS = [
-  { id: '1', name: '원신 클레 피규어', price: 45000, createdAt: '2026-08-20T10:30:00', heartCount: 12, chatCount: 3, image: require('../../assets/product_img.png') },
-  { id: '2', name: '하이큐 아크릴 스탠드', price: 15000, createdAt: '2026-08-21T09:00:00', heartCount: 8, chatCount: 1, image: require('../../assets/product_img.png') },
-  { id: '3', name: '원신 벤티 열쇠고리', price: 12000, createdAt: '2026-08-18T14:20:00', heartCount: 5, chatCount: 0, image: require('../../assets/product_img.png') },
-  { id: '4', name: '주술회전 고죠 피규어', price: 68000, createdAt: '2026-08-15T11:00:00', heartCount: 20, chatCount: 6, image: require('../../assets/product_img.png') },
+type WishlistProduct = {
+  id: number;
+  title: string;
+  price: number;
+  favoritedAt: string;
+  thumbnailUrl?: string | null;
+};
+
+const PRODUCT_PAGE_SIZE = 20;
+
+// Mock 모드용 (서버 응답 GET /users/me/favorite-posts 와 같은 모양)
+const MOCK_WISHLIST_PRODUCTS: WishlistProduct[] = [
+  { id: 1, title: '원신 클레 피규어', price: 45000, favoritedAt: '2026-08-20T10:30:00' },
+  { id: 2, title: '하이큐 아크릴 스탠드', price: 15000, favoritedAt: '2026-08-21T09:00:00' },
+  { id: 3, title: '원신 벤티 열쇠고리', price: 12000, favoritedAt: '2026-08-18T14:20:00' },
+  { id: 4, title: '주술회전 고죠 피규어', price: 68000, favoritedAt: '2026-08-15T11:00:00' },
 ];
 
 type WishlistStore = {
@@ -122,10 +131,54 @@ const WishlistStoreItem = ({
 const WishlistScreen = ({ navigation }: Props) => {
   const { isMockMode } = useMockMode();
   const [activeTab, setActiveTab] = useState<TabType>('product');
+  const [products, setProducts] = useState<WishlistProduct[]>([]);
+  const [productPage, setProductPage] = useState(0);
+  const [productTotalPages, setProductTotalPages] = useState(1);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [stores, setStores] = useState<WishlistStore[]>([]);
   const [storePage, setStorePage] = useState(0);
   const [storeTotalPages, setStoreTotalPages] = useState(1);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
+
+  // 관심 상품 목록: 화면에 들어올 때마다 새로 조회 (상품 상세에서 해제하고 돌아온 경우 반영)
+  useFocusEffect(
+    useCallback(() => {
+      if (isMockMode) {
+        setProducts(MOCK_WISHLIST_PRODUCTS);
+        return;
+      }
+      let cancelled = false;
+      productAPI
+        .getFavoritePosts(0, PRODUCT_PAGE_SIZE)
+        .then(res => {
+          if (cancelled) return;
+          const data = res.data.data;
+          setProducts(data.content);
+          setProductPage(data.page);
+          setProductTotalPages(data.totalPages);
+        })
+        .catch(e => console.error('관심 상품 조회 실패:', e));
+      return () => {
+        cancelled = true;
+      };
+    }, [isMockMode]),
+  );
+
+  const handleLoadMoreProducts = async () => {
+    if (isMockMode || isLoadingProducts || productPage + 1 >= productTotalPages) return;
+    try {
+      setIsLoadingProducts(true);
+      const res = await productAPI.getFavoritePosts(productPage + 1, PRODUCT_PAGE_SIZE);
+      const data = res.data.data;
+      setProducts(prev => [...prev, ...data.content]);
+      setProductPage(data.page);
+      setProductTotalPages(data.totalPages);
+    } catch (e) {
+      console.error('관심 상품 추가 조회 실패:', e);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
 
   // 관심 매장 목록: 화면에 들어올 때마다 새로 조회 (매장 상세에서 해제하고 돌아온 경우 반영)
   useFocusEffect(
@@ -187,41 +240,37 @@ const WishlistScreen = ({ navigation }: Props) => {
           key="product-list"
           style={styles.productList}
           contentContainerStyle={styles.productListContent}
-          data={MOCK_WISHLIST_PRODUCTS}
-          keyExtractor={(item) => item.id}
+          data={products}
+          keyExtractor={(item) => String(item.id)}
           numColumns={2}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMoreProducts}
+          onEndReachedThreshold={0.5}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.productCard}
               onPress={() =>
                 navigation.navigate('ProductDetail', {
-                  productId: item.id,
-                  productName: item.name,
+                  productId: String(item.id),
+                  productName: item.title,
                   productPrice: item.price,
-                  productImageUrl: '',
+                  productImageUrl: item.thumbnailUrl ?? '',
                 })
               }
             >
               <Image
-                source={item.image}
+                source={item.thumbnailUrl ? { uri: item.thumbnailUrl } : require('../../assets/product_img.png')}
                 style={[styles.productImage, { width: productImageSize, height: productImageSize }]}
                 resizeMode="cover"
               />
               <View style={styles.productInfo}>
                 <Text style={styles.productName} numberOfLines={1}>
-                  {item.name}
+                  {item.title}
                 </Text>
                 <Text style={styles.productPrice}>{item.price.toLocaleString()}원</Text>
                 <View style={styles.productMetaContainer}>
-                  <Text style={styles.metaTimeText}>{formatTime(item.createdAt)}</Text>
-                  <View style={styles.metaIconsContainer}>
-                    <HeartIcon width={8} height={8} style={styles.metaIcon} />
-                    <Text style={styles.metaText}>{item.heartCount}</Text>
-                    <ChatIcon width={8} height={8} style={styles.metaIcon} />
-                    <Text style={styles.metaText}>{item.chatCount}</Text>
-                  </View>
+                  <Text style={styles.metaTimeText}>{formatTime(item.favoritedAt)}</Text>
                 </View>
               </View>
             </TouchableOpacity>

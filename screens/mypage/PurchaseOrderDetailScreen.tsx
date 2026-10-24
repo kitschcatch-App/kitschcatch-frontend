@@ -2,12 +2,14 @@
  * 화면: 구매내역 주문 상세 화면 (PurchaseOrderDetailScreen)
  * 역할: 구매내역에서 상품을 선택했을 때 주문의 진행 상태를 단계별로 보여주는 화면입니다.
  */
-import React, { useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, Image, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './PurchaseOrderDetailScreen.styles';
+import { orderAPI } from '../../api/apiClient';
+import { formatDateTime, formatShortDate, getBuyerOrderAction, getOrderProgress } from '../../utils/mypage';
 import ScreenHeader from '../../components/ScreenHeader';
 import DropdownIcon from '../../assets/dropdown.svg';
 import DropdownReIcon from '../../assets/dropdown-re.svg';
@@ -36,12 +38,66 @@ const BUYER_INFO = {
 };
 
 const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
-  const { orderNumber, productTitle, productPrice, productImage } = route.params;
-  const currentStepIndex = 0;
-  const currentStep = PROCESS_STEPS[currentStepIndex];
+  const { orderId, orderNumber, productTitle, productPrice, productImage } = route.params;
+  const [order, setOrder] = useState<any>(null);
   const [isPriceExpanded, setPriceExpanded] = useState(false);
   const [isAddressExpanded, setAddressExpanded] = useState(false);
   const [isShippingExpanded, setShippingExpanded] = useState(false);
+
+  const loadOrder = useCallback(
+    () =>
+      orderAPI
+        .getOrder(orderId)
+        .then(res => setOrder(res.data.data))
+        .catch(e => console.error('주문 상세 조회 실패:', e)),
+    [orderId],
+  );
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
+
+  const action = order ? getBuyerOrderAction(order) : null;
+  const ACTION_LABEL = { CANCEL: '주문취소', REFUND: '반품요청', WITHDRAW: '반품철회' };
+
+  // 취소·환불 요청: 확인 후 호출하고 성공하면 주문을 다시 조회한다.
+  const handleAction = () => {
+    if (!action || !order) return;
+    const run = async () => {
+      try {
+        if (action === 'CANCEL') {
+          const res = await orderAPI.cancelOrder(order.orderId, '단순 변심');
+          if (res.data.data?.processing) Alert.alert('주문취소', '취소 처리 중이에요. 잠시 후 다시 확인해주세요.');
+        } else if (action === 'REFUND') {
+          await orderAPI.requestRefund(order.orderId, order.amount, '단순 변심');
+          Alert.alert('반품요청', '반품 요청이 접수되었어요.');
+        } else {
+          await orderAPI.withdrawRefund(order.orderId, order.refund.refundId);
+        }
+        await loadOrder();
+      } catch (e: any) {
+        console.error('주문 취소/환불 실패:', e);
+        const code = e?.response?.data?.error?.code;
+        Alert.alert(
+          ACTION_LABEL[action],
+          code === 'ORDER_005' || code === 'ORDER_006' || code?.startsWith('REFUND')
+            ? '현재 상태에서는 처리할 수 없는 주문이에요.'
+            : '처리 중 오류가 발생했어요. 다시 시도해주세요.',
+        );
+      }
+    };
+    Alert.alert(ACTION_LABEL[action], `${ACTION_LABEL[action]}을(를) 진행할까요?`, [
+      { text: '아니요', style: 'cancel' },
+      { text: '네', onPress: run },
+    ]);
+  };
+
+  const shipment = order?.shipment ?? null;
+  const progress = getOrderProgress(order ?? { status: 'PAID' });
+  const currentStep = PROCESS_STEPS[Math.max(progress.index, 0)];
+  const title = order?.post?.title ?? productTitle;
+  const price = order?.amount ?? productPrice;
+  const image = order?.post?.thumbnailUrl ? { uri: order.post.thumbnailUrl } : productImage;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -49,13 +105,13 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.processContainer}>
-          <Text style={styles.processTitle}>{currentStep.label}</Text>
-          <Text style={styles.processSubtitle}>{currentStep.subtitle}</Text>
+          <Text style={styles.processTitle}>{progress.title ?? currentStep.label}</Text>
+          <Text style={styles.processSubtitle}>{progress.title ? '' : currentStep.subtitle}</Text>
 
           <View style={styles.processStepsRow}>
             {PROCESS_STEPS.map((step, index) => {
               const StepIcon = step.Icon;
-              const isActive = index === currentStepIndex;
+              const isActive = index === progress.index;
               return (
                 <View key={step.label} style={styles.processStep}>
                   <View style={[styles.processCircle, isActive && styles.processCircleActive]}>
@@ -71,14 +127,14 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
         <View style={styles.orderContainer}>
           <View style={styles.orderHeaderRow}>
             <Text style={styles.orderTitle}>주문 상품</Text>
-            <Text style={styles.orderNumberText}>주문번호 {orderNumber}</Text>
+            <Text style={styles.orderNumberText}>주문번호 {order?.orderId ?? orderNumber}</Text>
           </View>
 
           <View style={styles.orderProductRow}>
-            <Image source={productImage} style={styles.orderProductImage} resizeMode="cover" />
+            <Image source={image} style={styles.orderProductImage} resizeMode="cover" />
             <View style={styles.orderProductInfo}>
-              <Text style={styles.orderProductTitle}>{productTitle}</Text>
-              <Text style={styles.orderProductPrice}>{productPrice.toLocaleString()}원</Text>
+              <Text style={styles.orderProductTitle}>{title}</Text>
+              <Text style={styles.orderProductPrice}>{price.toLocaleString()}원</Text>
             </View>
           </View>
 
@@ -111,7 +167,7 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               onPress={() => setPriceExpanded(!isPriceExpanded)}
             >
-              <Text style={styles.totalPaymentValue}>51,875원</Text>
+              <Text style={styles.totalPaymentValue}>{price.toLocaleString()}원</Text>
               {isPriceExpanded ? (
                 <DropdownReIcon width={12} height={10} style={styles.totalPaymentIcon} />
               ) : (
@@ -124,21 +180,19 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
             <View style={styles.paymentInfoContainer}>
               <View style={styles.paymentInfoRow}>
                 <Text style={styles.paymentInfoLabel}>결제수단</Text>
-                <Text style={styles.paymentInfoValue}>신용카드</Text>
+                <Text style={styles.paymentInfoValue}>{order?.payment?.method === 'CARD' ? '신용카드' : ''}</Text>
               </View>
               <View style={styles.paymentInfoRow}>
                 <Text style={styles.paymentInfoLabel}>결제일시</Text>
-                <Text style={styles.paymentInfoValue}>2026.08.12  14:20</Text>
+                <Text style={styles.paymentInfoValue}>{formatDateTime(order?.payment?.approvedAt)}</Text>
               </View>
             </View>
           )}
         </View>
 
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
-            <Text style={styles.actionButtonText}>
-              {currentStepIndex === 0 ? '주문취소' : '반품요청'}
-            </Text>
+          <TouchableOpacity style={styles.actionButton} activeOpacity={0.7} disabled={!action} onPress={handleAction}>
+            <Text style={styles.actionButtonText}>{action ? ACTION_LABEL[action] : '처리 불가'}</Text>
           </TouchableOpacity>
           <View style={styles.actionButtonDivider} />
           <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
@@ -195,15 +249,15 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
             <View style={styles.shippingInfoRows}>
               <View style={styles.paymentInfoRow}>
                 <Text style={styles.paymentInfoLabel}>택배사</Text>
-                <Text style={styles.paymentInfoValue}>CJ 대한통운</Text>
+                <Text style={styles.paymentInfoValue}>{shipment?.carrierName ?? '발송 전'}</Text>
               </View>
               <View style={styles.paymentInfoRow}>
                 <Text style={styles.paymentInfoLabel}>운송장 번호</Text>
-                <Text style={styles.paymentInfoValue}>123456781234567</Text>
+                <Text style={styles.paymentInfoValue}>{shipment?.trackingNumber ?? '-'}</Text>
               </View>
               <View style={styles.paymentInfoRow}>
                 <Text style={styles.paymentInfoLabel}>발송일</Text>
-                <Text style={styles.paymentInfoValue}>2026.08.15</Text>
+                <Text style={styles.paymentInfoValue}>{shipment?.shippedAt ? formatShortDate(shipment.shippedAt) : '-'}</Text>
               </View>
             </View>
           )}

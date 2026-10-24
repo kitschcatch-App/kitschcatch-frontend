@@ -64,6 +64,16 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.black,
   },
+  nicknameRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  userId: {
+    fontFamily: typography.M,
+    fontSize: 16,
+    color: colors.sub05,
+    marginLeft: 4,
+  },
   introduction: {
     fontFamily: typography.M,
     fontSize: 14,

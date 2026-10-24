@@ -1,25 +1,61 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { styles } from './MyPageScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import NextIcon from '../../assets/next.svg';
 import SettingIcon from '../../assets/setting.svg';
-import StarIcon from '../../assets/star.svg';
 import SalesDetailsIcon from '../../assets/sales_details.svg';
 import PurchaseDetailsIcon from '../../assets/purchase_details.svg';
 import BottomNav from '../../components/BottomNav';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { userAPI } from '../../api/apiClient';
+import { mergeRecentActivities, RecentActivity } from '../../utils/mypage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Mypage'>;
 
-const RECENT_ACTIVITIES = [
-    { id: '1', title: '원신 클레 피규어', type: '구매', date: '26.08.21', image: require('../../assets/product_img.png') },
-    { id: '2', title: '하이큐 아크릴 스탠드', type: '판매', date: '26.08.15', image: require('../../assets/product_img.png') },
-    { id: '3', title: '원신 벤티 열쇠고리', type: '판매', date: '26.08.10', image: require('../../assets/product_img.png') },
-];
+const DEFAULT_PRODUCT_IMAGE = require('../../assets/product_img.png');
+
+interface Profile {
+    username: string;
+    nickname: string;
+    bio: string;
+    profileImageUrl: string | null;
+}
 
 const MyPageScreen = ({ navigation }: Props) => {
+    const [profile, setProfile] = useState<Profile | null>(null);
+    const [followerCount, setFollowerCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
+    const [activityCount, setActivityCount] = useState(0);
+    const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const load = async () => {
+                try {
+                    const me = (await userAPI.getMe()).data.data;
+                    setProfile({ username: me.username, nickname: me.nickname, bio: me.bio ?? '', profileImageUrl: me.profileImageUrl ?? null });
+                    // 개수는 totalElements만 쓰므로 size=1로 조회
+                    const [followers, followings, sales, purchases] = await Promise.all([
+                        userAPI.getFollowers(me.id, 0, 1),
+                        userAPI.getFollowings(me.id, 0, 1),
+                        userAPI.getSaleOrders({ page: 0, size: 3 }),
+                        userAPI.getPurchaseOrders({ page: 0, size: 3 }),
+                    ]);
+                    setFollowerCount(followers.data.data.totalElements);
+                    setFollowingCount(followings.data.data.totalElements);
+                    setActivityCount(sales.data.data.totalElements + purchases.data.data.totalElements);
+                    setRecentActivities(mergeRecentActivities(sales.data.data.content, purchases.data.data.content));
+                } catch (e) {
+                    console.error('마이페이지 조회 실패:', e);
+                }
+            };
+            load();
+        }, []),
+    );
+
     return (
         // 헤더 컨테이너
         <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -40,12 +76,19 @@ const MyPageScreen = ({ navigation }: Props) => {
             >
                 {/* 사용자 프로필 컨테이너 */}
                 <View style={styles.profileContainer}>
-                    <View style={styles.profileImage}></View>
+                    {profile?.profileImageUrl ? (
+                        <Image source={{ uri: profile.profileImageUrl }} style={styles.profileImage} />
+                    ) : (
+                        <View style={styles.profileImage}></View>
+                    )}
                     <View style={styles.profileInfo}>
                         <View style={styles.nameRow}>
                             <View>
-                                <Text style={styles.username}>졸린코끼리</Text>
-                                <Text style={styles.introduction}>원신, 하이큐 굿즈 모아요</Text>
+                                <View style={styles.nicknameRow}>
+                                    <Text style={styles.username}>{profile?.nickname ?? ''}</Text>
+                                    {!!profile?.username && <Text style={styles.userId}>@{profile.username}</Text>}
+                                </View>
+                                <Text style={styles.introduction}>{profile?.bio ?? ''}</Text>
                             </View>
                             <TouchableOpacity
                                 style={styles.NextIcon}
@@ -62,11 +105,11 @@ const MyPageScreen = ({ navigation }: Props) => {
 
                         <View style={styles.followCountContainer}>
                             <TouchableOpacity onPress={() => navigation.navigate('Follow', { initialTab: 'follower' })}>
-                                <Text style={styles.followCount}>팔로우 1</Text>
+                                <Text style={styles.followCount}>팔로우 {followerCount}</Text>
                             </TouchableOpacity>
                             <Text style={styles.followDivider}>|</Text>
                             <TouchableOpacity onPress={() => navigation.navigate('Follow', { initialTab: 'following' })}>
-                                <Text style={styles.followCount}>팔로잉 8</Text>
+                                <Text style={styles.followCount}>팔로잉 {followingCount}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -74,12 +117,7 @@ const MyPageScreen = ({ navigation }: Props) => {
 
                 {/* 나의 거래활동 컨테이너 */}
                 <View style={styles.activityContainer}>
-                    <Text style={styles.activityCount}>거래활동 23회</Text>
-                    <View style={styles.ratingContainer}>
-                        <Text style={styles.ratingLabel}>별점</Text>
-                        <StarIcon width={14} height={14} />
-                        <Text style={styles.ratingScore}>4.1</Text>
-                    </View>
+                    <Text style={styles.activityCount}>거래활동 {activityCount}회</Text>
                 </View>
 
                 {/* 관심목록/판매내역/구매내역 컨테이너 */}
@@ -100,18 +138,18 @@ const MyPageScreen = ({ navigation }: Props) => {
 
                 {/* 최근거래활동 컨테이너 */}
                 <View style={styles.recentActivityContainer}>
-                    {RECENT_ACTIVITIES.length === 0 ? (
+                    {recentActivities.length === 0 ? (
                         <Text style={styles.recentActivityEmpty}>최근 거래활동이 없습니다.</Text>
                     ) : (
-                        RECENT_ACTIVITIES.map((item) => (
+                        recentActivities.map((item) => (
                             <View key={item.id} style={styles.recentActivityItem}>
-                                <Image source={item.image} style={styles.recentActivityImage} resizeMode="cover" />
+                                <Image source={DEFAULT_PRODUCT_IMAGE} style={styles.recentActivityImage} resizeMode="cover" />
                                 <View style={styles.recentActivityInfo}>
                                     <Text style={styles.recentActivityTitle}>{item.title}</Text>
                                     <View style={styles.recentActivityStatusRow}>
                                         <Text style={styles.recentActivityType}>{item.type}</Text>
                                         <Text style={styles.recentActivityDivider}>|</Text>
-                                        <Text style={styles.recentActivityComplete}>거래완료</Text>
+                                        <Text style={styles.recentActivityComplete}>{item.statusLabel}</Text>
                                     </View>
                                 </View>
                                 <Text style={styles.recentActivityDate}>{item.date}</Text>
