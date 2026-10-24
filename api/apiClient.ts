@@ -172,6 +172,36 @@ export const userAPI = {
   // 회원 탈퇴 (진행 중인 거래가 있으면 409)
   withdraw: () =>
     apiClient.delete('/users/me'),
+
+  // 내 정보 조회
+  getMe: () =>
+    apiClient.get('/users/me'),
+
+  // 프로필 수정 (변경할 필드만 전달)
+  updateProfile: (data: { username?: string; nickname?: string; profileImageKey?: string; bio?: string }) =>
+    apiClient.patch('/users/me', data),
+
+  // 내 판매 상품 목록 (status: ON_SALE | RESERVED | SOLD_OUT)
+  getMyPosts: (params?: { status?: string; page?: number; size?: number }) =>
+    apiClient.get('/users/me/posts', { params }),
+
+  // 내 판매 주문 / 구매 주문 내역 (status: PENDING | PAID | CANCELED | REFUNDED | PURCHASE_CONFIRMED)
+  getSaleOrders: (params?: { status?: string; page?: number; size?: number }) =>
+    apiClient.get('/users/me/sale-orders', { params }),
+  getPurchaseOrders: (params?: { status?: string; page?: number; size?: number }) =>
+    apiClient.get('/users/me/purchase-orders', { params }),
+
+  // 팔로우 / 언팔로우
+  follow: (userId: number | string) =>
+    apiClient.post(`/users/${userId}/follow`),
+  unfollow: (userId: number | string) =>
+    apiClient.delete(`/users/${userId}/follow`),
+
+  // 팔로워 / 팔로잉 목록 (totalElements로 개수도 확인)
+  getFollowers: (userId: number, page = 0, size = 20) =>
+    apiClient.get(`/users/${userId}/followers`, { params: { page, size } }),
+  getFollowings: (userId: number, page = 0, size = 20) =>
+    apiClient.get(`/users/${userId}/followings`, { params: { page, size } }),
 };
 
 // ─── 상품 관련 API ──────────────────────────────────────────────────────────────
@@ -188,6 +218,10 @@ export const productAPI = {
   createPost: (data: any, config?: AxiosRequestConfig) =>
     apiClient.post('/posts', data, config),
 
+  // 상품 삭제 (본인 게시글)
+  deletePost: (postId: string | number) =>
+    apiClient.delete(`/posts/${postId}`),
+
   // 상품 수정
   updatePost: (postId: string | number, data: any, config?: AxiosRequestConfig) =>
     apiClient.patch(`/posts/${postId}`, data, config),
@@ -195,6 +229,16 @@ export const productAPI = {
   // S3 Presigned URL 발급 (다중 파일)
   getPresignedUrls: (images: { originalFileName: string; contentType: string }[]) =>
     apiClient.post('/posts/images/presigned-urls', { images }),
+
+  // 내 관심 상품 목록 (페이지네이션)
+  getFavoritePosts: (page = 0, size = 20) =>
+    apiClient.get('/users/me/favorite-posts', { params: { page, size } }),
+
+  // 관심 상품 등록 / 해제
+  addFavoritePost: (postId: string | number) =>
+    apiClient.post(`/posts/${postId}/favorites`),
+  removeFavoritePost: (postId: string | number) =>
+    apiClient.delete(`/posts/${postId}/favorites`),
 };
 
 // ─── 주문 관련 API ──────────────────────────────────────────────────────────────
@@ -206,12 +250,41 @@ export const orderAPI = {
   // 거래 상세 조회 (orderId = ORD-로 시작하는 공개 주문번호, 구매자/판매자만 조회 가능)
   getOrder: (orderNumber: string) =>
     apiClient.get(`/orders/${orderNumber}`),
+
+  // 송장 등록 (판매자, 결제된 주문). carrierCode: CJ_LOGISTICS | HANJIN
+  registerShipment: (orderId: string, data: { carrierCode: string; trackingNumber: string }) =>
+    apiClient.post(`/orders/${orderId}/shipment`, data),
+
+  // 구매 확정 (구매자, 발송 후)
+  confirmPurchase: (orderId: string) =>
+    apiClient.post(`/orders/${orderId}/confirm-purchase`),
+
+  // 주문 취소 (구매자, 발송 전). PG 결과가 불확실하면 응답 processing=true
+  cancelOrder: (orderId: string, reason: string) =>
+    apiClient.post(`/orders/${orderId}/cancel`, { reason }),
+
+  // 전액 환불 요청 (구매자). 발송 후에는 REQUESTED로 접수되어 운영자가 승인
+  requestRefund: (orderId: string, amount: number, reason: string) =>
+    apiClient.post(`/orders/${orderId}/refunds`, { amount, reason }),
+
+  // 환불 요청 철회 (구매자, REQUESTED 상태만)
+  withdrawRefund: (orderId: string, refundId: string) =>
+    apiClient.post(`/orders/${orderId}/refunds/withdraw`, { refundId }),
 };
 
 // ─── 결제 관련 API ──────────────────────────────────────────────────────────────
 export const paymentAPI = {
-  // 결제 승인 (Toss SDK 완료 후 paymentKey 전달)
-  confirmPayment: (paymentId: string, data: { paymentKey: string }) =>
+  // 결제 생성 (주문 번호 기준)
+  createPayment: (data: { orderId: string; amount: number; paymentMethod: string }) =>
+    apiClient.post('/payments', data),
+
+  // 결제 재시도 준비 (새 attemptId·pgOrderId 발급)
+  retryPayment: (paymentId: string, failedAttemptId: string) =>
+    apiClient.post(`/payments/${paymentId}/retry`, { failedAttemptId }),
+
+  // 결제 승인 (Toss SDK 완료 후 paymentKey 전달, 재시도 시 attemptId 포함)
+  // 200 FAILED = 승인 거절, 202 PROCESSING = 결과 불확실 → getPayment로 반복 조회
+  confirmPayment: (paymentId: string, data: { paymentKey: string; attemptId?: string }) =>
     apiClient.post(`/payments/${paymentId}/confirm`, { paymentId, ...data }),
 
   // 결제 상태 조회
