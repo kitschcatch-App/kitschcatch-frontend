@@ -19,6 +19,7 @@ import Config from 'react-native-config';
 import { useMockMode } from '../../contexts/MockModeContext';
 import { orderAPI, paymentAPI } from '../../api/apiClient';
 import { getMockCreateOrder, mockDelay } from '../../api/mockData';
+import { calcSafePaymentFee } from '../../utils/payment';
 
 // Toss JS SDK v1은 successUrl/failUrl이 반드시 https://로 시작해야 한다.
 // onShouldStartLoadWithRequest에서 실제 로드 전에 가로채므로 서버가 없어도 동작한다.
@@ -47,7 +48,8 @@ const PAYMENT_METHODS: PaymentMethod[] = [
 interface WebViewPaymentData {
   html: string;
   paymentId: string;
-  pgOrderId: string;
+  attemptId?: string;   // 승인 요청에 같이 보내는 결제 시도 ID
+  pgOrderId: string;    // 주문번호 (결제 완료 화면 표시용)
   paymentMethod: string; // 결제수단 backendEnum (VIRTUAL_ACCOUNT, TRANSFER 등)
   successUrlBase: string; // 성공 리다이렉트 URL 감지용 prefix
   failUrlBase: string;    // 실패 리다이렉트 URL 감지용 prefix
@@ -107,7 +109,7 @@ const PaymentScreen = ({ route, navigation }: Props) => {
   }, []);
 
   const shippingFee = 5000;
-  const safePaymentFee = 6875; // TODO: mock 값, 실제 안심결제 이용료 API 연동 필요
+  const safePaymentFee = calcSafePaymentFee(productPrice, shippingFee);
   const totalPrice = productPrice + shippingFee + safePaymentFee;
 
   const MEMO_OPTIONS = [
@@ -233,6 +235,8 @@ ${extraParamsJs}
       console.log('[결제] 주문 생성 응답:', JSON.stringify(orderData));
       const orderId: string = orderData.orderId ?? orderData.id;
       const paymentId: string = orderData.paymentId;
+      // Toss에 넘기는 orderId는 서버가 발급한 pgOrderId (없으면 주문번호)
+      const tossOrderId: string = orderData.pgOrderId ?? orderId;
       if (!orderId || !paymentId) {
         throw new Error('주문 ID 또는 결제 ID를 받지 못했습니다.');
       }
@@ -247,7 +251,7 @@ ${extraParamsJs}
       }
       const html = buildTossHtml(
         clientKey,
-        orderId,       // Toss orderId = 내부 주문 ID
+        tossOrderId,
         productPrice,
         productName,
         TOSS_SUCCESS_URL,
@@ -258,6 +262,7 @@ ${extraParamsJs}
       setWebViewPayment({
         html,
         paymentId,
+        attemptId: orderData.attemptId,
         pgOrderId: orderId,
         paymentMethod: method.backendEnum,
         successUrlBase: TOSS_SUCCESS_URL,
@@ -283,10 +288,18 @@ ${extraParamsJs}
       return;
     }
     const paymentKey = parseQueryParam(url, 'paymentKey') || '';
-    paymentAPI.confirmPayment(data.paymentId, { paymentKey })
-      .then(() => paymentAPI.getPayment(data.paymentId))
-      .then((statusRes) => {
-        const status = statusRes.data.data?.status;
+    // 202 PROCESSING(결과 불확실)이면 결제 조회를 반복해 확정 상태를 기다린다.
+    const waitForResult = async () => {
+      const confirmRes = await paymentAPI.confirmPayment(data.paymentId, { paymentKey, attemptId: data.attemptId });
+      let status: string | undefined = confirmRes.data.data?.status;
+      for (let i = 0; i < 5 && status === 'PROCESSING'; i++) {
+        await new Promise<void>(resolve => setTimeout(resolve, 1500));
+        status = (await paymentAPI.getPayment(data.paymentId)).data.data?.status;
+      }
+      return status;
+    };
+    waitForResult()
+      .then((status) => {
         if (status !== 'SUCCESS') {
           Alert.alert('결제 오류', '결제가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.');
           return;
@@ -624,7 +637,7 @@ ${extraParamsJs}
                 결제대금은 구매 확정 전까지 안전하게 보관되며, 구매 확정 후 판매자에게 지급됩니다.
               </Text>
 
-              <Text style={styles.safePaymentFeeText}>안심결제 이용료 2,915원</Text>
+              <Text style={styles.safePaymentFeeText}>안심결제 이용료 {safePaymentFee.toLocaleString()}원</Text>
               <Text style={styles.safePaymentFeeDescText}>상품금액+배송비의 5.5% (최소 800원 / VAT 포함)</Text>
 
               <TouchableOpacity style={styles.safePaymentPolicyRow}>

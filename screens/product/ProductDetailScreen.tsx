@@ -73,6 +73,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   const [retryTrigger, setRetryTrigger] = useState(0);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [tempStatus, setTempStatus] = useState<string>('');
+  const [isFavorite, setIsFavorite] = useState(false);
 
   // 애니메이션 값 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -145,6 +146,35 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
       abortController.abort();
     };
   }, [productId, isMockMode, retryTrigger]);
+
+  // 관심 여부: 상세 응답에 favorited가 없어 관심 목록에서 찾는다.
+  // ponytail: 최근 100개까지만 확인. 상세 응답에 favorited가 생기면 그 값으로 교체.
+  useEffect(() => {
+    if (isMockMode) return;
+    let cancelled = false;
+    productAPI
+      .getFavoritePosts(0, 100)
+      .then(res => {
+        if (!cancelled) setIsFavorite(res.data.data.content.some((p: any) => String(p.id) === String(productId)));
+      })
+      .catch(e => console.warn('관심 여부 조회 실패:', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [productId, isMockMode]);
+
+  // 관심 상품 등록/해제: 먼저 화면에 반영하고 실패하면 되돌린다.
+  const toggleFavorite = async () => {
+    const next = !isFavorite;
+    setIsFavorite(next);
+    if (isMockMode) return;
+    try {
+      await (next ? productAPI.addFavoritePost(productId) : productAPI.removeFavoritePost(productId));
+    } catch (e) {
+      console.error('관심 상품 변경 실패:', e);
+      setIsFavorite(!next);
+    }
+  };
 
   // 화면 진입 애니메이션
   useEffect(() => {
@@ -299,8 +329,8 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Text style={[styles.productName, { flex: 1, marginRight: 10 }]}>{productDetail.name}</Text>
               {!isSeller && (
-                <TouchableOpacity style={styles.wishButton}>
-                  <HeartIcon width={25} height={25} />
+                <TouchableOpacity style={styles.wishButton} onPress={toggleFavorite}>
+                  <HeartIcon width={25} height={25} fill={isFavorite ? '#97F2EC' : 'none'} />
                 </TouchableOpacity>
               )}
             </View>
