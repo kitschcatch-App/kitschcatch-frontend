@@ -288,6 +288,7 @@
 					"-ObjC",
 					"-lc++",
 				);
+				CODE_SIGN_ENTITLEMENTS = kitschatch/kitschatch.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = kitschatch;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -317,6 +318,7 @@
 					"-ObjC",
 					"-lc++",
 				);
+				CODE_SIGN_ENTITLEMENTS = kitschatch/kitschatch.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = kitschatch;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

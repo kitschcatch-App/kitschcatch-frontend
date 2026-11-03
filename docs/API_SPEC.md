@@ -32,41 +32,13 @@
 
 ### 네이버 소셜 로그인 상세 (`POST /api/auth/naver/mobile-login`)
 
-> 앱(`@react-native-seoul/naver-login`)이 네이버 OAuth를 처리해 Access Token을 받은 뒤 서버로 전달합니다.
-> 네이버는 OIDC(ID Token/nonce)를 지원하지 않으므로 카카오와 달리 nonce 발급 단계가 없습니다.
+1. `POST /api/auth/naver/state`로 `{state,authorizationUrl,expiresIn}`을 받습니다.
+2. 서버 URL을 브라우저로 열고 HTTPS 앱 콜백의 code/state를 검증합니다.
+3. `{authorizationCode,state}`를 `POST /api/auth/naver/mobile-login`으로 제출합니다.
+4. 서비스 토큰을 Keychain에 저장하고 `user.profileRegistered`에 따라 프로필 등록 또는 홈으로 이동합니다.
 
-**Request Body**
+`{accessToken}` 직접 제출은 서버 계약과 다릅니다. 앱에 네이버 Client Secret을 주입하지 않습니다. 미설정은 503 AUTH_007, state/코드 검증 실패는 401 AUTH_005입니다. 실패하면 새 state부터 시작합니다. 실제 연결·플랫폼별 제한과 검증 절차는 [NAVER_LOGIN.md](NAVER_LOGIN.md)를 따릅니다.
 
-```json
-{
-  "accessToken": "<네이버 SDK가 발급한 accessToken>"
-}
-```
-
-**서버 처리**
-
-1. `GET https://openapi.naver.com/v1/nid/me` 를 `Authorization: Bearer <accessToken>` 로 호출해 프로필 조회
-   - 응답 예: `{ "response": { "id": "abc123", "email": "user@example.com", "nickname": "...", "profile_image": "..." } }`
-2. 계정 식별: `provider = "NAVER"`, `providerId = response.id` (불변 고유값)
-   - **`email` 은 네이버 '연락처 이메일'로 고유하지 않고 비어 있을 수 있음. 계정 식별·병합에 사용 금지, 프로필 표시용으로만 저장**
-3. `(provider, providerId)` 로 조회되지 않으면 신규 유저 생성 (이후 앱 회원가입 플로우로 닉네임/프로필 입력)
-
-**Response Body** (카카오 모바일 로그인과 동일 형태)
-
-```json
-{
-  "data": {
-    "accessToken": "<앱 JWT access token>",
-    "refreshToken": "<앱 JWT refresh token>",
-    "user": { "id": 1 }
-  }
-}
-```
-
-**에러**
-
-- 유효하지 않은/만료된 네이버 accessToken → `401`
-- 네이버 프로필 API 호출 실패 → `502` 등
 
 ## 회원
 

@@ -1,9 +1,16 @@
 /**
  * 화면: 로그인 화면 (LoginScreen)
- * 역할: 카카오 소셜 로그인을 통해 앱에 접속하고 인증 토큰을 발급받는 화면입니다.
+ * 역할: 카카오·네이버 인증을 통해 앱에 접속하고 인증 토큰을 발급받는 화면입니다.
  */
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  useWindowDimensions,
+  Linking,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -13,8 +20,6 @@ import KakaoIcon from '../../assets/kakao.svg';
 import NaverIcon from '../../assets/naver.svg';
 import AppleIcon from '../../assets/apple.svg';
 import { login, loginWithNewScopes } from '@react-native-seoul/kakao-login';
-import NaverLogin from '@react-native-seoul/naver-login';
-import Config from 'react-native-config';
 import { authAPI } from '../../api/apiClient';
 import { secureStorage } from '../../utils/secureStorage';
 import ErrorView from '../../components/ErrorView';
@@ -22,14 +27,12 @@ import SuccessView from '../../components/SuccessView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
 import { useMockMode } from '../../contexts/MockModeContext';
 
-// 네이버 로그인 SDK 초기화 (앱 실행 시 1회)
-NaverLogin.initialize({
-  appName: Config.NAVER_APP_NAME ?? 'kitschcatch',
-  consumerKey: Config.NAVER_CLIENT_ID ?? '',
-  consumerSecret: Config.NAVER_CLIENT_SECRET ?? '',
-  serviceUrlSchemeIOS: 'kitschcatch', // iOS Info.plist CFBundleURLSchemes와 일치
-  disableNaverAppAuthIOS: true,
-});
+import {
+  startNaverLogin,
+  resumeNaverLogin,
+  cancelNaverLogin,
+  NaverLoginError,
+} from '../../utils/naverOAuth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -39,6 +42,9 @@ const LoginScreen = ({ navigation }: Props) => {
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showMockOptions, setShowMockOptions] = useState(false);
+  const [naverPending, setNaverPending] = useState(false);
+  const [naverNeedsProfile, setNaverNeedsProfile] = useState(false);
+  const naverBusy = useRef(false);
   const { setMockMode } = useMockMode();
 
   const handleKakaoLogin = async () => {
@@ -53,7 +59,9 @@ const LoginScreen = ({ navigation }: Props) => {
 
       if (!idToken) {
         // 카카오 앱 설정에서 "OpenID Connect 활성화"가 꺼져 있으면 idToken이 없을 수 있음
-        throw new Error('카카오 ID Token을 받지 못했습니다. 카카오 개발자 콘솔에서 OpenID Connect 활성화를 확인하세요.');
+        throw new Error(
+          '카카오 ID Token을 받지 못했습니다. 카카오 개발자 콘솔에서 OpenID Connect 활성화를 확인하세요.',
+        );
       }
 
       // Step 3: 백엔드로 ID Token + Nonce 전송 → 앱 JWT(Access/Refresh Token) 발급
@@ -71,13 +79,20 @@ const LoginScreen = ({ navigation }: Props) => {
       if (err.message?.includes('user cancelled')) {
         setErrorMsg(ERROR_MESSAGES.AUTH.CANCELLED);
       } else if (err.isAxiosError && !err.response) {
-        console.error('[Login] 네트워크 에러 (응답 없음):', err.message, err.code);
+        console.error(
+          '[Login] 네트워크 에러 (응답 없음):',
+          err.message,
+          err.code,
+        );
         setErrorMsg(ERROR_MESSAGES.AUTH.NETWORK);
       } else {
         const serverError = err.response?.data;
         console.error('[Login] 카카오 로그인 에러:', err.message);
         console.error('[Login] HTTP 상태 코드:', err.response?.status);
-        console.error('[Login] 서버 에러 응답:', JSON.stringify(serverError, null, 2));
+        console.error(
+          '[Login] 서버 에러 응답:',
+          JSON.stringify(serverError, null, 2),
+        );
         if (serverError?.error?.code === 'AUTH_002') {
           // 이메일 동의 미완료 → 동의 팝업 표시 후 새 nonce로 재로그인
           try {
@@ -86,15 +101,27 @@ const LoginScreen = ({ navigation }: Props) => {
             const retryNonce: string = retryNonceRes.data.data.nonce;
             const retryToken = await login({ nonce: retryNonce });
             if (!retryToken.idToken) throw new Error('idToken 없음');
-            const retryResponse = await authAPI.loginWithKakao(retryToken.idToken, retryNonce);
+            const retryResponse = await authAPI.loginWithKakao(
+              retryToken.idToken,
+              retryNonce,
+            );
             const { accessToken, refreshToken } = retryResponse.data.data;
             await secureStorage.setItem('accessToken', accessToken);
             await secureStorage.setItem('refreshToken', refreshToken);
-            await secureStorage.setItem('userId', String(retryResponse.data.data.user.id));
+            await secureStorage.setItem(
+              'userId',
+              String(retryResponse.data.data.user.id),
+            );
             setShowSuccess(true);
           } catch (retryErr: any) {
-            console.error('[Login] 이메일 동의 재시도 에러:', retryErr?.message);
-            console.error('[Login] 재시도 에러 응답:', JSON.stringify(retryErr?.response?.data, null, 2));
+            console.error(
+              '[Login] 이메일 동의 재시도 에러:',
+              retryErr?.message,
+            );
+            console.error(
+              '[Login] 재시도 에러 응답:',
+              JSON.stringify(retryErr?.response?.data, null, 2),
+            );
             setErrorMsg(ERROR_MESSAGES.AUTH.EMAIL_CONSENT);
           }
         } else if (serverError?.error?.code === 'AUTH_004') {
@@ -106,44 +133,71 @@ const LoginScreen = ({ navigation }: Props) => {
     }
   };
 
-  const handleNaverLogin = async () => {
+  const saveNaverSession = async (
+    response: Awaited<ReturnType<typeof authAPI.loginWithNaver>>,
+  ) => {
+    const { accessToken, refreshToken, user } = response.data.data;
     try {
-      // Step 1: 네이버 SDK 로그인 → Access Token 발급
-      const result = await NaverLogin.login();
-
-      if (!result.isSuccess || !result.successResponse) {
-        if (result.failureResponse?.isCancel) {
-          setErrorMsg(ERROR_MESSAGES.AUTH.CANCELLED);
-        } else {
-          console.error('[Login] 네이버 SDK 로그인 실패:', result.failureResponse?.message);
-          setErrorMsg(ERROR_MESSAGES.AUTH.FAILED);
-        }
-        return;
-      }
-
-      // Step 2: 백엔드로 네이버 Access Token 전송 → 앱 JWT(Access/Refresh Token) 발급
-      const response = await authAPI.loginWithNaver(result.successResponse.accessToken);
-      const { accessToken, refreshToken } = response.data.data;
-
-      // Step 3: 발급받은 토큰을 기기에 저장
       await secureStorage.setItem('accessToken', accessToken);
       await secureStorage.setItem('refreshToken', refreshToken);
-      await secureStorage.setItem('userId', String(response.data.data.user.id));
-
-      // Step 4: 메인 화면으로 이동
-      setShowSuccess(true);
-    } catch (err: any) {
-      if (err.isAxiosError && !err.response) {
-        console.error('[Login] 네트워크 에러 (응답 없음):', err.message, err.code);
-        setErrorMsg(ERROR_MESSAGES.AUTH.NETWORK);
-      } else {
-        console.error('[Login] 네이버 로그인 에러:', err.message);
-        console.error('[Login] HTTP 상태 코드:', err.response?.status);
-        console.error('[Login] 서버 에러 응답:', JSON.stringify(err.response?.data, null, 2));
-        setErrorMsg(ERROR_MESSAGES.AUTH.FAILED);
-      }
+      await secureStorage.setItem('userId', String(user.id));
+    } catch (error) {
+      await Promise.all(
+        ['accessToken', 'refreshToken', 'userId'].map(key =>
+          secureStorage.removeItem(key),
+        ),
+      );
+      throw error;
+    }
+    setNaverNeedsProfile(user.profileRegistered === false);
+    setShowSuccess(true);
+  };
+  const showNaverError = (error: unknown) => {
+    setErrorMsg(
+      error instanceof NaverLoginError && error.kind === 'cancelled'
+        ? ERROR_MESSAGES.AUTH.CANCELLED
+        : ERROR_MESSAGES.AUTH.FAILED,
+    );
+  };
+  const handleNaverLogin = async () => {
+    if (naverBusy.current) {
+      cancelNaverLogin();
+      return;
+    }
+    naverBusy.current = true;
+    setNaverPending(true);
+    try {
+      await saveNaverSession(await startNaverLogin());
+    } catch (error) {
+      showNaverError(error);
+    } finally {
+      naverBusy.current = false;
+      setNaverPending(false);
     }
   };
+  useEffect(() => {
+    let active = true;
+    Linking.getInitialURL()
+      .then(async url => {
+        if (!active || !url || naverBusy.current) return;
+        naverBusy.current = true;
+        try {
+          const response = await resumeNaverLogin(url);
+          if (active && response) await saveNaverSession(response);
+        } catch (error) {
+          if (active) showNaverError(error);
+        } finally {
+          naverBusy.current = false;
+        }
+      })
+      .catch(() => {
+        if (active) setErrorMsg(ERROR_MESSAGES.AUTH.FAILED);
+      });
+    return () => {
+      active = false;
+      cancelNaverLogin();
+    };
+  }, []);
 
   const handleAppleLogin = async () => {
     // TODO: Apple 로그인 연동
@@ -173,23 +227,42 @@ const LoginScreen = ({ navigation }: Props) => {
       <View style={styles.container}>
         {/* 중앙 상단 영역: 로고, 타이틀, 서브타이틀 */}
         <View style={styles.contentContainer}>
-          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          <Image
+            source={require('../../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <KitschcatchIcon width={119} height={48} />
           <Text style={styles.subtitle}>굿즈를 캐치하는 즐거운 순간</Text>
         </View>
 
         {/* 하단 영역: 로그인 버튼 */}
-        <TouchableOpacity style={styles.kakaoButton} onPress={handleKakaoLogin} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.kakaoButton}
+          disabled={naverPending}
+          onPress={handleKakaoLogin}
+          activeOpacity={0.8}
+        >
           <KakaoIcon width={20} height={18} style={styles.kakaoIcon} />
           <Text style={styles.kakaoButtonText}>카카오로 시작하기</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.naverButton} onPress={handleNaverLogin} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.naverButton}
+          onPress={handleNaverLogin}
+          activeOpacity={0.8}
+        >
           <NaverIcon width={18} height={18} style={styles.naverIcon} />
-          <Text style={styles.naverButtonText}>네이버로 시작하기</Text>
+          <Text style={styles.naverButtonText}>
+            {naverPending ? '네이버 로그인 취소' : '네이버로 시작하기'}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.appleButton} onPress={handleAppleLogin} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.appleButton}
+          onPress={handleAppleLogin}
+          activeOpacity={0.8}
+        >
           <AppleIcon width={20} height={26} style={styles.appleIcon} />
           <Text style={styles.appleButtonText}>Apple로 시작하기</Text>
         </TouchableOpacity>
@@ -255,7 +328,9 @@ const LoginScreen = ({ navigation }: Props) => {
         title="로그인이 완료되었습니다."
         onDismiss={() => {
           setShowSuccess(false);
-          navigation.replace('ProductList');
+          navigation.replace(
+            naverNeedsProfile ? 'TermsAgreement' : 'ProductList',
+          );
         }}
       />
     </SafeAreaView>

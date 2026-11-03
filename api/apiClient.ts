@@ -138,10 +138,10 @@ export const authAPI = {
   loginWithKakao: (idToken: string, nonce: string) =>
     authClient.post('/auth/kakao/mobile-login', { idToken, nonce }),
 
-  // 네이버 소셜 로그인: 네이버 SDK Access Token 검증 후 JWT 발급
-  // 네이버는 OIDC 미지원이라 nonce 단계 없이 accessToken만 전송
-  loginWithNaver: (accessToken: string) =>
-    authClient.post('/auth/naver/mobile-login', { accessToken }),
+  // 서버 state와 브라우저 콜백 인증 코드로 서비스 토큰을 발급받는다.
+  getNaverState: () => authClient.post('/auth/naver/state'),
+  loginWithNaver: (authorizationCode: string, state: string) =>
+    authClient.post('/auth/naver/mobile-login', { authorizationCode, state }),
 };
 
 // ─── 회원 관련 API ──────────────────────────────────────────────────────────────
