@@ -79,7 +79,7 @@ const EditProfileScreen = ({ navigation }: Props) => {
       setIsDuplicateChecked(!isDuplicate);
       setIsDuplicateAvailable(!isDuplicate);
       setDuplicateMessage(isDuplicate ? '이미 사용중인 아이디입니다' : '사용 가능한 아이디입니다');
-    } catch (error) {
+    } catch {
       setIsDuplicateChecked(false);
       setIsDuplicateAvailable(false);
       setDuplicateMessage('중복확인 중 오류가 발생했어요. 다시 시도해주세요');

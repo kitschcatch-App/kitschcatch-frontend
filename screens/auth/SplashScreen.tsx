@@ -24,7 +24,7 @@ const SplashScreen = ({ navigation }: Props) => {
 
     const checkAndNavigate = async () => {
       // AsyncStorage에서 토큰 존재 여부 확인 → 있으면 메인, 없으면 로그인
-      const token = await secureStorage.getItem('accessToken');
+      await secureStorage.getItem('accessToken');
 
       if (!isMounted) return;
 

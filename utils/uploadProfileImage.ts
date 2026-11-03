@@ -3,6 +3,7 @@ import { userAPI } from '../api/apiClient';
 import { uploadImagesToS3 } from './uploadImages';
 
 export async function uploadProfileImage(image: Asset): Promise<string> {
+  if (!image.uri) throw new Error('프로필 이미지 파일을 찾을 수 없습니다.');
   const presignedRes = await userAPI.getProfileImageUploadUrl({
     fileName: image.fileName || `profile_${Date.now()}.jpg`,
     contentType: image.type || 'image/jpeg',
@@ -13,6 +14,6 @@ export async function uploadProfileImage(image: Asset): Promise<string> {
   }
 
   const { uploadUrl, imageKey } = presignedRes.data.data;
-  const [profileImageKey] = await uploadImagesToS3([image], [{ uploadUrl, imageKey }]);
+  const [profileImageKey] = await uploadImagesToS3([{ ...image, uri: image.uri }], [{ uploadUrl, imageKey }]);
   return profileImageKey;
 }
