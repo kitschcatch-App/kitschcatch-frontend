@@ -6,11 +6,11 @@
 
 Android MainActivity의 HTTPS intent filter와 개발 서버 `/.well-known/assetlinks.json`을 연결했다. 서버 연결 내용은 `naver-development-nginx.conf`다. package `com.kitschcatch`, 인증서는 저장소의 Android debug.keystore를 keytool로 확인한 값이다. **공개 개발 키에 대한 개발 서버 설정이며 출시용 연결을 의미하지 않는다.** 출시에는 별도 도메인·배포 서명 인증서 및 네이버 검수가 필요하다. debug 키가 다른 로컬 빌드는 일치하는 인증서 지문을 별도로 등록해야 한다.
 
-iOS AppDelegate는 Universal Link를 React Native로 전달하고 Associated Domains entitlement를 사용한다. 현재 저장소에는 Apple Developer Team ID가 없으므로 도메인의 apple-app-site-association은 아직 구성하지 않았다. 실제 Team ID와 번들 ID에 맞는 서버 파일 및 서명 프로비저닝을 완료해야 한다. 가짜 Team ID를 등록하지 않는다.
+이번 작업 대상은 Android 개발 앱이다. iOS 네이티브 콜백 및 Associated Domains 설정은 포함하지 않는다.
 
 개발 환경 파일에는 `API_BASE_URL=https://dev-kitschcatch.p-e.kr/api`와 카카오·지도 등 필요한 기존 설정을 넣는다. 네이버 client ID/secret은 서버 설정만 사용한다. .env는 커밋하지 않는다.
 
-검증: 전체 Jest, TypeScript, ESLint를 실행한다. 기기에서는 앱 재빌드 후 Android App Links가 verified인지 확인하고 네이버 로그인→앱 복귀→서비스 토큰→내 정보 200을 검증한다. 취소·두 번 탭·종료 후 재개·만료도 확인한다. 현재 작업 환경에는 adb/Android SDK 및 iOS 시뮬레이터가 없어 실제 기기 검증을 수행하지 못했다.
+검증: 전체 Jest, TypeScript, ESLint를 실행한다. 기기에서는 앱 재빌드 후 Android App Links가 verified인지 확인하고 네이버 로그인→앱 복귀→서비스 토큰→내 정보 200을 검증한다. 취소·두 번 탭·종료 후 재개·만료도 확인한다. 현재 작업 환경에는 adb/Android SDK가 없어 실제 기기 검증을 수행하지 못했다.
 
 참고: https://reactnative.dev/docs/0.85/linking 및 https://developer.android.com/training/app-links/verify-applinks.
 

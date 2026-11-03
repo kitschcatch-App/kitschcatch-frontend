@@ -1,4 +1,3 @@
-// 앱 실행과 HTTPS 로그인 콜백을 React Native로 전달한다.
 import UIKit
 import React
 import React_RCTAppDelegate
@@ -6,10 +5,6 @@ import ReactAppDependencyProvider
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-  func application(_ application: UIApplication, continue userActivity: NSUserActivity,
-    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-    RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
-  }
   var window: UIWindow?
 
   var reactNativeDelegate: ReactNativeDelegate?
