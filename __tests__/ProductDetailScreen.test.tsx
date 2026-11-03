@@ -105,6 +105,14 @@ const mockPost = {
 // setTimeout(0)으로 모든 microtask를 드레인한 뒤 act가 state 업데이트를 처리하도록 한다
 const flushPromises = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
+// 화면을 테스트마다 해제해 FlatList의 지연 렌더링이 다음 테스트로 넘어가지 않게 한다.
+const renderedScreens: ReactTestRenderer.ReactTestRenderer[] = [];
+afterEach(async () => {
+  await act(async () => {
+    renderedScreens.splice(0).forEach(renderer => renderer.unmount());
+  });
+});
+
 // 컴포넌트를 렌더하고 모든 비동기 effect(API 호출, AsyncStorage)가 완료될 때까지 대기
 const renderScreen = async () => {
   let renderer!: ReactTestRenderer.ReactTestRenderer;
@@ -114,6 +122,7 @@ const renderScreen = async () => {
     );
     await flushPromises();
   });
+  renderedScreens.push(renderer);
   return renderer;
 };
 
