@@ -25,6 +25,7 @@ import MarketingConsentScreen from '../screens/auth/MarketingConsentScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import SignUpCompleteScreen from '../screens/auth/SignUpCompleteScreen';
 import PaymentCompleteScreen from '../screens/payment/PaymentCompleteScreen';
+import SafePaymentTermsScreen from '../screens/payment/SafePaymentTermsScreen';
 import ApiTestScreen from '../screens/dev/ApiTestScreen';
 import ChatListScreen from '../screens/chat/ChatListScreen';
 import SearchScreen from '../screens/home/SearchScreen';
@@ -41,6 +42,7 @@ import SalesHistoryScreen from '../screens/mypage/SalesHistoryScreen';
 import PurchaseHistoryScreen from '../screens/mypage/PurchaseHistoryScreen';
 import OrderDetailScreen from '../screens/mypage/OrderDetailScreen';
 import PurchaseOrderDetailScreen from '../screens/mypage/PurchaseOrderDetailScreen';
+import ReturnRequestScreen from '../screens/mypage/ReturnRequestScreen';
 import OtherUserProfileScreen from '../screens/mypage/OtherUserProfileScreen';
 import UserProductsScreen from '../screens/mypage/UserProductsScreen';
 import BlockUserScreen from '../screens/mypage/BlockUserScreen';
@@ -51,6 +53,19 @@ import LogoutScreen from '../screens/settings/LogoutScreen';
 import WithdrawScreen from '../screens/settings/WithdrawScreen';
 import AddressManagementScreen from '../screens/settings/AddressManagementScreen';
 import BlockedUsersScreen from '../screens/settings/BlockedUsersScreen';
+import InquiryHistoryScreen from '../screens/mypage/InquiryHistoryScreen';
+import InquiryScreen from '../screens/mypage/InquiryScreen';
+import CustomerCenterScreen from '../screens/mypage/CustomerCenterScreen';
+import DepositPolicyScreen from '../screens/settings/DepositPolicyScreen';
+import PaymentLimitPolicyScreen from '../screens/settings/PaymentLimitPolicyScreen';
+import TradePolicyScreen from '../screens/settings/TradePolicyScreen';
+import NotificationPolicyScreen from '../screens/settings/NotificationPolicyScreen';
+import WithdrawalPolicyScreen from '../screens/settings/WithdrawalPolicyScreen';
+import IpPolicyScreen from '../screens/settings/IpPolicyScreen';
+import OperationPolicyScreen from '../screens/settings/OperationPolicyScreen';
+import ProhibitedItemsPolicyScreen from '../screens/settings/ProhibitedItemsPolicyScreen';
+import TermsAndPoliciesScreen from '../screens/settings/TermsAndPoliciesScreen';
+import NoticeScreen from '../screens/mypage/NoticeScreen';
 import NotificationSettingsScreen from '../screens/settings/NotificationSettingsScreen';
 import AddressRegistrationScreen from '../screens/settings/AddressRegistrationScreen';
 
@@ -59,6 +74,7 @@ export type RootStackParamList = {
   Login: undefined;
   TermsAgreement: undefined;
   TermsOfService: undefined;
+  SafePaymentTerms: undefined;
   PrivacyPolicy: undefined;
   PrivacyConsent: undefined;
   LocationTerms: undefined;
@@ -104,6 +120,8 @@ export type RootStackParamList = {
   Chat: {
     chatRoomId: number;
     opponentNickname: string;
+    /** 있으면 헤더의 더보기(차단·신고) 메뉴를 보여준다 */
+    opponentId?: number;
   };
   Payment: {
     productId: string;
@@ -125,6 +143,19 @@ export type RootStackParamList = {
   Withdraw: undefined;
   AddressManagement: undefined;
   BlockedUsers: undefined;
+  Notice: undefined;
+  TermsAndPolicies: undefined;
+  ProhibitedItemsPolicy: undefined;
+  OperationPolicy: undefined;
+  IpPolicy: undefined;
+  WithdrawalPolicy: undefined;
+  NotificationPolicy: undefined;
+  TradePolicy: undefined;
+  PaymentLimitPolicy: undefined;
+  DepositPolicy: undefined;
+  CustomerCenter: undefined;
+  Inquiry: undefined;
+  InquiryHistory: undefined;
   NotificationSettings: undefined;
   AddressRegistration:
     | {
@@ -162,6 +193,7 @@ export type RootStackParamList = {
     productPrice: number;
     productImage: ImageSourcePropType;
   };
+  ReturnRequest: { orderId: string; amount: number };
   OtherUserProfile: { userId: number };
   UserProducts: { userId: number; nickname: string };
   /** hasActiveTrade: 차단 대상과 진행 중인 거래가 있으면 거래 유지 안내 팝업을 띄운다 */
@@ -179,7 +211,7 @@ const RootNavigator = () => {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
         <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'none' }} />
         <Stack.Screen name="TermsAgreement" component={TermsAgreementScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ animation: 'fade' }} />
@@ -199,6 +231,19 @@ const RootNavigator = () => {
         <Stack.Screen name="Withdraw" component={WithdrawScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="AddressManagement" component={AddressManagementScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Notice" component={NoticeScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="TermsAndPolicies" component={TermsAndPoliciesScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="ProhibitedItemsPolicy" component={ProhibitedItemsPolicyScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="OperationPolicy" component={OperationPolicyScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="IpPolicy" component={IpPolicyScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="WithdrawalPolicy" component={WithdrawalPolicyScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="NotificationPolicy" component={NotificationPolicyScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="TradePolicy" component={TradePolicyScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="PaymentLimitPolicy" component={PaymentLimitPolicyScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="DepositPolicy" component={DepositPolicyScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="CustomerCenter" component={CustomerCenterScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Inquiry" component={InquiryScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="InquiryHistory" component={InquiryHistoryScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="AddressRegistration" component={AddressRegistrationScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ animation: 'fade' }} />
@@ -208,7 +253,8 @@ const RootNavigator = () => {
         <Stack.Screen name="PurchaseHistory" component={PurchaseHistoryScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="PurchaseOrderDetail" component={PurchaseOrderDetailScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Search" component={SearchScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="ReturnRequest" component={ReturnRequestScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Search"component={SearchScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Notification" component={NotificationScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductList" component={ProductListScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'fade' }} />
@@ -218,6 +264,7 @@ const RootNavigator = () => {
         <Stack.Screen name="ProductRegistration" component={ProductRegistrationScreen} />
         <Stack.Screen name="ProductEdit" component={ProductEditScreen} />
         <Stack.Screen name="PaymentComplete" component={PaymentCompleteScreen} />
+        <Stack.Screen name="SafePaymentTerms" component={SafePaymentTermsScreen} />
         <Stack.Screen name="OtherUserProfile" component={OtherUserProfileScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="UserProducts" component={UserProductsScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="BlockUser" component={BlockUserScreen} options={{ animation: 'fade' }} />
