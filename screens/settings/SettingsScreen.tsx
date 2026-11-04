@@ -49,6 +49,16 @@ const SettingsScreen = ({ navigation }: Props) => {
     }
   };
 
+  const handleSupportMenuPress = (id: string) => {
+    if (id === 'notice') {
+      navigation.navigate('Notice');
+    } else if (id === 'customerCenter') {
+      navigation.navigate('CustomerCenter');
+    } else if (id === 'termsAndPolicies') {
+      navigation.navigate('TermsAndPolicies');
+    }
+  };
+
   const handleAccountMenuPress = (id: string) => {
     if (id === 'logout') {
       navigation.navigate('Logout');
@@ -135,7 +145,12 @@ const SettingsScreen = ({ navigation }: Props) => {
 
           <View style={styles.menuList}>
             {SUPPORT_MENUS.map((menu) => (
-              <TouchableOpacity key={menu.id} style={styles.menuItem} activeOpacity={0.7}>
+              <TouchableOpacity
+                key={menu.id}
+                style={styles.menuItem}
+                activeOpacity={0.7}
+                onPress={() => handleSupportMenuPress(menu.id)}
+              >
                 <Text style={[styles.menuTitle, menu.titleStyle]}>{menu.title}</Text>
                 <NextIcon width={7} height={20} />
               </TouchableOpacity>

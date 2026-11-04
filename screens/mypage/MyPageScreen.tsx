@@ -181,15 +181,15 @@ const MyPageScreen = ({ navigation }: Props) => {
 
                 {/* 공지사항/알림설정/고객센터 컨테이너 */}
                 <View style={styles.menuListContainer}>
-                    <TouchableOpacity style={styles.menuListItem}>
+                    <TouchableOpacity style={styles.menuListItem} onPress={() => navigation.navigate('Notice')}>
                         <Text style={styles.menuListTitle}>공지사항</Text>
                         <NextIcon width={7} height={20} />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.menuListItem}>
+                    <TouchableOpacity style={styles.menuListItem} onPress={() => navigation.navigate('NotificationSettings')}>
                         <Text style={styles.menuListTitle}>알림설정</Text>
                         <NextIcon width={7} height={20} />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.menuListItem}>
+                    <TouchableOpacity style={styles.menuListItem} onPress={() => navigation.navigate('CustomerCenter')}>
                         <Text style={styles.menuListTitle}>고객센터</Text>
                         <NextIcon width={7} height={20} />
                     </TouchableOpacity>
