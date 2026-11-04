@@ -9,6 +9,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import BottomNav from '../../components/BottomNav';
+import BouncingView from '../../components/BouncingView';
+import ConfirmView from '../../components/ConfirmView';
+import SuccessView from '../../components/SuccessView';
 import ChatIcon from '../../assets/chat.svg';
 import { styles } from './ChatListScreen.styles';
 import { chatAPI } from '../../api/apiClient';
@@ -43,24 +46,36 @@ const formatLastMessageTime = (isoString: string | null): string => {
   return `${diffDays}일 전`;
 };
 
+// ponytail: 채팅방 삭제 API가 없어 앱 실행 중에만 목록에서 숨긴다(재조회해도 유지). API가 생기면 호출로 교체.
+const deletedRoomIds = new Set<number>();
+
+// 빈 상태 아이콘: 마운트 시 한 번 위로 튀어 오름
+const BouncingChatIcon = () => (
+  <BouncingView style={styles.emptyImage}>
+    <ChatIcon width={144} height={120} />
+  </BouncingView>
+);
+
 const ChatListScreen = ({ navigation }: Props) => {
   const { isMockMode } = useMockMode();
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       const fetch = async () => {
         try {
-          setIsLoading(true);
+          // 스피너는 첫 조회(초기값 true)에만. 재진입 시엔 기존 화면을 유지한 채 조용히 갱신
           if (isMockMode) {
             await mockDelay(300);
-            setChatRooms(MOCK_CHAT_ROOMS.data);
+            setChatRooms(MOCK_CHAT_ROOMS.data.filter(r => !deletedRoomIds.has(r.chatRoomId)));
           } else {
             const res = await chatAPI.getChatRooms();
             // 서버가 { data: [...] } 래퍼를 사용하는 경우도 처리
             const rooms = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-            setChatRooms(rooms);
+            setChatRooms(rooms.filter((r: ChatRoom) => !deletedRoomIds.has(r.chatRoomId)));
           }
         } catch (e) {
           console.error('채팅 목록 조회 실패:', e);
@@ -81,7 +96,9 @@ const ChatListScreen = ({ navigation }: Props) => {
         onPress={() => navigation.navigate('Chat', {
           chatRoomId: item.chatRoomId,
           opponentNickname: item.opponentNickname,
+          opponentId: item.opponentId,
         })}
+        onLongPress={() => setDeleteTargetId(item.chatRoomId)}
         activeOpacity={0.8}
       >
         <View style={styles.profileImage} />
@@ -97,18 +114,12 @@ const ChatListScreen = ({ navigation }: Props) => {
               {item.lastMessageContent ?? ''}
             </Text>
             {item.lastMessageAt && (
-              <Text style={[styles.dotText, !isUnread && styles.timeTextRightAligned]}>
-                {' '}
-                ·{' '}
-              </Text>
-            )}
-            {item.lastMessageAt && (
               <Text style={[styles.timeText, !isUnread && styles.timeTextRead]}>
-                {formatLastMessageTime(item.lastMessageAt)}
+                · {formatLastMessageTime(item.lastMessageAt)}
               </Text>
             )}
             {isUnread && (
-              <View style={[styles.unreadBadge, styles.timeTextRightAligned]}>
+              <View style={[styles.unreadBadge, styles.badgeRightAligned]}>
                 <Text style={styles.unreadBadgeText}>{item.unreadCount}</Text>
               </View>
             )}
@@ -121,7 +132,7 @@ const ChatListScreen = ({ navigation }: Props) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>채팅</Text>
+        <Text style={styles.headerTitle}>채팅 목록</Text>
         {isMockMode && (
           <TouchableOpacity
             style={styles.mockToggleButton}
@@ -139,7 +150,7 @@ const ChatListScreen = ({ navigation }: Props) => {
         <ActivityIndicator style={{ flex: 1 }} />
       ) : chatRooms.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <ChatIcon width={144} height={120} style={styles.emptyImage} />
+          <BouncingChatIcon />
           <Text style={styles.emptyTitle}>아직 채팅이 없어요!</Text>
           <Text style={styles.emptySubtitle}>
             관심있는 상품을 둘러보고 판매자와 대화를 시작해보세요.
@@ -154,6 +165,26 @@ const ChatListScreen = ({ navigation }: Props) => {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <ConfirmView
+        visible={deleteTargetId !== null}
+        title="채팅을 삭제하시겠습니까?"
+        onCancel={() => setDeleteTargetId(null)}
+        onConfirm={() => {
+          if (deleteTargetId !== null) {
+            deletedRoomIds.add(deleteTargetId);
+            setChatRooms(prev => prev.filter(r => r.chatRoomId !== deleteTargetId));
+          }
+          setDeleteTargetId(null);
+          setShowDeleteSuccess(true);
+        }}
+      />
+
+      <SuccessView
+        visible={showDeleteSuccess}
+        title="채팅이 삭제되었습니다."
+        onDismiss={() => setShowDeleteSuccess(false)}
+      />
 
       <BottomNav />
     </SafeAreaView>

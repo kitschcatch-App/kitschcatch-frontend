@@ -36,7 +36,6 @@ export const styles = StyleSheet.create({
   },
   listContainer: {
     flexGrow: 1,
-    paddingTop: 4,
     backgroundColor: colors.sub01,
   },
   chatItem: {
@@ -72,21 +71,16 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     color: colors.black,
   },
-  dotText: {
-    fontSize: 14,
-    fontFamily: typography.M,
-    color: colors.gray07,
-  },
   timeText: {
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.black,
-    marginRight: 5,
+    marginLeft: 4,
   },
   timeTextRead: {
     color: colors.gray07,
   },
-  timeTextRightAligned: {
+  badgeRightAligned: {
     marginLeft: 'auto',
   },
   lastMessage: {
@@ -102,7 +96,9 @@ export const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: colors.main05,
+    borderWidth: 1,
+    borderColor: colors.main07,
+    backgroundColor: colors.main02,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,

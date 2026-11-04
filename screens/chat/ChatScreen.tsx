@@ -10,18 +10,21 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { secureStorage } from '../../utils/secureStorage';
 import BackIcon from '../../assets/back.svg';
+import MoreIcon from '../../assets/more.svg';
 import PlusIcon from '../../assets/plus.svg';
 import SendIcon from '../../assets/send.svg';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './ChatScreen.styles';
 import { colors } from '../../styles/colors';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary, launchCamera, Asset, ImagePickerResponse } from 'react-native-image-picker';
 import { chatAPI } from '../../api/apiClient';
 import { useChatSocket, ChatMessageResponse } from '../../hooks/useChatSocket';
 import { getMockChatRoomDetail, getMockMessages, MOCK_MY_USER_ID, mockDelay } from '../../api/mockData';
 import { useMockMode } from '../../contexts/MockModeContext';
 import ErrorView from '../../components/ErrorView';
+import ReportBlockMenu from '../../components/ReportBlockMenu';
+import PopupMenu from '../../components/PopupMenu';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
@@ -71,7 +74,7 @@ const getKSTDateString = (isoString?: string): string => {
 };
 
 const ChatScreen = ({ route, navigation }: Props) => {
-  const { chatRoomId, opponentNickname } = route.params;
+  const { chatRoomId, opponentNickname, opponentId } = route.params;
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const { isMockMode } = useMockMode();
@@ -85,6 +88,8 @@ const ChatScreen = ({ route, navigation }: Props) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [keyboardPadding, setKeyboardPadding] = useState(0);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [attachMenuVisible, setAttachMenuVisible] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const myUserIdRef = useRef<number | null>(null);
@@ -232,11 +237,19 @@ const ChatScreen = ({ route, navigation }: Props) => {
     }
   };
 
-  const handlePickImage = async () => {
-    const result = await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1, quality: 0.8 });
+  // 카메라 촬영·사진 선택 결과를 이미지 메시지로 전송
+  const handleImageResult = async (result: ImagePickerResponse) => {
     if (result.didCancel || result.errorCode || !result.assets?.length) return;
+    await sendImageAsset(result.assets[0]);
+  };
 
-    const asset = result.assets[0];
+  const handleSelectPhoto = async () =>
+    handleImageResult(await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1, quality: 0.8 }));
+
+  const handleTakePhoto = async () =>
+    handleImageResult(await launchCamera({ mediaType: 'photo', quality: 0.8 }));
+
+  const sendImageAsset = async (asset: Asset) => {
     if (!asset.uri) return;
 
     if (isMockMode) {
@@ -307,6 +320,15 @@ const ChatScreen = ({ route, navigation }: Props) => {
             <Text style={styles.nickname}>{opponentNickname}</Text>
             <Text style={styles.responseTime}>평균응답시간 30분</Text>
           </View>
+          {opponentId !== undefined && (
+            <TouchableOpacity
+              style={styles.moreButton}
+              accessibilityLabel="더보기 메뉴"
+              onPress={() => setMenuVisible(v => !v)}
+            >
+              <MoreIcon width={4} height={18} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* 상품 정보 */}
@@ -406,7 +428,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
         <View style={styles.inputContainer}>
           <TouchableOpacity
             style={styles.plusButton}
-            onPress={handlePickImage}
+            onPress={() => setAttachMenuVisible(v => !v)}
             disabled={isSendingImage}
           >
             {isSendingImage
@@ -434,6 +456,27 @@ const ChatScreen = ({ route, navigation }: Props) => {
         subtitle={errorMsg?.subtitle ?? ''}
         onPress={() => setErrorMsg(null)}
       />
+
+      <PopupMenu
+        visible={attachMenuVisible}
+        onClose={() => setAttachMenuVisible(false)}
+        items={[
+          { label: '카메라 촬영', onPress: handleTakePhoto },
+          { label: '사진 선택', onPress: handleSelectPhoto },
+        ]}
+        // 입력 바(높이 62) 바로 위, 플러스 버튼 쪽에 띄운다
+        style={{ top: undefined, right: undefined, left: 8, bottom: insets.bottom + keyboardPadding + 66 }}
+      />
+
+      {opponentId !== undefined && (
+        <ReportBlockMenu
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+          onBlock={() => navigation.push('BlockUser', { userId: opponentId })}
+          onReport={() => navigation.push('ReportUser', { userId: opponentId })}
+          style={{ top: Math.max(insets.top, 65) + 40, right: 20 }}
+        />
+      )}
 
       {/* 이미지 전체 화면 모달 */}
       <Modal

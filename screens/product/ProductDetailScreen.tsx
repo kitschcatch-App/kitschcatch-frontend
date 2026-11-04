@@ -478,7 +478,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                       }
                     }
 
-                    navigation.navigate('Chat', { chatRoomId, opponentNickname });
+                    navigation.navigate('Chat', { chatRoomId, opponentNickname, opponentId: productDetail.sellerId ?? undefined });
                   } catch (e: any) {
                     if (e?.response?.status === 401) {
                       navigation.navigate('Login');

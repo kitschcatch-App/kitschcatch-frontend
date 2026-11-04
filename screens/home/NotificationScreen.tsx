@@ -102,7 +102,7 @@ const NotificationScreen = ({ navigation }: Props) => {
         // 채팅방 상세 응답에 상대방 닉네임이 없어 목록에서 찾는다 (백엔드 추가 예정)
         const rooms = isMockMode ? MOCK_CHAT_ROOMS.data : (await chatAPI.getChatRooms()).data.data;
         const room = rooms.find((r: any) => r.chatRoomId === dest.chatRoomId);
-        navigation.navigate('Chat', { chatRoomId: dest.chatRoomId, opponentNickname: room?.opponentNickname ?? '' });
+        navigation.navigate('Chat', { chatRoomId: dest.chatRoomId, opponentNickname: room?.opponentNickname ?? '', opponentId: room?.opponentId });
         return;
       }
 
