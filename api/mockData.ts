@@ -523,3 +523,105 @@ export const getMockCreateChatRoom = (postId: number) => {
     },
   };
 };
+
+// ─── 마이페이지 / 주문 / 다른 사용자 (axios 어댑터용) ────────────────────────────
+// Mock 모드에서 mock 분기가 없는 화면(마이페이지·팔로우·판매/구매내역·주문상세·타 사용자)이
+// 그대로 실제 API 경로를 호출해도 동작하도록, 경로별 응답을 돌려줍니다.
+
+const ok = (data: unknown) => ({ success: true, data });
+const page = (content: unknown[]) => ok({ content, totalElements: content.length, totalPages: 1, number: 0, size: 100 });
+
+const MOCK_ME = { id: MOCK_MY_USER_ID, username: 'minyoung', nickname: '김민영', bio: '서브컬처 굿즈 모으는 중!', profileImageUrl: 'https://picsum.photos/id/64/200/200' };
+const MOCK_FOLLOW_USERS = [
+  { id: 7, nickname: '굿즈헌터', profileImageUrl: 'https://picsum.photos/id/65/200/200' },
+  { id: 15, nickname: '오타쿠창고', profileImageUrl: null },
+  { id: 22, nickname: '건프라마니아', profileImageUrl: null },
+];
+
+const POSTS = MOCK_POST_LIST.data.data.content;
+// 판매(sale)/구매(purchase) 주문. 송장 등록·구매확정·취소·환불 요청이 상태에 반영되도록 모듈 상태로 관리한다.
+// ORD-1 송장 등록 전 / ORD-3 발송 전(취소 가능) / ORD-6 발송 후(구매확정·반품) / ORD-7 환불 요청 중(철회 가능)
+interface MockOrder {
+  side: 'sale' | 'purchase';
+  orderId: string;
+  postId: number;
+  orderStatus: string;
+  orderedAt: string;
+  shipment: { carrierName: string; trackingNumber: string; shippedAt: string } | null;
+  refund: { refundId: string; status: string } | null;
+}
+const SHIPPED = { carrierName: 'CJ대한통운', trackingNumber: '123456789012', shippedAt: '2026-10-06T09:00:00' };
+const mockOrders: MockOrder[] = [
+  { side: 'sale', orderId: 'ORD-1', postId: 3, orderStatus: 'PAID', orderedAt: '2026-10-20T13:10:00', shipment: null, refund: null },
+  { side: 'sale', orderId: 'ORD-2', postId: 5, orderStatus: 'PURCHASE_CONFIRMED', orderedAt: '2026-10-10T09:00:00', shipment: SHIPPED, refund: null },
+  { side: 'purchase', orderId: 'ORD-3', postId: 2, orderStatus: 'PAID', orderedAt: '2026-10-22T10:20:00', shipment: null, refund: null },
+  { side: 'purchase', orderId: 'ORD-6', postId: 4, orderStatus: 'PAID', orderedAt: '2026-10-18T15:00:00', shipment: SHIPPED, refund: null },
+  { side: 'purchase', orderId: 'ORD-7', postId: 6, orderStatus: 'PAID', orderedAt: '2026-10-15T12:00:00', shipment: SHIPPED, refund: { refundId: 'RF-1', status: 'REQUESTED' } },
+  { side: 'purchase', orderId: 'ORD-4', postId: 1, orderStatus: 'PURCHASE_CONFIRMED', orderedAt: '2026-10-05T18:00:00', shipment: SHIPPED, refund: null },
+  { side: 'purchase', orderId: 'ORD-5', postId: 5, orderStatus: 'CANCELED', orderedAt: '2026-10-01T11:00:00', shipment: null, refund: null },
+];
+const postOf = (id: number) => POSTS.find(p => p.id === id)!;
+const toSummary = (o: MockOrder) => ({
+  orderId: o.orderId,
+  postId: o.postId,
+  postTitle: postOf(o.postId).title,
+  amount: postOf(o.postId).price,
+  orderStatus: o.orderStatus,
+  orderedAt: o.orderedAt,
+});
+const ordersOf = (side: MockOrder['side']) => page(mockOrders.filter(o => o.side === side).map(toSummary));
+
+const getMockOrderDetail = (orderId: string) => {
+  const o = mockOrders.find(x => x.orderId === orderId) ?? mockOrders[2];
+  const post = postOf(o.postId);
+  return ok({
+    orderId: o.orderId,
+    status: o.orderStatus,
+    amount: post.price,
+    post: { id: post.id, title: post.title, thumbnailUrl: post.images[0].imageUrl },
+    payment: { method: 'CARD', approvedAt: o.orderedAt },
+    shipment: o.shipment,
+    refund: o.refund,
+  });
+};
+
+const CARRIER_NAMES: Record<string, string> = { CJ_LOGISTICS: 'CJ대한통운', HANJIN: '한진택배' };
+
+/** 주문 변경 요청(송장 등록·구매확정·취소·환불 요청/철회)을 mock 주문 상태에 반영 */
+const mutateMockOrder = (orderId: string, action: string, body: any) => {
+  const o = mockOrders.find(x => x.orderId === orderId);
+  if (!o) return undefined;
+  if (action === 'shipment') {
+    o.shipment = { carrierName: CARRIER_NAMES[body?.carrierCode] ?? '택배사', trackingNumber: body?.trackingNumber ?? '', shippedAt: new Date().toISOString() };
+  } else if (action === 'confirm-purchase') o.orderStatus = 'PURCHASE_CONFIRMED';
+  else if (action === 'cancel') o.orderStatus = 'CANCELED';
+  else if (action === 'refunds') o.refund = { refundId: `RF-${Date.now()}`, status: 'REQUESTED' };
+  else if (action === 'refunds/withdraw') o.refund = null;
+  return ok({ processing: false });
+};
+
+/** Mock 모드에서 가로챌 요청이면 응답 body를, 아니면 undefined(실제 네트워크 호출)를 반환 */
+export const getMockApiBody = (method: string, url: string, reqBody?: any): unknown | undefined => {
+  if (method !== 'get' && method !== 'post' && method !== 'delete') return undefined;
+  const path = url.split('?')[0];
+  if (method !== 'get') {
+    if (/^\/users\/\d+\/follow$/.test(path)) return ok({});
+    const m = path.match(/^\/orders\/([^/]+)\/(shipment|confirm-purchase|cancel|refunds\/withdraw|refunds)$/);
+    return m ? mutateMockOrder(m[1], m[2], typeof reqBody === 'string' ? JSON.parse(reqBody) : reqBody) : undefined;
+  }
+  if (path === '/users/me') return ok(MOCK_ME);
+  // 판매 중(1, 6)과 주문이 있는 상품(3, 5)을 함께 보여준다
+  if (path === '/users/me/posts') return page([1, 6, 3, 5].map(postOf));
+  if (path === '/users/me/sale-orders') return ordersOf('sale');
+  if (path === '/users/me/purchase-orders') return ordersOf('purchase');
+  if (/^\/users\/\d+\/followers$/.test(path)) return page(MOCK_FOLLOW_USERS.slice(0, 2));
+  if (/^\/users\/\d+\/followings$/.test(path)) return page(MOCK_FOLLOW_USERS);
+  if (/^\/users\/\d+\/trust-info$/.test(path)) return ok({ tradeCount: 12 });
+  const userPosts = path.match(/^\/users\/(\d+)\/posts$/);
+  if (userPosts) return page(POSTS.filter(p => p.sellerId === Number(userPosts[1]) && p.productStatus === 'ON_SALE'));
+  const user = path.match(/^\/users\/(\d+)$/);
+  if (user) return ok({ ...MOCK_ME, id: Number(user[1]), username: `user${user[1]}`, nickname: POSTS.find(p => p.sellerId === Number(user[1]))?.sellerNickname ?? `회원${user[1]}`, bio: '안녕하세요!' });
+  const order = path.match(/^\/orders\/([^/]+)$/);
+  if (order) return getMockOrderDetail(order[1]);
+  return undefined;
+};

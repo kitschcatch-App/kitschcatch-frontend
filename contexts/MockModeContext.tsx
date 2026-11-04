@@ -3,7 +3,8 @@
  * 역할: 앱 전체에서 Mock 모드 ON/OFF 상태를 공유합니다.
  *       Mock 모드가 ON이면 실제 API 대신 가상 데이터(mockData.ts)를 사용합니다.
  */
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { setApiMockEnabled } from '../api/apiClient';
 
 interface MockModeContextType {
   isMockMode: boolean;
@@ -19,6 +20,8 @@ const MockModeContext = createContext<MockModeContextType>({
 
 export const MockModeProvider = ({ children }: { children: ReactNode }) => {
   const [isMockMode, setIsMockMode] = useState(false);
+
+  useEffect(() => setApiMockEnabled(isMockMode), [isMockMode]);
 
   const toggleMockMode = () => setIsMockMode(prev => !prev);
 

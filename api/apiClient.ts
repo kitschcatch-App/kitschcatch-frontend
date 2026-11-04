@@ -5,6 +5,7 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import Config from 'react-native-config';
 import { secureStorage } from '../utils/secureStorage';
+import { getMockApiBody } from './mockData';
 
 const BASE_URL = Config.API_BASE_URL!;
 
@@ -17,9 +18,22 @@ export const apiClient = axios.create({
   },
 });
 
+// Mock 모드 전역 플래그 (MockModeProvider가 갱신). true면 mock 경로 요청은 네트워크 대신 mockData 응답을 받는다.
+let mockEnabled = false;
+export const setApiMockEnabled = (value: boolean) => {
+  mockEnabled = value;
+};
+
 // ─── 요청 인터셉터: 모든 요청 헤더에 Access Token 자동 추가 ───────────────────
 apiClient.interceptors.request.use(
   async (config) => {
+    if (mockEnabled) {
+      const body = getMockApiBody((config.method ?? 'get').toLowerCase(), config.url ?? '', config.data);
+      if (body !== undefined) {
+        config.adapter = async () => ({ data: body, status: 200, statusText: 'OK', headers: {}, config });
+        return config;
+      }
+    }
     const token = await secureStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -190,6 +204,14 @@ export const userAPI = {
     apiClient.get('/users/me/sale-orders', { params }),
   getPurchaseOrders: (params?: { status?: string; page?: number; size?: number }) =>
     apiClient.get('/users/me/purchase-orders', { params }),
+
+  // 다른 회원 공개 프로필 / 거래 신뢰 정보 / 판매 상품 목록
+  getUser: (userId: number | string) =>
+    apiClient.get(`/users/${userId}`),
+  getTrustInfo: (userId: number | string) =>
+    apiClient.get(`/users/${userId}/trust-info`),
+  getUserPosts: (userId: number | string, params?: { status?: string; page?: number; size?: number }) =>
+    apiClient.get(`/users/${userId}/posts`, { params }),
 
   // 팔로우 / 언팔로우
   follow: (userId: number | string) =>
