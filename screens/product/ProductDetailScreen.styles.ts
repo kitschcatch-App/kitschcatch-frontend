@@ -26,6 +26,19 @@ export const styles = StyleSheet.create({
     marginBottom: 7,
     marginTop: 7,
   },
+  // 뒤로가기 버튼과 같은 높이로, 오른쪽 끝에 놓이는 더보기 버튼 영역
+  headerRight: {
+    position: 'absolute',
+    right: 0,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  moreButton: {
+    marginHorizontal: 1,
+    marginVertical: 7,
+  },
   imageContainer: {
     position: 'relative',
   },

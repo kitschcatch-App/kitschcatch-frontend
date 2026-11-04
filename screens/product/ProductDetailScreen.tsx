@@ -11,6 +11,8 @@ import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP, CATEGO
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import BackIcon from '../../assets/back.svg';
+import MoreIcon from '../../assets/more.svg';
+import ReportBlockMenu from '../../components/ReportBlockMenu';
 import { styles } from './ProductDetailScreen.styles';
 import HeartIcon from '../../assets/heart.svg';
 import DetailHeartIcon from '../../assets/detail_heart.svg';
@@ -74,6 +76,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [tempStatus, setTempStatus] = useState<string>('');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   // 애니메이션 값 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -364,7 +367,11 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           {/* 3. 판매자 정보 영역 */}
           <View style={styles.sellerContainer}>
             <Text style={styles.transactionCount}>판매자 거래 횟수 3회</Text>
-            <View style={styles.sellerRight}>
+            <TouchableOpacity
+              style={styles.sellerRight}
+              disabled={productDetail.sellerId === null}
+              onPress={() => navigation.navigate('OtherUserProfile', { userId: productDetail.sellerId as number })}
+            >
               <Text style={styles.sellerName}>{productDetail.sellerName}</Text>
               <View style={styles.sellerProfileImageWrapper}>
                 <Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.sellerProfileImage} />
@@ -372,7 +379,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                   <Text style={styles.sellerRatingText}>3.8</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </ScrollView>
 
@@ -389,6 +396,27 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             <BackIcon width={10} height={18} />
           </TouchableOpacity>
         </View>
+
+        {/* 더보기(점 3개) 버튼: 뒤로가기 버튼과 같은 높이, 맨 오른쪽. 본인 게시글에는 신고 불가 */}
+        {currentUserId !== null && !isSeller && productDetail.sellerId !== null && (
+          <>
+            <View style={[styles.headerRight, { top: insets.top + 44 }]}>
+              <TouchableOpacity
+                style={styles.moreButton}
+                accessibilityLabel="더보기 메뉴"
+                onPress={() => setMenuVisible(v => !v)}
+              >
+                <MoreIcon width={4} height={18} />
+              </TouchableOpacity>
+            </View>
+            <ReportBlockMenu
+              visible={menuVisible}
+              onClose={() => setMenuVisible(false)}
+              onReport={() => navigation.navigate('ReportUser', { userId: productDetail.sellerId as number, target: 'product' })}
+              style={{ top: insets.top + 44 + 40, right: 20 }}
+            />
+          </>
+        )}
       </Animated.View>
 
       {/* 하단 (아래에서 위로 슬라이드 애니메이션 적용) */}
