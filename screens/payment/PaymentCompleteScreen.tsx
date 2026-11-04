@@ -3,11 +3,12 @@
  * 역할: 결제가 성공적으로 완료된 후 주문 정보를 요약하여 보여주는 화면입니다.
  */
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import NextIcon from '../../assets/next.svg';
+import { useCheckPop } from '../../hooks/useCheckPop';
 import { styles } from './PaymentCompleteScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentComplete'>;
@@ -16,6 +17,7 @@ const DEPOSIT_PAYMENT_METHODS = ['VIRTUAL_ACCOUNT', 'TRANSFER'];
 
 const PaymentCompleteScreen = ({ navigation, route }: Props) => {
   const insets = useSafeAreaInsets();
+  const checkStyle = useCheckPop();
   const { width: screenWidth } = useWindowDimensions();
   const { productName, totalPrice, productImageUrl, pgOrderId, paymentMethod } = route.params;
   const isDepositPayment = !!paymentMethod && DEPOSIT_PAYMENT_METHODS.includes(paymentMethod);
@@ -37,7 +39,7 @@ const PaymentCompleteScreen = ({ navigation, route }: Props) => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.contentContainer}>
-            <Image source={require('../../assets/paymentcomplete.png')} style={[styles.completeImage, { width: screenWidth * 0.5, height: screenWidth * 0.5 }]} resizeMode="contain" />
+            <Animated.Image source={require('../../assets/paymentcomplete.png')} style={[styles.completeImage, { width: screenWidth * 0.5, height: screenWidth * 0.5 }, checkStyle]} resizeMode="contain" />
             {isDepositPayment ? (
               <>
                 <Text style={styles.mainText}>구매가 완료되었습니다</Text>
@@ -70,7 +72,24 @@ const PaymentCompleteScreen = ({ navigation, route }: Props) => {
                     <Text style={styles.productName} numberOfLines={2}>{productName}</Text>
                     <Text style={styles.productPrice}>{totalPrice.toLocaleString()}원</Text>
                   </View>
-                  <Text style={styles.orderNumber}>주문번호 {pgOrderId}</Text>
+                  <View style={styles.orderNumberRow}>
+                    <Text style={styles.orderNumber}>주문번호 {pgOrderId}</Text>
+                    <TouchableOpacity
+                      style={styles.detailLink}
+                      onPress={() =>
+                        navigation.navigate('PurchaseOrderDetail', {
+                          orderId: pgOrderId,
+                          orderNumber: pgOrderId,
+                          productTitle: productName,
+                          productPrice: totalPrice,
+                          productImage: { uri: productImageUrl },
+                        })
+                      }
+                    >
+                      <Text style={styles.detailLinkText}>상세보기</Text>
+                      <NextIcon width={5} height={8} style={styles.detailLinkIcon} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </View>

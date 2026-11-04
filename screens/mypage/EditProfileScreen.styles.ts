@@ -59,13 +59,34 @@ export const styles = StyleSheet.create({
   requiredMark: {
     color: colors.sub07,
   },
-  idInputRow: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
   },
-  idInputContainer: {
+  inputContainer: {
     flex: 1,
+  },
+  disabledInputText: {
+    color: colors.gray07,
+  },
+  idGuideText: {
+    marginTop: 6,
+    fontFamily: typography.M,
+    fontSize: 12,
+    color: colors.gray07,
+  },
+  duplicateColumn: {
+    alignItems: 'flex-end',
+  },
+  nicknameCounter: {
+    marginTop: 6,
+    fontFamily: typography.M,
+    fontSize: 12,
+    color: colors.gray07,
+  },
+  nicknameCounterMax: {
+    color: colors.error,
   },
   duplicateButton: {
     display: 'flex',
@@ -86,8 +107,18 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
     color: colors.sub07
   },
+  duplicateButtonDone: {
+    backgroundColor: '#8585854D',
+    borderColor: colors.gray06,
+  },
+  duplicateButtonTextDone: {
+    color: colors.gray07,
+  },
+  duplicateMessageText: {
+    textAlign: 'left',
+  },
   duplicateSuccessText: {
-    color: colors.sucess,
+    color: colors.gray07,
   },
   saveButton: {
     marginTop: 'auto',

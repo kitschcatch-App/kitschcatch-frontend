@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { TouchableOpacity } from 'react-native';
+import { Linking, TouchableOpacity } from 'react-native';
 import { login } from '@react-native-seoul/kakao-login';
-import NaverLogin from '@react-native-seoul/naver-login';
+import { waitForNaverCode } from '../utils/naverAuth';
 import { secureStorage } from '../utils/secureStorage';
 import { authAPI } from '../api/apiClient';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -18,27 +18,16 @@ jest.mock('@react-native-seoul/kakao-login', () => ({
   loginWithNewScopes: jest.fn(),
 }));
 
-jest.mock('@react-native-seoul/naver-login', () => ({
-  __esModule: true,
-  default: {
-    initialize: jest.fn(),
-    login: jest.fn(),
-  },
-}));
-
-jest.mock('react-native-config', () => ({
-  __esModule: true,
-  default: {
-    NAVER_CLIENT_ID: 'test-client-id',
-    NAVER_CLIENT_SECRET: 'test-client-secret',
-    NAVER_APP_NAME: 'kitschcatch',
-  },
+jest.mock('../utils/naverAuth', () => ({
+  NAVER_CANCELLED: 'NAVER_CANCELLED',
+  waitForNaverCode: jest.fn(),
 }));
 
 jest.mock('../api/apiClient', () => ({
   authAPI: {
     getNonce: jest.fn(),
     loginWithKakao: jest.fn(),
+    getNaverState: jest.fn(),
     loginWithNaver: jest.fn(),
   },
 }));
@@ -80,7 +69,7 @@ jest.mock('../components/SuccessView', () => {
 jest.setTimeout(20000);
 
 const mockLogin = login as jest.Mock;
-const mockNaverLogin = NaverLogin.login as jest.Mock;
+const mockWaitForNaverCode = waitForNaverCode as jest.Mock;
 
 // 버튼 렌더 순서: 0 카카오 / 1 네이버 / 2 애플 / 3 약관 / 4 정책 / 5 개발자 API 테스트
 const BUTTON = { kakao: 0, naver: 1, apple: 2, devTest: 5 } as const;
@@ -122,10 +111,11 @@ describe('LoginScreen', () => {
     (authAPI.loginWithKakao as jest.Mock).mockResolvedValue(jwtResponse);
     (authAPI.loginWithNaver as jest.Mock).mockResolvedValue(jwtResponse);
     mockLogin.mockResolvedValue({ idToken: 'kakao-id-token' });
-    mockNaverLogin.mockResolvedValue({
-      isSuccess: true,
-      successResponse: { accessToken: 'naver-access-token' },
+    (authAPI.getNaverState as jest.Mock).mockResolvedValue({
+      data: { data: { state: 'naver-state', authorizationUrl: 'https://nid.naver.com/auth?x=1' } },
     });
+    mockWaitForNaverCode.mockResolvedValue('naver-code');
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as any);
   });
 
   describe('카카오 로그인', () => {
@@ -142,14 +132,25 @@ describe('LoginScreen', () => {
 
       expect(mockReplace).toHaveBeenCalledWith('ProductList');
     });
+
+    it('프로필 미등록 사용자(profileRegistered=false)는 약관 동의 화면으로 이동한다', async () => {
+      (authAPI.loginWithKakao as jest.Mock).mockResolvedValue({
+        data: { data: { accessToken: 'a', refreshToken: 'r', user: { id: 7, profileRegistered: false } } },
+      });
+      const renderer = await renderLogin();
+      await pressButton(renderer, BUTTON.kakao);
+
+      expect(mockReplace).toHaveBeenCalledWith('TermsAgreement');
+    });
   });
 
   describe('네이버 로그인', () => {
-    it('버튼 클릭 시 네이버 accessToken으로 백엔드 로그인을 호출한다', async () => {
+    it('버튼 클릭 시 authorizationUrl을 열고 콜백 code+state로 백엔드 로그인을 호출한다', async () => {
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.naver);
 
-      expect(authAPI.loginWithNaver).toHaveBeenCalledWith('naver-access-token');
+      expect(Linking.openURL).toHaveBeenCalledWith('https://nid.naver.com/auth?x=1');
+      expect(authAPI.loginWithNaver).toHaveBeenCalledWith('naver-code', 'naver-state');
     });
 
     it('버튼 클릭 시 userId 저장 후 ProductList로 이동한다', async () => {
@@ -161,10 +162,7 @@ describe('LoginScreen', () => {
     });
 
     it('사용자가 취소하면 백엔드 로그인을 호출하지 않는다', async () => {
-      mockNaverLogin.mockResolvedValue({
-        isSuccess: false,
-        failureResponse: { isCancel: true, message: 'user cancel' },
-      });
+      mockWaitForNaverCode.mockRejectedValue(new Error('NAVER_CANCELLED'));
 
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.naver);

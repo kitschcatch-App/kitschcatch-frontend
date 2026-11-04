@@ -3,6 +3,9 @@ import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
 
 export const styles = StyleSheet.create({
+  loadingIndicator: {
+    marginTop: 80,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: colors.white,

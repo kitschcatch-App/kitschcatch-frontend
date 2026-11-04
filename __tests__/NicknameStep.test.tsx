@@ -52,7 +52,7 @@ describe('NicknameStep', () => {
 
   it('중복 확인 성공 시 사용 가능 메시지를 보여주고 검증 상태를 true로 알린다', async () => {
     (userAPI.checkNicknameAvailability as jest.Mock).mockResolvedValue({
-      data: { success: true, data: { nickname: '키치캐처' }, error: null },
+      data: { success: true, data: { nickname: '키치캐처', available: true }, error: null },
     });
     const onCheckedChange = jest.fn();
 
@@ -64,8 +64,10 @@ describe('NicknameStep', () => {
     expect(root.root.findAllByType(Text).some(node => node.props.children === '사용 가능한 닉네임이에요')).toBe(true);
   });
 
-  it('409 응답이면 중복 메시지를 보여주고 검증 상태를 false로 알린다', async () => {
-    (userAPI.checkNicknameAvailability as jest.Mock).mockRejectedValue({ response: { status: 409 } });
+  it('available=false 응답이면 중복 메시지를 보여주고 검증 상태를 false로 알린다', async () => {
+    (userAPI.checkNicknameAvailability as jest.Mock).mockResolvedValue({
+      data: { success: true, data: { nickname: '키치캐처', available: false }, error: null },
+    });
     const onCheckedChange = jest.fn();
 
     const root = await renderHarness(onCheckedChange);
@@ -77,7 +79,7 @@ describe('NicknameStep', () => {
 
   it('중복 확인 후 닉네임을 수정하면 검증 상태를 다시 false로 알린다', async () => {
     (userAPI.checkNicknameAvailability as jest.Mock).mockResolvedValue({
-      data: { success: true, data: { nickname: '키치캐처' }, error: null },
+      data: { success: true, data: { nickname: '키치캐처', available: true }, error: null },
     });
     const onCheckedChange = jest.fn();
 

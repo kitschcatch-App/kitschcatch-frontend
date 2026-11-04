@@ -64,6 +64,11 @@ const SearchScreen = ({ navigation }: Props) => {
   const [searchQuery, setSearchQuery] = useState('');
   const isSearching = searchQuery.trim().length > 0;
 
+  // 검색 실행: 상품 목록 화면에서 keyword로 서버 검색
+  const submitSearch = () => {
+    if (isSearching) navigation.navigate('ProductList', { keyword: searchQuery.trim() });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
       <View style={styles.container}>
@@ -91,6 +96,8 @@ const SearchScreen = ({ navigation }: Props) => {
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
+              onSubmitEditing={submitSearch}
+              returnKeyType="search"
               underlineColorAndroid="transparent"
               placeholder="상품을 검색해보세요"
             />
@@ -108,7 +115,7 @@ const SearchScreen = ({ navigation }: Props) => {
           </View>
 
           {isSearching && (
-            <TouchableOpacity style={styles.searchSubmitIcon}>
+            <TouchableOpacity style={styles.searchSubmitIcon} onPress={submitSearch}>
               <SearchIcon width={20} height={20} />
             </TouchableOpacity>
           )}

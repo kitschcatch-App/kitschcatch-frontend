@@ -125,6 +125,9 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     alignItems: 'center',
   },
+  filterContainerRight: {
+    justifyContent: 'flex-end',
+  },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -134,6 +137,23 @@ export const styles = StyleSheet.create({
     color: colors.black,
     fontFamily: typography.M,
     marginLeft: 8,
+  },
+  filterBadge: {
+    width: 18,
+    height: 18,
+    marginLeft: 5,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: colors.main07,
+    backgroundColor: colors.main02,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterBadgeText: {
+    fontSize: 12,
+    color: colors.black,
+    fontFamily: typography.M,
+    includeFontPadding: false,
   },
   productList: {
     marginHorizontal: -16, // 부모 여백(padding 16) 상쇄해 화면 양끝까지 이미지가 꽉 차도록 함
@@ -196,29 +216,5 @@ export const styles = StyleSheet.create({
     color: colors.gray07,
   },
   // 상품 등록 버튼
-  floatingButton: {
-    position: 'absolute',
-    right: 16,
-    display: 'flex',
-    flexDirection: 'row',
-    padding: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.main05,
-    borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 1.5,
-    elevation: 2,
-  },
-  floatingButtonText: {
-    fontSize: 14,
-    fontFamily: typography.M,
-    color: colors.black,
-  },
+
 });

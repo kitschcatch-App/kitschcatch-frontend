@@ -125,10 +125,28 @@ export const styles = StyleSheet.create({
     color: colors.black,
     marginTop: 6,
   },
+  orderNumberRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
   orderNumber: {
     fontSize: 12,
     fontFamily: typography.M,
-    color: colors.gray07,
+    color: colors.black,
+  },
+  detailLink: {
+    marginLeft: 'auto', // 한 줄에 들어가면 오른쪽 끝, 넘치면 다음 줄로 내려감
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailLinkText: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.gray06,
+  },
+  detailLinkIcon: {
+    marginLeft: 4,
   },
   historyButton: {
     backgroundColor: colors.main05,

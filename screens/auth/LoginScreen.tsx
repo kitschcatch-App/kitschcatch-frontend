@@ -2,8 +2,8 @@
  * 화면: 로그인 화면 (LoginScreen)
  * 역할: 카카오 소셜 로그인을 통해 앱에 접속하고 인증 토큰을 발급받는 화면입니다.
  */
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, Animated, Easing, Linking, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -13,33 +13,92 @@ import KakaoIcon from '../../assets/kakao.svg';
 import NaverIcon from '../../assets/naver.svg';
 import AppleIcon from '../../assets/apple.svg';
 import { login, loginWithNewScopes } from '@react-native-seoul/kakao-login';
-import NaverLogin from '@react-native-seoul/naver-login';
-import Config from 'react-native-config';
 import { authAPI } from '../../api/apiClient';
+import { NAVER_CANCELLED, waitForNaverCode } from '../../utils/naverAuth';
 import { secureStorage } from '../../utils/secureStorage';
+import { consumeSplashLogoY, groundShift, LOGO_OFFSET_X, LOGO_OFFSET_Y } from '../../utils/splashTransition';
 import ErrorView from '../../components/ErrorView';
 import SuccessView from '../../components/SuccessView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
 import { useMockMode } from '../../contexts/MockModeContext';
 
-// 네이버 로그인 SDK 초기화 (앱 실행 시 1회)
-NaverLogin.initialize({
-  appName: Config.NAVER_APP_NAME ?? 'kitschcatch',
-  consumerKey: Config.NAVER_CLIENT_ID ?? '',
-  consumerSecret: Config.NAVER_CLIENT_SECRET ?? '',
-  serviceUrlSchemeIOS: 'kitschcatch', // iOS Info.plist CFBundleURLSchemes와 일치
-  disableNaverAppAuthIOS: true,
-});
-
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
+
+// 스플래시에서 원래 크기로 돌아온 자리(화면 중앙)에서 위로 튀어오르고 → 제자리에 착지(웅크림 후 출렁) 하는 점프
+const useLogoJump = (logoSize: number) => {
+  const logoRef = useRef<Animated.LegacyRef<any>>(null);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const tx = useRef(new Animated.Value(0)).current;
+  const ty = useRef(new Animated.Value(0)).current;
+  const sx = useRef(new Animated.Value(1)).current;
+  const sy = useRef(new Animated.Value(1)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current; // 점프 동안 로고 외 요소는 숨김
+
+  useEffect(() => {
+    const from = consumeSplashLogoY();
+    const box = logoRef.current as any;
+    const show = () => {
+      opacity.setValue(1);
+    };
+    if (from === null || !box?.measureInWindow) {
+      show();
+      contentOpacity.setValue(1);
+      return;
+    }
+    const landShift = groundShift(logoSize, 0.9);
+    const step = (y: number, x: number, h: number, duration: number, easing: (t: number) => number) =>
+      Animated.parallel([
+        Animated.timing(ty, { toValue: y, duration, easing, useNativeDriver: true }),
+        Animated.timing(sx, { toValue: x, duration, easing, useNativeDriver: true }),
+        Animated.timing(sy, { toValue: h, duration, easing, useNativeDriver: true }),
+      ]);
+    let anim: Animated.CompositeAnimation | undefined;
+    box.measureInWindow((_x: number, y: number) => {
+      const dy = from - y; // 스플래시 위치(아래쪽)에서 시작
+      ty.setValue(dy + logoSize * LOGO_OFFSET_Y); // 스플래시에서 보정해 놓은 자리에서 시작
+      tx.setValue(logoSize * LOGO_OFFSET_X);
+      show();
+      anim = Animated.sequence([
+        // 스플래시에서 원래 크기로 돌아온 그 자리에서 위로 튀어오름
+        Animated.parallel([
+          Animated.timing(tx, { toValue: 0, duration: 340, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          step(-60, 0.9, 1.18, 340, Easing.out(Easing.cubic)), // 위아래로 늘어나며 튀어오름
+        ]),
+        step(landShift, 1.1, 0.9, 240, Easing.in(Easing.quad)), // 내려오며 살짝 다시 웅크린 채 착지
+        Animated.parallel([ty, sx, sy].map((v, i) =>
+          Animated.spring(v, { toValue: i === 0 ? 0 : 1, friction: 5, tension: 160, useNativeDriver: true }),
+        )), // 부드럽게 일어서며 복귀
+      ]);
+      anim.start(({ finished }) => {
+        if (finished) {
+          Animated.timing(contentOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+        }
+      });
+    });
+    return () => anim?.stop();
+  }, [logoSize, opacity, contentOpacity, tx, ty, sx, sy]);
+
+  return { logoRef, contentStyle: { opacity: contentOpacity }, style: { opacity, transform: [{ translateX: tx }, { translateY: ty }, { scaleX: sx }, { scaleY: sy }] } };
+};
 
 const LoginScreen = ({ navigation }: Props) => {
   const { width } = useWindowDimensions();
   const styles = createStyles(width);
+  const logoJump = useLogoJump(width * 0.4);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showMockOptions, setShowMockOptions] = useState(false);
+  const [needsProfile, setNeedsProfile] = useState(false);
   const { setMockMode } = useMockMode();
+
+  // 로그인 성공 공통 처리: 토큰 저장 → 프로필 미등록 사용자는 약관/회원가입, 그 외는 메인으로 이동
+  const finishLogin = async (data: any) => {
+    await secureStorage.setItem('accessToken', data.accessToken);
+    await secureStorage.setItem('refreshToken', data.refreshToken);
+    await secureStorage.setItem('userId', String(data.user.id));
+    setNeedsProfile(data.user.profileRegistered === false);
+    setShowSuccess(true);
+  };
 
   const handleKakaoLogin = async () => {
     try {
@@ -58,15 +117,9 @@ const LoginScreen = ({ navigation }: Props) => {
 
       // Step 3: 백엔드로 ID Token + Nonce 전송 → 앱 JWT(Access/Refresh Token) 발급
       const response = await authAPI.loginWithKakao(idToken, nonce);
-      const { accessToken, refreshToken } = response.data.data;
 
-      // Step 4: 발급받은 토큰을 기기에 저장
-      await secureStorage.setItem('accessToken', accessToken);
-      await secureStorage.setItem('refreshToken', refreshToken);
-      await secureStorage.setItem('userId', String(response.data.data.user.id));
-
-      // Step 5: 메인 화면으로 이동
-      setShowSuccess(true);
+      // Step 4: 토큰 저장 후 다음 화면으로 이동
+      await finishLogin(response.data.data);
     } catch (err: any) {
       if (err.message?.includes('user cancelled')) {
         setErrorMsg(ERROR_MESSAGES.AUTH.CANCELLED);
@@ -87,11 +140,7 @@ const LoginScreen = ({ navigation }: Props) => {
             const retryToken = await login({ nonce: retryNonce });
             if (!retryToken.idToken) throw new Error('idToken 없음');
             const retryResponse = await authAPI.loginWithKakao(retryToken.idToken, retryNonce);
-            const { accessToken, refreshToken } = retryResponse.data.data;
-            await secureStorage.setItem('accessToken', accessToken);
-            await secureStorage.setItem('refreshToken', refreshToken);
-            await secureStorage.setItem('userId', String(retryResponse.data.data.user.id));
-            setShowSuccess(true);
+            await finishLogin(retryResponse.data.data);
           } catch (retryErr: any) {
             console.error('[Login] 이메일 동의 재시도 에러:', retryErr?.message);
             console.error('[Login] 재시도 에러 응답:', JSON.stringify(retryErr?.response?.data, null, 2));
@@ -108,32 +157,24 @@ const LoginScreen = ({ navigation }: Props) => {
 
   const handleNaverLogin = async () => {
     try {
-      // Step 1: 네이버 SDK 로그인 → Access Token 발급
-      const result = await NaverLogin.login();
+      // Step 1: 서버에서 state + 네이버 인증 URL 발급
+      const stateRes = await authAPI.getNaverState();
+      const { state, authorizationUrl } = stateRes.data.data;
 
-      if (!result.isSuccess || !result.successResponse) {
-        if (result.failureResponse?.isCancel) {
-          setErrorMsg(ERROR_MESSAGES.AUTH.CANCELLED);
-        } else {
-          console.error('[Login] 네이버 SDK 로그인 실패:', result.failureResponse?.message);
-          setErrorMsg(ERROR_MESSAGES.AUTH.FAILED);
-        }
-        return;
-      }
+      // Step 2: 외부 브라우저로 네이버 인증 → 딥링크 콜백에서 authorizationCode 수신
+      const codePromise = waitForNaverCode(state);
+      await Linking.openURL(authorizationUrl);
+      const code = await codePromise;
 
-      // Step 2: 백엔드로 네이버 Access Token 전송 → 앱 JWT(Access/Refresh Token) 발급
-      const response = await authAPI.loginWithNaver(result.successResponse.accessToken);
-      const { accessToken, refreshToken } = response.data.data;
+      // Step 3: 백엔드로 authorizationCode + state 전송 → 앱 JWT(Access/Refresh Token) 발급
+      const response = await authAPI.loginWithNaver(code, state);
 
-      // Step 3: 발급받은 토큰을 기기에 저장
-      await secureStorage.setItem('accessToken', accessToken);
-      await secureStorage.setItem('refreshToken', refreshToken);
-      await secureStorage.setItem('userId', String(response.data.data.user.id));
-
-      // Step 4: 메인 화면으로 이동
-      setShowSuccess(true);
+      // Step 4: 토큰 저장 후 다음 화면으로 이동
+      await finishLogin(response.data.data);
     } catch (err: any) {
-      if (err.isAxiosError && !err.response) {
+      if (err.message === NAVER_CANCELLED) {
+        setErrorMsg(ERROR_MESSAGES.AUTH.CANCELLED);
+      } else if (err.isAxiosError && !err.response) {
         console.error('[Login] 네트워크 에러 (응답 없음):', err.message, err.code);
         setErrorMsg(ERROR_MESSAGES.AUTH.NETWORK);
       } else {
@@ -157,7 +198,7 @@ const LoginScreen = ({ navigation }: Props) => {
 
   const handleMockHome = () => {
     setMockMode(true);
-    navigation.replace('ProductList');
+    navigation.replace('Home');
   };
 
   const handleOpenTerms = () => {
@@ -173,12 +214,20 @@ const LoginScreen = ({ navigation }: Props) => {
       <View style={styles.container}>
         {/* 중앙 상단 영역: 로고, 타이틀, 서브타이틀 */}
         <View style={styles.contentContainer}>
-          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-          <KitschcatchIcon width={119} height={48} />
-          <Text style={styles.subtitle}>굿즈를 캐치하는 즐거운 순간</Text>
+          <Animated.Image
+            ref={logoJump.logoRef}
+            source={require('../../assets/logo.png')}
+            style={[styles.logo, logoJump.style]}
+            resizeMode="contain"
+          />
+          <Animated.View style={[styles.contentGroup, logoJump.contentStyle]}>
+            <KitschcatchIcon width={119} height={48} />
+            <Text style={styles.subtitle}>굿즈를 캐치하는 즐거운 순간</Text>
+          </Animated.View>
         </View>
 
         {/* 하단 영역: 로그인 버튼 */}
+        <Animated.View style={logoJump.contentStyle}>
         <TouchableOpacity style={styles.kakaoButton} onPress={handleKakaoLogin} activeOpacity={0.8}>
           <KakaoIcon width={20} height={18} style={styles.kakaoIcon} />
           <Text style={styles.kakaoButtonText}>카카오로 시작하기</Text>
@@ -241,6 +290,7 @@ const LoginScreen = ({ navigation }: Props) => {
         >
           {/* <Text style={styles.devTestButtonText}>🛠 API 연동 테스트</Text> */}
         </TouchableOpacity>
+        </Animated.View>
       </View>
 
       <ErrorView
@@ -255,7 +305,7 @@ const LoginScreen = ({ navigation }: Props) => {
         title="로그인이 완료되었습니다."
         onDismiss={() => {
           setShowSuccess(false);
-          navigation.replace('ProductList');
+          navigation.replace(needsProfile ? 'TermsAgreement' : 'Home');
         }}
       />
     </SafeAreaView>

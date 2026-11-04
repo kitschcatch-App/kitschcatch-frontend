@@ -31,12 +31,14 @@ import MapHeartIcon from '../../assets/map_heart.svg';
 import StarIcon from '../../assets/star.svg';
 import NextIcon from '../../assets/next-b.svg';
 import { useMockMode } from '../../contexts/MockModeContext';
+import { storeAPI } from '../../api/apiClient';
+import { getOpenStatus, type BusinessHour } from '../../utils/storeHours';
 import {
   DEFAULT_COORD,
   DEFAULT_RADIUS_KM,
   RADIUS_OPTIONS,
   calculateZoomForRadius,
-  fetchNearbyStores,
+  fetchStores,
   getCurrentCoord,
   requestLocationPermission,
   type Coord,
@@ -63,7 +65,8 @@ const StoreMapScreen = ({ navigation }: Props) => {
   useEffect(() => {
     coordRef.current = coord;
   }, [coord]);
-  const [radiusKm, setRadiusKm] = useState<RadiusKm>(DEFAULT_RADIUS_KM);
+  // 처음에는 반경을 선택하지 않고 전국 매장을 보여준다. 선택한 버튼을 다시 누르면 해제(null).
+  const [radiusKm, setRadiusKm] = useState<RadiusKm | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [isLocating, setIsLocating] = useState(true);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
@@ -74,6 +77,21 @@ const StoreMapScreen = ({ navigation }: Props) => {
   const [popupStore, setPopupStore] = useState<Store | null>(null);
   // 매장 상세 팝업이 아래→위로 올라오고 위→아래로 내려가는 애니메이션 값
   const popupAnim = useRef(new Animated.Value(0)).current;
+  // 선택한 매장의 영업시간 (nearby 응답에는 없어 상세 API로 조회)
+  const [popupHours, setPopupHours] = useState<BusinessHour[] | null>(null);
+  // 매장 상세에서 관심 등록을 바꾸고 돌아오면 마커(하트)를 갱신하기 위한 재조회 트리거
+  const [reloadKey, setReloadKey] = useState(0);
+  const isInitialFocus = useRef(false);
+
+  useEffect(() => {
+    return navigation.addListener('focus', () => {
+      if (!isInitialFocus.current) {
+        isInitialFocus.current = true;
+        return;
+      }
+      setReloadKey(k => k + 1);
+    });
+  }, [navigation]);
 
   // [1] 위치 권한 요청 → [2] 현재 위치로 카메라 이동
   useEffect(() => {
@@ -116,7 +134,7 @@ const StoreMapScreen = ({ navigation }: Props) => {
     const load = async () => {
       try {
         setIsLoadingStores(true);
-        const result = await fetchNearbyStores(coord, radiusKm, isMockMode);
+        const result = await fetchStores(coord, radiusKm, isMockMode);
         if (!cancelled) setStores(result);
       } catch (e) {
         if (!cancelled) {
@@ -132,17 +150,26 @@ const StoreMapScreen = ({ navigation }: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [coord, radiusKm, isMockMode, isLocating]);
+  }, [coord, radiusKm, isMockMode, isLocating, reloadKey]);
 
-  // 좌표/반경이 갱신되면 그 반경이 다 보이도록 카메라를 이동
+  // 좌표/반경이 갱신되면 그 반경이 다 보이도록 카메라를 이동 (반경 선택 해제 시에는 지도 위치 유지)
+  const prevRadiusKm = useRef(radiusKm);
   useEffect(() => {
-    const zoom = calculateZoomForRadius(radiusKm, coord.latitude, screenWidth);
+    const deselected = radiusKm === null && prevRadiusKm.current !== null;
+    prevRadiusKm.current = radiusKm;
+    if (deselected) return;
+
+    const zoom = calculateZoomForRadius(
+      radiusKm ?? DEFAULT_RADIUS_KM,
+      coord.latitude,
+      screenWidth,
+    );
     mapRef.current?.animateCameraTo({ ...coord, zoom });
   }, [coord, radiusKm, screenWidth]);
 
   const moveCameraToCurrentCoord = useCallback(() => {
     const zoom = calculateZoomForRadius(
-      radiusKm,
+      radiusKm ?? DEFAULT_RADIUS_KM,
       coordRef.current.latitude,
       screenWidth,
     );
@@ -161,6 +188,22 @@ const StoreMapScreen = ({ navigation }: Props) => {
   const closePopup = useCallback(() => setSelectedStoreId(null), []);
 
   const selectedStore = stores.find(s => s.storeId === selectedStoreId) ?? null;
+
+  useEffect(() => {
+    setPopupHours(null);
+    if (!selectedStoreId || isMockMode) return;
+    let cancelled = false;
+    storeAPI
+      .getStore(selectedStoreId)
+      .then(res => {
+        if (!cancelled) setPopupHours(res.data?.data?.businessHours ?? []);
+      })
+      .catch(e => console.warn('매장 영업시간 조회 실패:', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStoreId, isMockMode]);
+  const popupStatus = popupHours ? getOpenStatus(popupHours) : null;
 
   // 매장 선택 시 아래→위로 올라오고, 선택 해제 시 위→아래로 내려가며 사라짐
   useEffect(() => {
@@ -258,7 +301,7 @@ const StoreMapScreen = ({ navigation }: Props) => {
                       styles.radiusSegmentLast,
                     active && styles.radiusSegmentActive,
                   ]}
-                  onPress={() => setRadiusKm(option)}
+                  onPress={() => setRadiusKm(prev => (prev === option ? null : option))}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.radiusSegmentText}>{option}km</Text>
@@ -314,15 +357,22 @@ const StoreMapScreen = ({ navigation }: Props) => {
                   <Text style={styles.storePopupRating}>4.5</Text>
                 </View>
               </View>
-              <View style={styles.storePopupStatusRow}>
-                <Text style={styles.storePopupStatusOpen}>영업 중</Text>
-                <Text style={styles.storePopupStatusDivider}>|</Text>
-                <Text style={styles.storePopupStatusClose}>
-                  21:00에 영업종료
-                </Text>
-              </View>
+              {popupStatus?.status === 'OPEN' && (
+                <View style={styles.storePopupStatusRow}>
+                  <Text style={styles.storePopupStatusOpen}>영업 중</Text>
+                  <Text style={styles.storePopupStatusDivider}>|</Text>
+                  <Text style={styles.storePopupStatusClose}>
+                    {popupStatus.closeTime}에 영업종료
+                  </Text>
+                </View>
+              )}
+              {popupStatus?.status === 'CLOSED' && (
+                <View style={styles.storePopupStatusRow}>
+                  <Text style={styles.storePopupStatusClose}>영업 종료</Text>
+                </View>
+              )}
               <Text style={styles.storePopupAddress} numberOfLines={1}>
-                서울 마포구 양화로 188 AK&홍대 5층
+                {popupStore.address}
               </Text>
               <View style={styles.storePopupDetailRow}>
                 <TouchableOpacity

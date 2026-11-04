@@ -31,8 +31,12 @@ export const ERROR_MESSAGES = {
   SIGNUP: {
     INVALID_PROFILE:    { title: '입력한 정보를 확인해주세요',     subtitle: '필수 프로필 입력값이 올바르지 않아요.' },
     DUPLICATE_USERNAME: { title: '이미 사용 중인 아이디예요',      subtitle: '다른 아이디로 다시 시도해주세요.' },
+    DUPLICATE_NICKNAME: { title: '이미 사용 중인 닉네임이에요',      subtitle: '다른 닉네임으로 다시 시도해주세요.' },
     INVALID_TOKEN:       { title: '로그인이 만료되었어요',         subtitle: '다시 로그인해주세요.' },
     FAILED:              { title: '회원가입에 실패했어요',         subtitle: '잠시 후 다시 시도해주세요.' },
+  },
+  WITHDRAW: {
+    ACTIVE_ORDER: { title: '진행 중인 거래가 있어요',       subtitle: '거래 완료 후 다시 탈퇴해주세요.' },
   },
 } as const;
 

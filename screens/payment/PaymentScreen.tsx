@@ -14,16 +14,20 @@ import { styles } from './PaymentScreen.styles';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../styles/colors';
-import AddressBottomSheet, { SelectedAddress } from '../../components/AddressBottomSheet';
+import CommonPopup from '../../components/CommonPopup';
+import AddressBottomSheet,{ SelectedAddress } from '../../components/AddressBottomSheet';
 import Config from 'react-native-config';
 import { useMockMode } from '../../contexts/MockModeContext';
 import { orderAPI, paymentAPI } from '../../api/apiClient';
 import { getMockCreateOrder, mockDelay } from '../../api/mockData';
+import { calcSafePaymentFee } from '../../utils/payment';
 
 // Toss JS SDK v1은 successUrl/failUrl이 반드시 https://로 시작해야 한다.
 // onShouldStartLoadWithRequest에서 실제 로드 전에 가로채므로 서버가 없어도 동작한다.
 const TOSS_SUCCESS_URL = 'https://payment.kitschcatch.com/success';
 const TOSS_FAIL_URL = 'https://payment.kitschcatch.com/fail';
+
+const PAYMENT_SESSION_SEC = 10 * 60;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
@@ -37,7 +41,6 @@ interface PaymentMethod {
 
 const PAYMENT_METHODS: PaymentMethod[] = [
   { label: '신용카드', backendEnum: 'CARD', tossMethod: '카드' },
-  { label: '가상계좌', backendEnum: 'VIRTUAL_ACCOUNT', tossMethod: '가상계좌' },
   { label: '간편결제', backendEnum: 'EASY_PAY', tossMethod: '간편결제' },
   { label: '핸드폰결제', backendEnum: 'MOBILE_PHONE', tossMethod: '휴대폰' },
   { label: '무통장입금', backendEnum: 'TRANSFER', tossMethod: '계좌이체' },
@@ -47,7 +50,8 @@ const PAYMENT_METHODS: PaymentMethod[] = [
 interface WebViewPaymentData {
   html: string;
   paymentId: string;
-  pgOrderId: string;
+  attemptId?: string;   // 승인 요청에 같이 보내는 결제 시도 ID
+  pgOrderId: string;    // 주문번호 (결제 완료 화면 표시용)
   paymentMethod: string; // 결제수단 backendEnum (VIRTUAL_ACCOUNT, TRANSFER 등)
   successUrlBase: string; // 성공 리다이렉트 URL 감지용 prefix
   failUrlBase: string;    // 실패 리다이렉트 URL 감지용 prefix
@@ -106,8 +110,29 @@ const PaymentScreen = ({ route, navigation }: Props) => {
     return () => sub.remove();
   }, []);
 
+  // 결제 세션 타이머: 화면 진입 후 10분 안에 결제를 완료해야 한다
+  const [remainingSec, setRemainingSec] = useState(PAYMENT_SESSION_SEC);
+  useEffect(() => {
+    const expiresAt = Date.now() + PAYMENT_SESSION_SEC * 1000;
+    const id = setInterval(() => {
+      const left = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
+      setRemainingSec(left);
+      if (left === 0) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const timerText = `${String(Math.floor(remainingSec / 60)).padStart(2, '0')}:${String(remainingSec % 60).padStart(2, '0')}`;
+  const sessionExpiredPopup = (
+    <CommonPopup
+      visible={remainingSec === 0}
+      title="결제 세션이 만료되었습니다."
+      buttonText="확인"
+      onPress={() => navigation.goBack()}
+    />
+  );
+
   const shippingFee = 5000;
-  const safePaymentFee = 6875; // TODO: mock 값, 실제 안심결제 이용료 API 연동 필요
+  const safePaymentFee = calcSafePaymentFee(productPrice, shippingFee);
   const totalPrice = productPrice + shippingFee + safePaymentFee;
 
   const MEMO_OPTIONS = [
@@ -233,6 +258,8 @@ ${extraParamsJs}
       console.log('[결제] 주문 생성 응답:', JSON.stringify(orderData));
       const orderId: string = orderData.orderId ?? orderData.id;
       const paymentId: string = orderData.paymentId;
+      // Toss에 넘기는 orderId는 서버가 발급한 pgOrderId (없으면 주문번호)
+      const tossOrderId: string = orderData.pgOrderId ?? orderId;
       if (!orderId || !paymentId) {
         throw new Error('주문 ID 또는 결제 ID를 받지 못했습니다.');
       }
@@ -247,7 +274,7 @@ ${extraParamsJs}
       }
       const html = buildTossHtml(
         clientKey,
-        orderId,       // Toss orderId = 내부 주문 ID
+        tossOrderId,
         productPrice,
         productName,
         TOSS_SUCCESS_URL,
@@ -258,6 +285,7 @@ ${extraParamsJs}
       setWebViewPayment({
         html,
         paymentId,
+        attemptId: orderData.attemptId,
         pgOrderId: orderId,
         paymentMethod: method.backendEnum,
         successUrlBase: TOSS_SUCCESS_URL,
@@ -283,10 +311,18 @@ ${extraParamsJs}
       return;
     }
     const paymentKey = parseQueryParam(url, 'paymentKey') || '';
-    paymentAPI.confirmPayment(data.paymentId, { paymentKey })
-      .then(() => paymentAPI.getPayment(data.paymentId))
-      .then((statusRes) => {
-        const status = statusRes.data.data?.status;
+    // 202 PROCESSING(결과 불확실)이면 결제 조회를 반복해 확정 상태를 기다린다.
+    const waitForResult = async () => {
+      const confirmRes = await paymentAPI.confirmPayment(data.paymentId, { paymentKey, attemptId: data.attemptId });
+      let status: string | undefined = confirmRes.data.data?.status;
+      for (let i = 0; i < 5 && status === 'PROCESSING'; i++) {
+        await new Promise<void>(resolve => setTimeout(resolve, 1500));
+        status = (await paymentAPI.getPayment(data.paymentId)).data.data?.status;
+      }
+      return status;
+    };
+    waitForResult()
+      .then((status) => {
         if (status !== 'SUCCESS') {
           Alert.alert('결제 오류', '결제가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.');
           return;
@@ -389,6 +425,7 @@ ${extraParamsJs}
             <View style={styles.headerCenter}>
               <Text style={styles.headerTitle}>결제</Text>
             </View>
+            <Text style={styles.headerTimer}>{timerText}</Text>
           </View>
           <WebView
             ref={webViewRef}
@@ -454,6 +491,7 @@ ${extraParamsJs}
               <Text style={{ marginTop: 12, color: '#666', fontSize: 14 }}>외부 앱으로 이동 중입니다...</Text>
             </View>
           )}
+          {sessionExpiredPopup}
         </View>
       </SafeAreaView>
     );
@@ -475,6 +513,7 @@ ${extraParamsJs}
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>결제</Text>
           </View>
+          <Text style={styles.headerTimer}>{timerText}</Text>
         </View>
 
         {/* 로딩 오버레이 */}
@@ -485,7 +524,7 @@ ${extraParamsJs}
         )}
 
         {/* 본문 영역 */}
-        <View style={[styles.contentBackground, { backgroundColor: colors.main01 }]}>
+        <View style={[styles.contentBackground, { backgroundColor: colors.sub01 }]}>
           <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
             {/* 1. 상품 정보 컨테이너 */}
@@ -567,43 +606,25 @@ ${extraParamsJs}
               <Text style={styles.sectionTitle}>결제 방법</Text>
 
               <View style={styles.paymentMethodContainer}>
-                {/* 상단: 신용카드, 가상계좌, 간편결제 */}
-                <View style={styles.paymentMethodRow}>
-                  {PAYMENT_METHODS.slice(0, 3).map(({ label, disabled }) => (
-                    <TouchableOpacity
-                      key={label}
-                      style={[
-                        styles.paymentMethodButton,
-                        selectedPayment === label && styles.paymentMethodButtonActive,
-                      ]}
-                      onPress={() => {
-                        if (disabled) return;
-                        setSelectedPayment(label);
-                        setShowPaymentError(false);
-                      }}
-                    >
-                      <Text style={[
-                        styles.paymentMethodText,
-                        selectedPayment === label && styles.paymentMethodTextActive,
-                      ]}>{label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                {/* 하단: 핸드폰결제, 무통장입금 */}
-                <View style={styles.paymentMethodRowBottom}>
-                  {PAYMENT_METHODS.slice(3).map(({ label }) => (
-                    <TouchableOpacity
-                      key={label}
-                      style={[styles.paymentMethodButton, selectedPayment === label && styles.paymentMethodButtonActive]}
-                      onPress={() => {
-                        setSelectedPayment(label);
-                        setShowPaymentError(false);
-                      }}
-                    >
-                      <Text style={[styles.paymentMethodText, selectedPayment === label && styles.paymentMethodTextActive]}>{label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                {PAYMENT_METHODS.map(({ label, disabled }) => (
+                  <TouchableOpacity
+                    key={label}
+                    style={styles.paymentMethodItem}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      if (disabled) return;
+                      setSelectedPayment(label);
+                      setShowPaymentError(false);
+                    }}
+                  >
+                    {selectedPayment === label ? (
+                      <RadioOnIcon width={20} height={20} />
+                    ) : (
+                      <View style={styles.paymentRadioOff} />
+                    )}
+                    <Text style={styles.paymentMethodText}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
               {showPaymentError && (
                 <Text style={styles.paymentErrorText}>결제방법을 선택해주세요</Text>
@@ -624,11 +645,14 @@ ${extraParamsJs}
                 결제대금은 구매 확정 전까지 안전하게 보관되며, 구매 확정 후 판매자에게 지급됩니다.
               </Text>
 
-              <Text style={styles.safePaymentFeeText}>안심결제 이용료 2,915원</Text>
+              <Text style={styles.safePaymentFeeText}>안심결제 이용료 {safePaymentFee.toLocaleString()}원</Text>
               <Text style={styles.safePaymentFeeDescText}>상품금액+배송비의 5.5% (최소 800원 / VAT 포함)</Text>
 
-              <TouchableOpacity style={styles.safePaymentPolicyRow}>
-                <Text style={styles.safePaymentPolicyText}>안심결제 정책</Text>
+              <TouchableOpacity
+                style={styles.safePaymentPolicyRow}
+                onPress={() => navigation.navigate('SafePaymentTerms')}
+              >
+                <Text style={styles.safePaymentPolicyText}>안심결제 서비스 이용약관</Text>
                 <NextIcon width={5} height={8} />
               </TouchableOpacity>
             </View>
@@ -688,7 +712,12 @@ ${extraParamsJs}
                   <Text style={styles.termsRequiredText}>(필수) </Text>
                   안심결제 이용료, 구매확정 및 취소·환불 조건을 확인했습니다.
                 </Text>
-                <NextIcon width={6} height={12} />
+                <TouchableOpacity
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  onPress={() => navigation.navigate('SafePaymentTerms')}
+                >
+                  <NextIcon width={6} height={12} />
+                </TouchableOpacity>
               </View>
 
               {showTermsError && (
@@ -713,6 +742,8 @@ ${extraParamsJs}
 
           </ScrollView>
         </View>
+
+        {sessionExpiredPopup}
 
         {/* 배송지 변경 바텀 시트 */}
         <AddressBottomSheet

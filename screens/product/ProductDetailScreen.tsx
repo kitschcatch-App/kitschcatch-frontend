@@ -11,6 +11,8 @@ import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP, CATEGO
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import BackIcon from '../../assets/back.svg';
+import MoreIcon from '../../assets/more.svg';
+import ReportBlockMenu from '../../components/ReportBlockMenu';
 import { styles } from './ProductDetailScreen.styles';
 import HeartIcon from '../../assets/heart.svg';
 import DetailHeartIcon from '../../assets/detail_heart.svg';
@@ -73,6 +75,8 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   const [retryTrigger, setRetryTrigger] = useState(0);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [tempStatus, setTempStatus] = useState<string>('');
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   // 애니메이션 값 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -145,6 +149,35 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
       abortController.abort();
     };
   }, [productId, isMockMode, retryTrigger]);
+
+  // 관심 여부: 상세 응답에 favorited가 없어 관심 목록에서 찾는다.
+  // ponytail: 최근 100개까지만 확인. 상세 응답에 favorited가 생기면 그 값으로 교체.
+  useEffect(() => {
+    if (isMockMode) return;
+    let cancelled = false;
+    productAPI
+      .getFavoritePosts(0, 100)
+      .then(res => {
+        if (!cancelled) setIsFavorite(res.data.data.content.some((p: any) => String(p.id) === String(productId)));
+      })
+      .catch(e => console.warn('관심 여부 조회 실패:', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [productId, isMockMode]);
+
+  // 관심 상품 등록/해제: 먼저 화면에 반영하고 실패하면 되돌린다.
+  const toggleFavorite = async () => {
+    const next = !isFavorite;
+    setIsFavorite(next);
+    if (isMockMode) return;
+    try {
+      await (next ? productAPI.addFavoritePost(productId) : productAPI.removeFavoritePost(productId));
+    } catch (e) {
+      console.error('관심 상품 변경 실패:', e);
+      setIsFavorite(!next);
+    }
+  };
 
   // 화면 진입 애니메이션
   useEffect(() => {
@@ -299,8 +332,8 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Text style={[styles.productName, { flex: 1, marginRight: 10 }]}>{productDetail.name}</Text>
               {!isSeller && (
-                <TouchableOpacity style={styles.wishButton}>
-                  <HeartIcon width={25} height={25} />
+                <TouchableOpacity style={styles.wishButton} onPress={toggleFavorite}>
+                  <HeartIcon width={25} height={25} fill={isFavorite ? '#97F2EC' : 'none'} />
                 </TouchableOpacity>
               )}
             </View>
@@ -334,7 +367,11 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           {/* 3. 판매자 정보 영역 */}
           <View style={styles.sellerContainer}>
             <Text style={styles.transactionCount}>판매자 거래 횟수 3회</Text>
-            <View style={styles.sellerRight}>
+            <TouchableOpacity
+              style={styles.sellerRight}
+              disabled={productDetail.sellerId === null}
+              onPress={() => navigation.navigate('OtherUserProfile', { userId: productDetail.sellerId as number })}
+            >
               <Text style={styles.sellerName}>{productDetail.sellerName}</Text>
               <View style={styles.sellerProfileImageWrapper}>
                 <Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.sellerProfileImage} />
@@ -342,7 +379,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                   <Text style={styles.sellerRatingText}>3.8</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </ScrollView>
 
@@ -359,6 +396,27 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             <BackIcon width={10} height={18} />
           </TouchableOpacity>
         </View>
+
+        {/* 더보기(점 3개) 버튼: 뒤로가기 버튼과 같은 높이, 맨 오른쪽. 본인 게시글에는 신고 불가 */}
+        {currentUserId !== null && !isSeller && productDetail.sellerId !== null && (
+          <>
+            <View style={[styles.headerRight, { top: insets.top + 44 }]}>
+              <TouchableOpacity
+                style={styles.moreButton}
+                accessibilityLabel="더보기 메뉴"
+                onPress={() => setMenuVisible(v => !v)}
+              >
+                <MoreIcon width={4} height={18} />
+              </TouchableOpacity>
+            </View>
+            <ReportBlockMenu
+              visible={menuVisible}
+              onClose={() => setMenuVisible(false)}
+              onReport={() => navigation.navigate('ReportUser', { userId: productDetail.sellerId as number, target: 'product' })}
+              style={{ top: insets.top + 44 + 40, right: 20 }}
+            />
+          </>
+        )}
       </Animated.View>
 
       {/* 하단 (아래에서 위로 슬라이드 애니메이션 적용) */}
@@ -420,7 +478,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
                       }
                     }
 
-                    navigation.navigate('Chat', { chatRoomId, opponentNickname });
+                    navigation.navigate('Chat', { chatRoomId, opponentNickname, opponentId: productDetail.sellerId ?? undefined });
                   } catch (e: any) {
                     if (e?.response?.status === 401) {
                       navigation.navigate('Login');

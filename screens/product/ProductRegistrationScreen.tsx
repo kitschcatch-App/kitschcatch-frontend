@@ -2,10 +2,12 @@
  * 화면: 상품 등록 화면 (ProductRegistrationScreen)
  * 역할: 사용자가 판매할 상품의 정보를 입력하고 등록하는 화면입니다.
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Animated } from 'react-native';
 import ErrorView from '../../components/ErrorView';
 import ConfirmView from '../../components/ConfirmView';
+import SuccessView from '../../components/SuccessView';
 import CommonPopup from '../../components/CommonPopup';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +30,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ProductRegistration'>;
 // 명세서 4.1: 백엔드는 한글 라벨 값으로 직렬화/역직렬화합니다.
 // 예시: "productCategory": "굿즈" → 변환 없이 한글 그대로 전송해야 합니다.
 
+const DRAFT_KEY = 'productRegistrationDraft';
+
 const ProductRegistrationScreen = ({ navigation }: Props) => {
   const insets = useSafeAreaInsets();
   const { isMockMode } = useMockMode();
@@ -48,6 +52,20 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteComplete, setShowDeleteComplete] = useState(false);
   const [showTempSaveComplete, setShowTempSaveComplete] = useState(false);
+  const [draft, setDraft] = useState<any>(null);
+  const [showDraftConfirm, setShowDraftConfirm] = useState(false);
+  const [showDraftDeleteConfirm, setShowDraftDeleteConfirm] = useState(false);
+  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+  const [showDraftDeleted, setShowDraftDeleted] = useState(false);
+
+  // 진입 시 임시저장 글이 있으면 이어쓰기 여부를 묻는다
+  useEffect(() => {
+    AsyncStorage.getItem(DRAFT_KEY).then(raw => {
+      if (!raw) return;
+      setDraft(JSON.parse(raw));
+      setShowDraftConfirm(true);
+    });
+  }, []);
 
   const CONDITION_OPTIONS = ['새상품', '사용감 적음', '사용감 있음', '사용감 많음'];
   const CATEGORY_OPTIONS = ['애니/만화', '게임', '굿즈', '코스프레', '서적', '음반/영상', '기타'];
@@ -108,11 +126,48 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
 
   const handleGoHome = () => {
     setShowDeleteComplete(false);
-    navigation.navigate('ProductList');
+    navigation.navigate('Home');
   };
 
   const handleTempSave = () => {
+    if (!hasUnsavedContent) return;
+    // 임시저장은 1개만 가능: 기존 글이 남아 있으면 덮어쓸지 먼저 묻는다
+    if (draft) {
+      setShowOverwriteConfirm(true);
+      return;
+    }
+    saveDraft();
+  };
+
+  const saveDraft = async () => {
+    setShowOverwriteConfirm(false);
+    await AsyncStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        productName, productPrice, productDescription,
+        selectedCondition, selectedCategory, selectedImages, isPolicyAgreed,
+      }),
+    );
     setShowTempSaveComplete(true);
+  };
+
+  const handleContinueDraft = () => {
+    setProductName(draft.productName);
+    setProductPrice(draft.productPrice);
+    setProductDescription(draft.productDescription);
+    setSelectedCondition(draft.selectedCondition);
+    setSelectedCategory(draft.selectedCategory);
+    setSelectedImages(draft.selectedImages);
+    setIsPolicyAgreed(draft.isPolicyAgreed);
+    setDraft(null);
+    setShowDraftConfirm(false);
+  };
+
+  const handleDeleteDraft = async () => {
+    await AsyncStorage.removeItem(DRAFT_KEY);
+    setDraft(null);
+    setShowDraftDeleteConfirm(false);
+    setShowDraftDeleted(true);
   };
 
   const showLimitToast = () => {
@@ -389,16 +444,54 @@ const ProductRegistrationScreen = ({ navigation }: Props) => {
         onConfirm={handleConfirmDelete}
       />
 
-      <CommonPopup
+      <SuccessView
         visible={showDeleteComplete}
         title="상품 등록이 삭제되었습니다."
-        onPress={handleGoHome}
+        onDismiss={handleGoHome}
       />
 
-      <CommonPopup
+      <SuccessView
         visible={showTempSaveComplete}
         title="상품등록이 임시저장되었습니다."
-        onPress={handleGoHome}
+        onDismiss={handleGoHome}
+      />
+
+      <ConfirmView
+        visible={showDraftConfirm}
+        title={'임시저장 된 글이 있습니다.\n이어서 작성하시겠습니까?'}
+        cancelText="이어서 작성"
+        confirmText="새 글 작성"
+        onCancel={handleContinueDraft}
+        onConfirm={() => {
+          setShowDraftConfirm(false);
+          setShowDraftDeleteConfirm(true);
+        }}
+      />
+
+      <ConfirmView
+        visible={showDraftDeleteConfirm}
+        title={'임시저장된 글을 삭제할까요?\n삭제한 글은 복구할 수 없습니다.'}
+        cancelText="유지"
+        confirmText="삭제하고 새 글 작성"
+        confirmFontSize={14}
+        onCancel={() => setShowDraftDeleteConfirm(false)}
+        onConfirm={handleDeleteDraft}
+      />
+
+      <ConfirmView
+        visible={showOverwriteConfirm}
+        title={'임시저장은 1개만 가능합니다.\n기존 임시저장 글을 삭제 후,\n새 글을 저장할까요?'}
+        cancelText="취소"
+        confirmText="삭제하고 새 글 저장"
+        confirmFontSize={14}
+        onCancel={() => setShowOverwriteConfirm(false)}
+        onConfirm={saveDraft}
+      />
+
+      <SuccessView
+        visible={showDraftDeleted}
+        title="임시저장 글이 삭제되었습니다."
+        onDismiss={() => setShowDraftDeleted(false)}
       />
     </SafeAreaView>
   );

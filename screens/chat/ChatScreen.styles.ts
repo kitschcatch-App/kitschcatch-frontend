@@ -33,6 +33,11 @@ export const styles = StyleSheet.create({
     marginBottom: 7,
     marginTop: 7,
   },
+  moreButton: {
+    position: 'absolute',
+    right: 20,
+    marginVertical: 7,
+  },
   headerCenter: {
     alignItems: 'center',
   },

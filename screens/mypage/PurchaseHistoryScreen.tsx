@@ -1,43 +1,86 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './PurchaseHistoryScreen.styles';
+import { orderAPI, userAPI } from '../../api/apiClient';
+import { formatShortDate, ORDER_STATUS_LABEL } from '../../utils/mypage';
 import ScreenHeader from '../../components/ScreenHeader';
 import EmptyState from '../../components/EmptyState';
 import SortBottomSheet, { SortOption } from '../../components/SortBottomSheet';
 import ConfirmView from '../../components/ConfirmView';
+import RatingPopup from '../../components/RatingPopup';
 import SuccessView from '../../components/SuccessView';
 import CheckIcon from '../../assets/check-sales.svg';
 import DropdownIcon from '../../assets/dropdown.svg';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PurchaseHistory'>;
 
-type PurchaseStatus = '거래중' | '구매완료';
+const DEFAULT_PRODUCT_IMAGE = require('../../assets/product_img.png');
 
-const PURCHASE_HISTORY = [
-  { id: '1', title: '원신 클레 피규어', price: 45000, status: '거래중' as PurchaseStatus, date: '26.08.22', image: require('../../assets/product_img.png') },
-  { id: '2', title: '하이큐 아크릴 스탠드', price: 15000, status: '구매완료' as PurchaseStatus, date: '26.08.15', image: require('../../assets/product_img.png') },
-  { id: '3', title: '원신 벤티 열쇠고리', price: 12000, status: '구매완료' as PurchaseStatus, date: '26.08.10', image: require('../../assets/product_img.png') },
-];
+interface PurchaseItem {
+  id: string;
+  title: string;
+  price: number;
+  orderStatus: string;
+  status: string;
+  date: string;
+  orderedAt: string;
+}
+
+const toPurchaseItem = (order: any): PurchaseItem => ({
+  id: order.orderId,
+  title: order.postTitle,
+  price: order.amount,
+  orderStatus: order.orderStatus,
+  status: ORDER_STATUS_LABEL[order.orderStatus] ?? order.orderStatus,
+  date: formatShortDate(order.orderedAt),
+  orderedAt: order.orderedAt,
+});
 
 const PurchaseHistoryScreen = ({ navigation }: Props) => {
   const [excludeCompleted, setExcludeCompleted] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>('최신순');
   const [isSortSheetVisible, setSortSheetVisible] = useState(false);
   const [isMoreSheetVisible, setMoreSheetVisible] = useState(false);
+  const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
   const [isConfirmVisible, setConfirmVisible] = useState(false);
   const [isSuccessVisible, setSuccessVisible] = useState(false);
-  const [confirmedIds, setConfirmedIds] = useState<string[]>([]);
+  const [isPurchaseSuccessVisible, setPurchaseSuccessVisible] = useState(false);
+  const [purchaseHistory, setPurchaseHistory] = useState<PurchaseItem[]>([]);
+
+  const loadPurchases = useCallback(() => {
+    // ponytail: 최대 100건만 조회. 무한 스크롤은 목록이 길어지면 추가.
+    userAPI
+      .getPurchaseOrders({ page: 0, size: 100 })
+      .then(res => setPurchaseHistory(res.data.data.content.map(toPurchaseItem)))
+      .catch(e => console.error('구매내역 조회 실패:', e));
+  }, []);
+
+  useFocusEffect(loadPurchases);
+
+  const handleConfirmPurchase = async (orderId: string) => {
+    try {
+      await orderAPI.confirmPurchase(orderId);
+      loadPurchases();
+      setPurchaseSuccessVisible(true);
+    } catch (err: any) {
+      // ORDER_005: 발송 전이거나 환불 요청 중
+      Alert.alert('구매확정', err.response?.data?.error?.code === 'ORDER_005'
+        ? '발송 전이거나 환불 진행 중인 주문은 구매확정할 수 없어요.'
+        : '구매확정 중 오류가 발생했어요. 다시 시도해주세요.');
+    }
+  };
 
   const visiblePurchaseHistory = (excludeCompleted
-    ? PURCHASE_HISTORY.filter((item) => item.status !== '구매완료')
-    : PURCHASE_HISTORY
+    ? purchaseHistory.filter((item) => item.orderStatus !== 'PURCHASE_CONFIRMED')
+    : purchaseHistory
   )
     .slice()
     .sort((a, b) =>
-      sortOption === '최신순' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)
+      sortOption === '최신순' ? b.orderedAt.localeCompare(a.orderedAt) : a.orderedAt.localeCompare(b.orderedAt)
     );
 
   return (
@@ -77,21 +120,23 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
           showsVerticalScrollIndicator={false}
         >
           {visiblePurchaseHistory.map((item) => {
-            const isConfirmed = confirmedIds.includes(item.id);
+            const isConfirmed = item.orderStatus === 'PURCHASE_CONFIRMED';
+            const isReturned = item.orderStatus === 'REFUNDED';
+            const openDetail = () => navigation.navigate('PurchaseOrderDetail', {
+              orderId: item.id,
+              orderNumber: item.id,
+              productTitle: item.title,
+              productPrice: item.price,
+              productImage: DEFAULT_PRODUCT_IMAGE,
+            });
             return (
               <View key={item.id} style={styles.purchaseItem}>
                 <TouchableOpacity
                   style={styles.purchaseItemRow}
                   activeOpacity={0.7}
-                  onPress={() => navigation.navigate('PurchaseOrderDetail', {
-                    orderId: item.id,
-                    orderNumber: '12345678',
-                    productTitle: item.title,
-                    productPrice: item.price,
-                    productImage: item.image,
-                  })}
+                  onPress={openDetail}
                 >
-                  <Image source={item.image} style={styles.purchaseItemImage} resizeMode="cover" />
+                  <Image source={DEFAULT_PRODUCT_IMAGE} style={styles.purchaseItemImage} resizeMode="cover" />
                   <View style={styles.purchaseItemInfo}>
                     <View style={styles.purchaseItemTitleRow}>
                       <Text style={styles.purchaseItemTitle} numberOfLines={1}>{item.title}</Text>
@@ -108,18 +153,28 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
                     </View>
                     <Text style={styles.purchaseItemPrice}>{item.price.toLocaleString()}원</Text>
                     <View style={styles.purchaseItemStatusRow}>
-                      <Text style={styles.purchaseItemStatus}>{item.status}</Text>
+                      <Text style={[styles.purchaseItemStatus, isReturned && styles.purchaseItemStatusReturned]}>{item.status}</Text>
                       <Text style={styles.purchaseItemDate}>{item.date}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
 
-                {item.status === '구매완료' && (
+                {isReturned && (
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.confirmButtonReturned]}
+                    activeOpacity={0.7}
+                    onPress={openDetail}
+                  >
+                    <Text style={styles.confirmButtonText}>반품 상세 정보</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(item.orderStatus === 'PAID' || item.orderStatus === 'PURCHASE_CONFIRMED') && (
                   <TouchableOpacity
                     style={[styles.confirmButton, isConfirmed && styles.confirmButtonDone]}
                     activeOpacity={0.7}
                     disabled={isConfirmed}
-                    onPress={() => setConfirmedIds((prev) => [...prev, item.id])}
+                    onPress={() => setRatingOrderId(item.id)}
                   >
                     <Text style={[styles.confirmButtonText, isConfirmed && styles.confirmButtonTextDone]}>
                       {isConfirmed ? '구매 확정 완료' : '구매확정'}
@@ -150,6 +205,15 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
         }}
       />
 
+      {/* ponytail: 별점 저장 API 미정이라 선택값은 전송하지 않고 구매확정만 처리 */}
+      <RatingPopup
+        visible={ratingOrderId !== null}
+        onConfirm={() => {
+          if (ratingOrderId) handleConfirmPurchase(ratingOrderId);
+          setRatingOrderId(null);
+        }}
+      />
+
       <ConfirmView
         visible={isConfirmVisible}
         title="게시글을 삭제하시겠습니까?"
@@ -158,6 +222,12 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
           setConfirmVisible(false);
           setSuccessVisible(true);
         }}
+      />
+
+      <SuccessView
+        visible={isPurchaseSuccessVisible}
+        title="구매확정이 완료되었습니다."
+        onDismiss={() => setPurchaseSuccessVisible(false)}
       />
 
       <SuccessView

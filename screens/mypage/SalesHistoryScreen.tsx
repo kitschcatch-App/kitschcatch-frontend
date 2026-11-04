@@ -1,42 +1,95 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, ScrollView, ImageSourcePropType, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './SalesHistoryScreen.styles';
+import { productAPI, userAPI } from '../../api/apiClient';
+import { formatShortDate, mapOrderIdByPost, POST_STATUS_LABEL } from '../../utils/mypage';
 import ScreenHeader from '../../components/ScreenHeader';
 import EmptyState from '../../components/EmptyState';
 import SortBottomSheet, { SortOption } from '../../components/SortBottomSheet';
 import ConfirmView from '../../components/ConfirmView';
 import SuccessView from '../../components/SuccessView';
+import CommonPopup from '../../components/CommonPopup';
 import CheckIcon from '../../assets/check-sales.svg';
 import DropdownIcon from '../../assets/dropdown.svg';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SalesHistory'>;
 
-type SaleStatus = '거래중' | '상품등록' | '판매완료';
+const DEFAULT_PRODUCT_IMAGE = require('../../assets/product_img.png');
 
-const SALES_HISTORY = [
-  { id: '1', title: '원신 클레 피규어', price: 45000, status: '거래중' as SaleStatus, date: '26.08.22', image: require('../../assets/product_img.png') },
-  { id: '2', title: '하이큐 아크릴 스탠드', price: 15000, status: '상품등록' as SaleStatus, date: '26.08.15', image: require('../../assets/product_img.png') },
-  { id: '3', title: '원신 벤티 열쇠고리', price: 12000, status: '판매완료' as SaleStatus, date: '26.08.10', image: require('../../assets/product_img.png') },
-];
+interface SaleItem {
+  id: string;
+  orderId?: string; // 주문이 없는 상품(판매 중)은 없음
+  title: string;
+  price: number;
+  status: string;
+  date: string;
+  createdAt: string;
+  image: ImageSourcePropType;
+}
+
+const toSaleItem = (post: any, orderIds: Record<string, string>): SaleItem => ({
+  id: String(post.id),
+  orderId: orderIds[String(post.id)],
+  title: post.title,
+  price: post.price,
+  status: POST_STATUS_LABEL[post.productStatus] ?? post.productStatus,
+  date: formatShortDate(post.createdAt),
+  createdAt: post.createdAt,
+  image: post.images?.[0]?.imageUrl ? { uri: post.images[0].imageUrl } : DEFAULT_PRODUCT_IMAGE,
+});
 
 const SalesHistoryScreen = ({ navigation }: Props) => {
+  const [salesHistory, setSalesHistory] = useState<SaleItem[]>([]);
   const [excludeCompleted, setExcludeCompleted] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>('최신순');
   const [isSortSheetVisible, setSortSheetVisible] = useState(false);
   const [isMoreSheetVisible, setMoreSheetVisible] = useState(false);
   const [isConfirmVisible, setConfirmVisible] = useState(false);
   const [isSuccessVisible, setSuccessVisible] = useState(false);
+  const [isNoOrderVisible, setNoOrderVisible] = useState(false);
+
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  const loadSales = useCallback(() => {
+    // ponytail: 최대 100건만 조회. 무한 스크롤은 목록이 길어지면 추가.
+    Promise.all([
+      userAPI.getMyPosts({ page: 0, size: 100 }),
+      userAPI.getSaleOrders({ page: 0, size: 100 }),
+    ])
+      .then(([posts, orders]) => {
+        const orderIds = mapOrderIdByPost(orders.data.data.content);
+        setSalesHistory(posts.data.data.content.map((p: any) => toSaleItem(p, orderIds)));
+      })
+      .catch(e => console.error('판매내역 조회 실패:', e));
+  }, []);
+
+  useFocusEffect(loadSales);
+
+  const handleDelete = async () => {
+    if (!deleteTargetId) return;
+    try {
+      await productAPI.deletePost(deleteTargetId);
+      setSuccessVisible(true);
+      loadSales();
+    } catch (e) {
+      console.error('게시글 삭제 실패:', e);
+      Alert.alert('게시글 삭제', '삭제 중 오류가 발생했어요. 다시 시도해주세요.');
+    } finally {
+      setDeleteTargetId(null);
+    }
+  };
 
   const visibleSalesHistory = (excludeCompleted
-    ? SALES_HISTORY.filter((item) => item.status !== '판매완료')
-    : SALES_HISTORY
+    ? salesHistory.filter((item) => item.status !== '판매완료')
+    : salesHistory
   )
     .slice()
     .sort((a, b) =>
-      sortOption === '최신순' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)
+      sortOption === '최신순' ? b.createdAt.localeCompare(a.createdAt) : a.createdAt.localeCompare(b.createdAt)
     );
 
   return (
@@ -80,13 +133,19 @@ const SalesHistoryScreen = ({ navigation }: Props) => {
               key={item.id}
               style={styles.salesItem}
               activeOpacity={0.7}
-              onPress={() => navigation.navigate('OrderDetail', {
-                orderId: item.id,
-                orderNumber: '12345678',
-                productTitle: item.title,
-                productPrice: item.price,
-                productImage: item.image,
-              })}
+              onPress={() => {
+                if (!item.orderId) {
+                  setNoOrderVisible(true);
+                  return;
+                }
+                navigation.navigate('OrderDetail', {
+                  orderId: item.orderId,
+                  orderNumber: item.orderId,
+                  productTitle: item.title,
+                  productPrice: item.price,
+                  productImage: item.image,
+                });
+              }}
             >
               <Image source={item.image} style={styles.salesItemImage} resizeMode="cover" />
               <View style={styles.salesItemInfo}>
@@ -96,7 +155,10 @@ const SalesHistoryScreen = ({ navigation }: Props) => {
                     style={styles.moreButton}
                     activeOpacity={0.7}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    onPress={() => setMoreSheetVisible(true)}
+                    onPress={() => {
+                      setDeleteTargetId(item.id);
+                      setMoreSheetVisible(true);
+                    }}
                   >
                     <View style={styles.moreButtonDot} />
                     <View style={styles.moreButtonDot} />
@@ -138,8 +200,15 @@ const SalesHistoryScreen = ({ navigation }: Props) => {
         onCancel={() => setConfirmVisible(false)}
         onConfirm={() => {
           setConfirmVisible(false);
-          setSuccessVisible(true);
+          handleDelete();
         }}
+      />
+
+      <CommonPopup
+        visible={isNoOrderVisible}
+        title="이 상품은 아직 들어온 주문이 없어요."
+        buttonText="확인"
+        onPress={() => setNoOrderVisible(false)}
       />
 
       <SuccessView

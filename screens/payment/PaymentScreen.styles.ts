@@ -39,6 +39,13 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: -1,
   },
+  headerTimer: {
+    position: 'absolute',
+    right: 20,
+    fontSize: 16,
+    fontFamily: typography.M,
+    color: colors.sub07,
+  },
   headerTitle: {
     fontSize: 18,
     fontFamily: typography.SB,
@@ -242,41 +249,23 @@ export const styles = StyleSheet.create({
   },
   paymentMethodContainer: {
     marginTop: 12,
-    gap: 8,
-    paddingHorizontal: 15,
+    gap: 16,
   },
-  paymentMethodRow: {
+  paymentMethodItem: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 15,
-  },
-  paymentMethodRowBottom: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 18,
-  },
-  paymentMethodButton: {
-    width: 80,
-    height: 38,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
-    borderWidth: 0.7,
-    borderColor: colors.gray05,
-    borderRadius: 8,
+    gap: 8,
   },
-  paymentMethodButtonActive: {
-    backgroundColor: colors.main05,
-    borderColor: colors.main05,
+  paymentRadioOff: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.gray07,
   },
   paymentMethodText: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: typography.M,
-    color: colors.gray07,
-  },
-  paymentMethodTextActive: {
     color: colors.black,
   },
   // 안심결제

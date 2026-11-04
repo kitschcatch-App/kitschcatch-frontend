@@ -3,18 +3,20 @@
  * 역할: 회원가입 절차를 모두 마친 사용자에게 완료 안내를 보여주고 홈 화면으로 이동시키는 화면입니다.
  */
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './SignUpCompleteScreen.styles';
 import BackIcon from '../../assets/back.svg';
 import CheckIcon from '../../assets/check.svg';
+import { useCheckPop } from '../../hooks/useCheckPop';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SignUpComplete'>;
 
 const SignUpCompleteScreen = ({ navigation, route }: Props) => {
   const { nickname } = route.params;
+  const checkStyle = useCheckPop();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -31,12 +33,14 @@ const SignUpCompleteScreen = ({ navigation, route }: Props) => {
         {/* 완료 안내 */}
         <View style={styles.contentContainer}>
           <Text style={styles.completeText}>{nickname} 님의{'\n'}회원가입이 완료되었습니다!</Text>
-          <CheckIcon width={148} height={90} />
+          <Animated.View style={checkStyle}>
+            <CheckIcon width={148} height={90} />
+          </Animated.View>
 
           {/* 홈 화면으로 이동 버튼 */}
           <TouchableOpacity
             style={styles.nextButton}
-            onPress={() => navigation.replace('ProductList')}
+            onPress={() => navigation.replace('Home')}
             activeOpacity={0.8}
           >
             <Text style={styles.nextButtonText}>홈 화면으로 이동</Text>

@@ -113,6 +113,51 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     color: colors.black,
   },
+  // 반품 사유: 라벨은 상품 사진(80) 아래, 값은 제목·가격 열(사진 폭 80 + 간격 12)에 맞춤
+  returnReasonRow: {
+    flexDirection: 'row',
+    marginTop: 16,
+  },
+  returnReasonLabel: {
+    width: 80,
+    marginRight: 12,
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray06,
+  },
+  returnReasonValue: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
+  refundTotalLabel: {
+    fontSize: 14,
+    fontFamily: typography.SB,
+    color: colors.black,
+  },
+  refundTotalValue: {
+    fontSize: 14,
+    fontFamily: typography.SB,
+    color: colors.black,
+  },
+  refundAmountLabel: {
+    fontSize: 18,
+    fontFamily: typography.SB,
+    color: colors.black,
+  },
+  refundAmountValue: {
+    fontSize: 18,
+    fontFamily: typography.SB,
+    color: colors.black,
+  },
+  returnNoticeList: {
+    marginTop: 12,
+    gap: 4,
+  },
+  returnNoticeRow: {
+    flexDirection: 'row',
+  },
   orderDivider: {
     height: 1,
     backgroundColor: colors.gray02,
@@ -181,6 +226,12 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.SB,
     color: colors.black,
+  },
+  paymentValueText: {
+    marginLeft: 'auto', // 행의 맨 오른쪽 정렬
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray07,
   },
   actionButtonsContainer: {
     flexDirection: 'row',
@@ -294,6 +345,31 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     color: colors.black,
   },
+  bulletRow: {
+    flexDirection: 'row',
+    marginTop: 12,
+  },
+  deadlineMainText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontFamily: typography.SB,
+    color: colors.black,
+  },
+  deadlineDateText: {
+    color: colors.sub07,
+  },
+  deadlineSubDot: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.gray07,
+    marginRight: 6,
+  },
+  deadlineSubText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.gray07,
+  },
   noticeContainer: {
     backgroundColor: colors.white,
     paddingHorizontal: 16,
@@ -301,7 +377,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: colors.main07,
+    borderColor: colors.info,
     marginBottom: 10,
   },
   noticeTitle: {

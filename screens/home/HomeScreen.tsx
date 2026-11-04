@@ -24,7 +24,7 @@ import KitschcatchIcon from '../../assets/kitschcatch.svg';
 import AlarmIcon from '../../assets/alarm.svg';
 import SearchIcon from '../../assets/search.svg';
 import NextIcon from '../../assets/next.svg';
-import AddIcon from '../../assets/plus.svg';
+import FloatingAddButton from '../../components/FloatingAddButton';
 import AnimationLogo1 from '../../assets/animation_logo_1.svg';
 import AnimationLogo2 from '../../assets/animation_logo_2.svg';
 import AnimationLogo3 from '../../assets/animation_logo_3.svg';
@@ -34,9 +34,16 @@ import AnimationLogo6 from '../../assets/animation_logo_6.svg';
 import BottomNav from '../../components/BottomNav';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
-import { notificationAPI } from '../../api/apiClient';
+import { notificationAPI, productAPI } from '../../api/apiClient';
 import { getMockUnreadNotificationCount } from '../../api/mockData';
 import { useMockMode } from '../../contexts/MockModeContext';
+import {
+  DEFAULT_COORD,
+  fetchNearbyStores,
+  getCurrentCoord,
+  requestLocationPermission,
+  Store,
+} from '../../utils/storeMap';
 
 import { styles } from './HomeScreen.styles';
 
@@ -85,20 +92,27 @@ type PopularWork = {
   title: string;
   count: number;
   Logo: React.FC<SvgProps>;
-  twoLine?: boolean; // 제목이 2줄로 줄바꿈되는 항목인지 (next 아이콘 간격 조정용)
 };
 
 // 인기 작품 (mock)
 const POPULAR_WORKS: PopularWork[] = [
-  { id: '1', title: '귀멸의 칼날', count: 76, Logo: AnimationLogo1, twoLine: true },
+  { id: '1', title: '귀멸의 칼날', count: 76, Logo: AnimationLogo1 },
   { id: '2', title: '원피스', count: 56, Logo: AnimationLogo2 },
-  { id: '3', title: '블루 아카이브', count: 45, Logo: AnimationLogo3, twoLine: true },
-  { id: '4', title: '명탐정 코난', count: 32, Logo: AnimationLogo4, twoLine: true },
+  { id: '3', title: '블루 아카이브', count: 45, Logo: AnimationLogo3 },
+  { id: '4', title: '명탐정 코난', count: 32, Logo: AnimationLogo4 },
   { id: '5', title: '하이큐', count: 22, Logo: AnimationLogo5 },
-  { id: '6', title: '진격의 거인', count: 16, Logo: AnimationLogo6, twoLine: true },
+  { id: '6', title: '진격의 거인', count: 16, Logo: AnimationLogo6 },
 ];
 
 type PopularProduct = { id: string; name: string; price: number; imageUrl: string };
+
+// GET /posts 응답 항목 → 홈 카드용 상품
+const postToProduct = (post: any): PopularProduct => ({
+  id: String(post.id),
+  name: post.title,
+  price: post.price,
+  imageUrl: post.images?.[0]?.imageUrl ?? '',
+});
 
 // 현재 인기있는 상품 카테고리 (전체 + 상품 카테고리)
 const POPULAR_PRODUCT_CATEGORIES = [
@@ -174,21 +188,14 @@ const POPULAR_PRODUCTS_BY_CATEGORY: Record<string, PopularProduct[]> = {
   ],
 };
 
-type NearbyStore = {
-  id: string;
-  name: string;
-  imageUrl: string;
-  status: string;
-  detail?: string; // 영업시간 상세 (status와 '|'로 구분되어 표시됨)
-};
+const NEARBY_STORE_COUNT = 4;
+const NEARBY_RADIUS_KM = 5;
 
-// 내 주변 매장 (mock)
-const NEARBY_STORES: NearbyStore[] = [
-  { id: '1', name: '새틀라이트 플러스', imageUrl: 'https://picsum.photos/id/701/400/400', status: '영업 중', detail: '21:40에 영업종료' },
-  { id: '2', name: '캑티 가챠샵 연남점', imageUrl: 'https://picsum.photos/id/702/400/400', status: '24시간 영업' },
-  { id: '3', name: '우주가챠', imageUrl: 'https://picsum.photos/id/703/400/400', status: '영업 종료', detail: '13:00에 영업시작' },
-  { id: '4', name: '123456789', imageUrl: 'https://picsum.photos/id/704/400/400', status: '영업 중', detail: '21:00에 영업종료' },
-];
+const BUSINESS_STATUS_LABEL: Record<Store['businessStatus'], string> = {
+  OPEN: '영업 중',
+  CLOSED: '영업 종료',
+  UNKNOWN: '영업 정보 없음',
+};
 
 const HomeScreen = ({ navigation }: Props) => {
   const insets = useSafeAreaInsets();
@@ -196,10 +203,74 @@ const HomeScreen = ({ navigation }: Props) => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [bannerWidth, setBannerWidth] = useState(INITIAL_BANNER_WIDTH);
   const bannerListRef = useRef<FlatList<string>>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const bannerWidthRef = useRef(INITIAL_BANNER_WIDTH);
   const [selectedProductCategory, setSelectedProductCategory] = useState('ALL');
   const productSlideAnim = useRef(new Animated.Value(0)).current;
+  const [fabCollapsed, setFabCollapsed] = useState(false); // 스크롤하면 상품 등록 버튼 축소
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [nearbyStores, setNearbyStores] = useState<Store[]>([]);
+  // 오늘의 추천: 전체 상품 최신순 상위 3개 (실서버 모드)
+  const [latestRecommended, setLatestRecommended] = useState<PopularProduct[]>([]);
+
+  useEffect(() => {
+    if (isMockMode) return;
+    let cancelled = false;
+    productAPI
+      .getPostList({ params: { sort: 'LATEST', page: 0, size: 3 } })
+      .then(res => {
+        if (!cancelled) setLatestRecommended(res.data.data.content.map(postToProduct));
+      })
+      .catch(e => console.error('오늘의 추천 조회 실패:', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [isMockMode]);
+
+  // 실서버 모드의 카테고리별 최신 상품 6개 (한 번 불러온 카테고리는 재사용)
+  const [latestByCategory, setLatestByCategory] = useState<Record<string, PopularProduct[]>>({});
+
+  useEffect(() => {
+    if (isMockMode || latestByCategory[selectedProductCategory]) return;
+    let cancelled = false;
+    const params: Record<string, string | number> = { sort: 'LATEST', page: 0, size: 6 };
+    if (selectedProductCategory !== 'ALL') params.category = selectedProductCategory;
+    productAPI
+      .getPostList({ params })
+      .then(res => {
+        if (cancelled) return;
+        const items = res.data.data.content.map(postToProduct);
+        setLatestByCategory(prev => ({ ...prev, [selectedProductCategory]: items }));
+      })
+      .catch(e => console.error('현재 인기있는 상품 조회 실패:', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [isMockMode, selectedProductCategory, latestByCategory]);
+
+  // 내 위치 기준 가까운 매장 4개 (권한 거부/위치 실패 시 기본 좌표 사용)
+  useEffect(() => {
+    let cancelled = false;
+    const loadNearbyStores = async () => {
+      try {
+        const coord = (await requestLocationPermission())
+          ? await getCurrentCoord().catch(() => DEFAULT_COORD)
+          : DEFAULT_COORD;
+        const stores = await fetchNearbyStores(coord, NEARBY_RADIUS_KM, isMockMode);
+        if (cancelled) return;
+        const byDistance = [...stores].sort(
+          (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
+        );
+        setNearbyStores(byDistance.slice(0, NEARBY_STORE_COUNT));
+      } catch (e) {
+        console.error('내 주변 매장 조회 실패:', e);
+      }
+    };
+    loadNearbyStores();
+    return () => {
+      cancelled = true;
+    };
+  }, [isMockMode]);
 
   // 알림 화면을 다녀온 뒤에도 최신 미읽음 상태가 반영되도록 포커스마다 조회
   useFocusEffect(
@@ -209,8 +280,8 @@ const HomeScreen = ({ navigation }: Props) => {
           if (isMockMode) {
             setHasUnreadNotifications(getMockUnreadNotificationCount() > 0);
           } else {
-            const res = await notificationAPI.getNotifications({ unreadOnly: true, page: 0, size: 1 });
-            setHasUnreadNotifications(res.data.data.totalElements > 0);
+            const res = await notificationAPI.getNotifications({ page: 0, size: 1 });
+            setHasUnreadNotifications(res.data.data.unreadCount > 0);
           }
         } catch (e) {
           console.error('알림 미읽음 여부 조회 실패:', e);
@@ -267,7 +338,16 @@ const HomeScreen = ({ navigation }: Props) => {
     });
   };
 
-  const popularProducts = POPULAR_PRODUCTS_BY_CATEGORY[selectedProductCategory] ?? [];
+  const openProduct = (product: PopularProduct) =>
+    navigation.navigate('ProductDetail', {
+      productId: product.id,
+      productName: product.name,
+      productPrice: product.price,
+      productImageUrl: product.imageUrl,
+    });
+
+  const popularProducts =
+    (isMockMode ? POPULAR_PRODUCTS_BY_CATEGORY : latestByCategory)[selectedProductCategory] ?? [];
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
@@ -297,7 +377,13 @@ const HomeScreen = ({ navigation }: Props) => {
           </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          onScroll={e => setFabCollapsed(e.nativeEvent.contentOffset.y > 10)}
+          scrollEventThrottle={16}
+        >
           {/* 이미지 배너 */}
           <View style={styles.bannerContainer} onLayout={handleBannerLayout}>
             <FlatList
@@ -333,7 +419,12 @@ const HomeScreen = ({ navigation }: Props) => {
               contentContainerStyle={styles.categoryScrollContent}
             >
               {CATEGORY_ITEMS.map((category) => (
-                <TouchableOpacity key={category.key} style={styles.categoryItem} activeOpacity={0.7}>
+                <TouchableOpacity
+                  key={category.key}
+                  style={styles.categoryItem}
+                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate('ProductList', { category: category.key })}
+                >
                   <View style={styles.categoryCircle}>
                     <Image source={category.image} style={styles.categoryIcon} resizeMode="contain" />
                   </View>
@@ -351,8 +442,13 @@ const HomeScreen = ({ navigation }: Props) => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.recommendScrollContent}
             >
-              {RECOMMENDED_PRODUCTS.map((product) => (
-                <TouchableOpacity key={product.id} style={styles.recommendCard} activeOpacity={0.85}>
+              {(isMockMode ? RECOMMENDED_PRODUCTS : latestRecommended).map((product) => (
+                <TouchableOpacity
+                  key={product.id}
+                  style={styles.recommendCard}
+                  activeOpacity={0.85}
+                  onPress={() => openProduct(product)}
+                >
                   <Image source={{ uri: product.imageUrl }} style={styles.recommendImage} resizeMode="cover" />
                   {/* 하단 그라데이션 (텍스트 가독성 확보용) */}
                   <View pointerEvents="none" style={styles.recommendGradient}>
@@ -388,7 +484,12 @@ const HomeScreen = ({ navigation }: Props) => {
               contentContainerStyle={styles.similarScrollContent}
             >
               {SIMILAR_PRODUCTS.map((product) => (
-                <TouchableOpacity key={product.id} style={styles.similarCard} activeOpacity={0.85}>
+                <TouchableOpacity
+                  key={product.id}
+                  style={styles.similarCard}
+                  activeOpacity={0.85}
+                  onPress={() => openProduct(product)}
+                >
                   <Image source={{ uri: product.imageUrl }} style={styles.similarImage} resizeMode="cover" />
                   <Text style={styles.similarName} numberOfLines={1} ellipsizeMode="tail">
                     {product.name}
@@ -416,11 +517,6 @@ const HomeScreen = ({ navigation }: Props) => {
                     <Text style={styles.popularTitle} numberOfLines={2} ellipsizeMode="tail">
                       {work.title}
                     </Text>
-                    <NextIcon
-                      width={5}
-                      height={8}
-                      style={[styles.popularNextIcon, work.twoLine && styles.popularNextIconTight]}
-                    />
                   </View>
                   <Text style={styles.popularCount}>상품 {work.count}개</Text>
                 </TouchableOpacity>
@@ -464,7 +560,12 @@ const HomeScreen = ({ navigation }: Props) => {
                   style={[styles.popularProductsRow, rowIndex === 0 && styles.popularProductsRowSpacing]}
                 >
                   {row.map((product) => (
-                    <TouchableOpacity key={product.id} style={styles.popularProductsCard} activeOpacity={0.85}>
+                    <TouchableOpacity
+                      key={product.id}
+                      style={styles.popularProductsCard}
+                      activeOpacity={0.85}
+                      onPress={() => openProduct(product)}
+                    >
                       <Image source={{ uri: product.imageUrl }} style={styles.popularProductsImage} resizeMode="cover" />
                       <Text style={styles.popularProductsName} numberOfLines={1} ellipsizeMode="tail">
                         {product.name}
@@ -473,6 +574,10 @@ const HomeScreen = ({ navigation }: Props) => {
                         {product.price.toLocaleString()}원
                       </Text>
                     </TouchableOpacity>
+                  ))}
+                  {/* space-between에서 3개 미만일 때 왼쪽부터 채우도록 빈 칸으로 채움 */}
+                  {Array.from({ length: 3 - row.length }, (_, i) => (
+                    <View key={`empty-${i}`} style={styles.popularProductsCard} />
                   ))}
                 </View>
               ))}
@@ -483,28 +588,45 @@ const HomeScreen = ({ navigation }: Props) => {
           <View style={styles.nearbyStoresContainer}>
             <View style={styles.nearbyStoresHeaderRow}>
               <Text style={styles.nearbyStoresHeading}>📍 내 주변 매장</Text>
-              <TouchableOpacity style={styles.nearbyStoresMoreButton} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.nearbyStoresMoreButton}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('StoreMap')}
+              >
                 <Text style={styles.nearbyStoresMoreText}>더보기</Text>
                 <NextIcon width={5} height={8} style={styles.nearbyStoresMoreIcon} />
               </TouchableOpacity>
             </View>
-            {[NEARBY_STORES.slice(0, 2), NEARBY_STORES.slice(2, 4)].map((row, rowIndex) => (
+            {[nearbyStores.slice(0, 2), nearbyStores.slice(2, 4)].map((row, rowIndex) => (
               <View
                 key={rowIndex}
                 style={[styles.nearbyStoresRow, rowIndex === 0 && styles.nearbyStoresRowSpacing]}
               >
                 {row.map((store) => (
-                  <TouchableOpacity key={store.id} style={styles.nearbyStoreCard} activeOpacity={0.85}>
-                    <Image source={{ uri: store.imageUrl }} style={styles.nearbyStoreImage} resizeMode="cover" />
+                  <TouchableOpacity
+                    key={store.storeId}
+                    style={styles.nearbyStoreCard}
+                    activeOpacity={0.85}
+                    onPress={() =>
+                      navigation.navigate('StoreDetail', {
+                        storeId: store.storeId,
+                        storeName: store.name,
+                        latitude: store.latitude,
+                        longitude: store.longitude,
+                      })
+                    }
+                  >
+                    {/* 서버에 매장 이미지가 없어 회색 자리표시자 사용 */}
+                    <View style={styles.nearbyStoreImage} />
                     <Text style={styles.nearbyStoreName} numberOfLines={1} ellipsizeMode="tail">
                       {store.name}
                     </Text>
                     <Text style={styles.nearbyStoreInfo} numberOfLines={1} ellipsizeMode="tail">
-                      {store.status}
-                      {store.detail && (
+                      {BUSINESS_STATUS_LABEL[store.businessStatus]}
+                      {store.distanceKm !== null && (
                         <>
                           <Text style={styles.nearbyStoreInfoDivider}> | </Text>
-                          {store.detail}
+                          {store.distanceKm.toFixed(1)}km
                         </>
                       )}
                     </Text>
@@ -517,13 +639,12 @@ const HomeScreen = ({ navigation }: Props) => {
       </View>
 
       {/* 플로팅 상품등록 버튼 */}
-      <TouchableOpacity
-        style={[styles.floatingButton, { bottom: Math.max(insets.bottom, 14) + 85 }]}
+      <FloatingAddButton
+        collapsed={fabCollapsed}
+        bottom={Math.max(insets.bottom, 14) + 85}
         onPress={() => navigation.navigate('ProductRegistration')}
-      >
-        <AddIcon width={20} height={20} />
-        <Text style={styles.floatingButtonText}>상품 등록하기</Text>
-      </TouchableOpacity>
+        onPressTop={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+      />
 
       <BottomNav />
     </SafeAreaView>

@@ -88,7 +88,9 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
               <Text style={styles.termText}>
                 <Text style={styles.termRequired}>(필수) </Text>개인정보 수집 및 이용 동의
               </Text>
-              <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
+              <TouchableOpacity onPress={() => navigation.navigate('PrivacyConsent')}>
+                <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
+              </TouchableOpacity>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.termRow} onPress={() => setAgreeLocation(v => !v)} activeOpacity={0.8}>
@@ -96,8 +98,10 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
               <Text style={styles.termText}>
                 <Text style={styles.termRequired}>(필수) </Text>위치기반서비스 이용약관 동의
               </Text>
-              <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
-            </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('LocationTerms')}>
+                <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
+              </TouchableOpacity>
+</TouchableOpacity>
 
             <TouchableOpacity style={styles.termRow} onPress={() => setAgreeLocation(v => !v)} activeOpacity={0.8}>
               {renderRadio(agreeLocation)}
@@ -111,8 +115,10 @@ const TermsAgreementScreen = ({ navigation }: Props) => {
               <Text style={styles.termText}>
                 <Text style={styles.termOptional}>(선택) </Text>마케팅 정보 수신 동의
               </Text>
-              <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
-            </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('MarketingConsent')}>
+                <ArrowRightIcon width={8} height={14} style={styles.termArrow} />
+              </TouchableOpacity>
+</TouchableOpacity>
           </View>
         </ScrollView>
 

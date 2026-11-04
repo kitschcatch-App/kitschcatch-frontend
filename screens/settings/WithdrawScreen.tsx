@@ -11,6 +11,11 @@ import { styles } from './WithdrawScreen.styles';
 import ScreenHeader from '../../components/ScreenHeader';
 import CommonDropdown from '../../components/CommonDropdown';
 import SuccessView from '../../components/SuccessView';
+import ErrorView from '../../components/ErrorView';
+import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
+import { userAPI } from '../../api/apiClient';
+import { useMockMode } from '../../contexts/MockModeContext';
+import { clearSession } from '../../utils/clearSession';
 import KitschcatchLogo from '../../assets/kitschcatch.svg';
 import NextIcon from '../../assets/next.svg';
 
@@ -40,6 +45,8 @@ const WithdrawScreen = ({ navigation }: Props) => {
   const [isExpanded, setExpanded] = useState(false);
   const [showError, setShowError] = useState(false);
   const [isSuccessVisible, setSuccessVisible] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
+  const { isMockMode } = useMockMode();
 
   const isSelected = reason !== REASON_PLACEHOLDER;
 
@@ -59,9 +66,17 @@ const WithdrawScreen = ({ navigation }: Props) => {
     setStep('notice');
   };
 
-  const handleWithdraw = () => {
-    // TODO: 회원탈퇴 API 연동
-    setSuccessVisible(true);
+  const handleWithdraw = async () => {
+    try {
+      if (!isMockMode) await userAPI.withdraw();
+      await clearSession();
+      setSuccessVisible(true);
+    } catch (e: any) {
+      console.error('회원탈퇴 실패:', e);
+      setErrorMsg(
+        e?.response?.status === 409 ? ERROR_MESSAGES.WITHDRAW.ACTIVE_ORDER : ERROR_MESSAGES.SYSTEM.TEMPORARY,
+      );
+    }
   };
 
   const handleSuccessDismiss = () => {
@@ -133,6 +148,13 @@ const WithdrawScreen = ({ navigation }: Props) => {
           </View>
         </View>
       )}
+
+      <ErrorView
+        visible={!!errorMsg}
+        title={errorMsg?.title ?? ''}
+        subtitle={errorMsg?.subtitle ?? ''}
+        onPress={() => setErrorMsg(null)}
+      />
 
       <SuccessView
         visible={isSuccessVisible}

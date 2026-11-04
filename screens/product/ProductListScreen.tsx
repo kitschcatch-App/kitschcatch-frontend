@@ -16,8 +16,9 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../../assets/back.svg';
 import SearchIcon from '../../assets/search.svg';
-import AddIcon from '../../assets/plus.svg';
+import FloatingAddButton from '../../components/FloatingAddButton';
 import BottomNav from '../../components/BottomNav';
+import ScreenHeader from '../../components/ScreenHeader';
 import FilterIcon from '../../assets/filter.svg';
 import KitschcatchIcon from '../../assets/kitschcatch.svg';
 import ResetIcon from '../../assets/reset.svg';
@@ -30,27 +31,33 @@ import { productAPI } from '../../api/apiClient';
 import { MOCK_POST_LIST, mockDelay } from '../../api/mockData';
 import { useMockMode } from '../../contexts/MockModeContext';
 import FilterBottomSheet, { FilterState } from '../../components/FilterBottomSheet';
-import { filterProducts, Product } from '../../utils/filterProducts';
+import { Product } from '../../utils/filterProducts';
+import { buildPostParams, filterMultiSelect } from '../../utils/buildPostParams';
 import ErrorView from '../../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
 import { CATEGORY_REVERSE_MAP } from '../../constants/displayMaps';
 import { formatTime } from '../../utils/formatTime';
+import { countActiveFilters } from '../../utils/countActiveFilters';
 
 import { styles } from './ProductListScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
 
-const ProductListScreen = ({ navigation }: Props) => {
+const ProductListScreen = ({ navigation, route }: Props) => {
   const { isMockMode, toggleMockMode } = useMockMode();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(route.params?.keyword ?? ''); // 입력 중인 검색어
+  const [keyword, setKeyword] = useState(route.params?.keyword ?? ''); // 서버에 보내는 확정 검색어
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [fabCollapsed, setFabCollapsed] = useState(false); // 스크롤하면 상품 등록 버튼 축소
   const [currentPage, setCurrentPage] = useState(0);
   const [isLastPage, setIsLastPage] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [isFilterVisible, setIsFilterVisible] = useState(false); // 필터 모달 상태
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    route.params?.category ? [route.params.category] : [],
+  );
   const [filterState, setFilterState] = useState<FilterState>({
     sort: '추천순',
     isOnSaleOnly: false,
@@ -58,6 +65,8 @@ const ProductListScreen = ({ navigation }: Props) => {
     maxPrice: '',
     conditions: [],
   });
+
+  const activeFilterCount = countActiveFilters(filterState);
 
   const CATEGORIES = [
     { label: '애니/만화', value: 'ANIME_MANGA' },
@@ -77,8 +86,32 @@ const ProductListScreen = ({ navigation }: Props) => {
     );
   };
 
+  // 홈 카테고리별 보기로 진입했으면 해당 카테고리명 (일반 목록 진입 시 undefined)
+  const categoryLabel = CATEGORIES.find(c => c.value === route.params?.category)?.label;
+
   const insets = useSafeAreaInsets();
   const isInitialFocus = useRef(false);
+  const listRef = useRef<FlatList<Product>>(null);
+
+  // fetchProducts가 포커스 리스너 등 오래된 클로저에서 불려도 최신 검색 조건을 쓰도록 ref로 보관
+  const queryRef = useRef({ keyword, selectedCategories, filterState });
+  queryRef.current = { keyword, selectedCategories, filterState };
+  const queryKey = JSON.stringify([keyword, selectedCategories, filterState]);
+
+  const submitSearch = () => setKeyword(searchQuery.trim());
+
+  // 검색 화면에서 keyword를 넘겨 진입한 경우 반영
+  useEffect(() => {
+    const k = route.params?.keyword ?? '';
+    setSearchQuery(k);
+    setKeyword(k);
+  }, [route.params?.keyword]);
+
+  // 홈의 카테고리별 보기에서 category를 넘겨 진입한 경우 해당 카테고리만 선택
+  useEffect(() => {
+    const c = route.params?.category;
+    if (c) setSelectedCategories([c]);
+  }, [route.params?.category]);
 
   // ─── Mock / Real 공통 상품 목록 로더 ──────────────────────────────────────
   const mapPostToProduct = (post: any): Product => ({
@@ -111,10 +144,11 @@ const ProductListScreen = ({ navigation }: Props) => {
         setIsLastPage(true);
         setCurrentPage(0);
       } else {
-        // ── Real 모드: 실제 백엔드 API 호출 ───────────────────────────────
+        // ── Real 모드: 실제 백엔드 API 호출 (검색/필터/정렬은 서버에서 처리) ──
+        const q = queryRef.current;
         const response = await productAPI.getPostList({
           signal,
-          params: { page, size: 20 },
+          params: buildPostParams(q.keyword, q.selectedCategories, q.filterState, page),
         });
         const pageData = response.data.data;
         const newItems = pageData.content.map(mapPostToProduct);
@@ -151,7 +185,7 @@ const ProductListScreen = ({ navigation }: Props) => {
     setCurrentPage(0);
     fetchProducts(0, abortController.signal);
     return () => abortController.abort();
-  }, [isMockMode]); // Mock 모드가 바뀌면 자동으로 다시 로드
+  }, [isMockMode, queryKey]); // Mock 모드·검색 조건이 바뀌면 자동으로 다시 로드
 
   // ProductDetail에서 판매상태 수정 후 돌아올 때 목록 새로고침
   useEffect(() => {
@@ -167,20 +201,13 @@ const ProductListScreen = ({ navigation }: Props) => {
     return unsubscribe;
   }, [navigation, isMockMode]);
 
-  const isFilterActive =
-    selectedCategories.length > 0 ||
-    filterState.conditions.length > 0 ||
-    filterState.isOnSaleOnly ||
-    filterState.minPrice !== '' ||
-    filterState.maxPrice !== '';
-
   const handleLoadMore = () => {
-    if (loadingMore || isLastPage || isFilterActive) return;
+    if (loadingMore || isLastPage) return;
     fetchProducts(currentPage + 1);
   };
 
   const filteredProducts = useMemo(
-    () => filterProducts(products, filterState, selectedCategories),
+    () => filterMultiSelect(products, selectedCategories, filterState),
     [products, filterState, selectedCategories],
   );
 
@@ -221,9 +248,15 @@ const ProductListScreen = ({ navigation }: Props) => {
       <View style={styles.container}>
         
         {/* 상단 공백 컨테이너 */}
-        <View style={[styles.topSpacer, { height: Math.max(insets.top, 68) }]} />
+        <View style={[styles.topSpacer, { height: categoryLabel ? insets.top : Math.max(insets.top, 68) }]} />
+
+        {/* 홈 카테고리별 보기로 진입한 경우: 카테고리명 헤더만 노출 */}
+        {categoryLabel && (
+          <ScreenHeader title={categoryLabel} onBack={() => navigation.goBack()} />
+        )}
 
         {/* 상단 로고 영역 */}
+        {!categoryLabel && (<>
         <View style={styles.logoContainer}>
           <Image
             source={require('../../assets/logo.png')}
@@ -258,12 +291,14 @@ const ProductListScreen = ({ navigation }: Props) => {
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
+              onSubmitEditing={submitSearch}
+              returnKeyType="search"
               underlineColorAndroid="transparent"
               placeholder="상품을 검색해보세요"
             />
           </View>
 
-          <TouchableOpacity style={styles.searchIcon}>
+          <TouchableOpacity style={styles.searchIcon} onPress={submitSearch}>
             <SearchIcon width={20} height={20} />
           </TouchableOpacity>
         </View>
@@ -302,15 +337,21 @@ const ProductListScreen = ({ navigation }: Props) => {
             ))}
           </ScrollView>
         </View>
+        </>)}
 
         {/* 2. 필터 버튼 영역 */}
-        <View style={styles.filterContainer}>
+        <View style={[styles.filterContainer, categoryLabel && styles.filterContainerRight]}>
           <TouchableOpacity 
             style={styles.filterButton}
             onPress={() => setIsFilterVisible(true)}
           >
             <FilterIcon width={20} height={20} />
             <Text style={styles.filterText}>필터</Text>
+            {activeFilterCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -322,6 +363,7 @@ const ProductListScreen = ({ navigation }: Props) => {
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             data={filteredProducts}
             keyExtractor={(item) => item.id}
             renderItem={renderProductItem}
@@ -330,6 +372,8 @@ const ProductListScreen = ({ navigation }: Props) => {
             style={styles.productList}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.productListContent}
+            onScroll={e => setFabCollapsed(e.nativeEvent.contentOffset.y > 10)}
+            scrollEventThrottle={16}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
             ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#000" style={{ marginVertical: 12 }} /> : null}
@@ -338,13 +382,12 @@ const ProductListScreen = ({ navigation }: Props) => {
       </View>
 
       {/* 플로팅 상품등록 버튼 */}
-      <TouchableOpacity
-        style={[styles.floatingButton, { bottom: Math.max(insets.bottom, 14) + 85 }]}
+      <FloatingAddButton
+        collapsed={fabCollapsed}
+        bottom={Math.max(insets.bottom, 14) + 85}
         onPress={() => navigation.navigate('ProductRegistration')}
-      >
-        <AddIcon width={20} height={20} />
-        <Text style={styles.floatingButtonText}>상품 등록하기</Text>
-      </TouchableOpacity>
+        onPressTop={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+      />
 
       {/* 필터 바텀 시트 컴포넌트 */}
       <FilterBottomSheet

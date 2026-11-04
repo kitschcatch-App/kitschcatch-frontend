@@ -4,20 +4,25 @@
  */
 import React from 'react';
 import { View, Text, Image, ImageSourcePropType } from 'react-native';
+import BouncingView from './BouncingView';
 import { styles } from './EmptyState.styles';
 
 interface EmptyStateProps {
   image?: ImageSourcePropType;
   title: string;
-  description: string;
+  description?: string;
 }
 
 const EmptyState = ({ image, title, description }: EmptyStateProps) => {
   return (
     <View style={styles.container}>
-      {image && <Image source={image} style={styles.image} resizeMode="contain" />}
+      {image && (
+        <BouncingView>
+          <Image source={image} style={styles.image} resizeMode="contain" />
+        </BouncingView>
+      )}
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
+      {!!description && <Text style={styles.description}>{description}</Text>}
     </View>
   );
 };

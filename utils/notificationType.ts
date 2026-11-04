@@ -5,6 +5,7 @@
 const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   PAYMENT_SUCCESS: '구매',
   PAYMENT_FAILED: '구매',
+  PAYMENT_CANCELED: '구매',
   CHAT_MESSAGE: '채팅',
   ORDER_CANCELED: '구매',
   SHIPMENT_REGISTERED: '구매',

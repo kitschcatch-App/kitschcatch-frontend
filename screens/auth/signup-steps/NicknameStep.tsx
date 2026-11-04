@@ -75,16 +75,13 @@ const NicknameStep = ({ value, onChange, showError, isChecked, onCheckedChange }
     setIsChecking(true);
     setCheckMessage('');
     try {
-      await userAPI.checkNicknameAvailability(trimmed);
-      onCheckedChange(true);
-      setCheckMessage('사용 가능한 닉네임이에요');
-    } catch (err: any) {
+      const response = await userAPI.checkNicknameAvailability(trimmed);
+      const isAvailable = !!response.data?.data?.available;
+      onCheckedChange(isAvailable);
+      setCheckMessage(isAvailable ? '사용 가능한 닉네임이에요' : '이미 사용 중인 닉네임이에요');
+    } catch {
       onCheckedChange(false);
-      setCheckMessage(
-        err?.response?.status === 409
-          ? '이미 사용 중인 닉네임이에요'
-          : '중복 확인에 실패했어요. 다시 시도해주세요',
-      );
+      setCheckMessage('중복 확인에 실패했어요. 다시 시도해주세요');
     } finally {
       setIsChecking(false);
     }
