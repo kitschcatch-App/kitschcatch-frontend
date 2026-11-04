@@ -2,8 +2,8 @@
  * 화면: 로그인 화면 (LoginScreen)
  * 역할: 카카오 소셜 로그인을 통해 앱에 접속하고 인증 토큰을 발급받는 화면입니다.
  */
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Linking, useWindowDimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, Animated, Easing, Linking, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -16,6 +16,7 @@ import { login, loginWithNewScopes } from '@react-native-seoul/kakao-login';
 import { authAPI } from '../../api/apiClient';
 import { NAVER_CANCELLED, waitForNaverCode } from '../../utils/naverAuth';
 import { secureStorage } from '../../utils/secureStorage';
+import { consumeSplashLogoY, groundShift, LOGO_OFFSET_X, LOGO_OFFSET_Y } from '../../utils/splashTransition';
 import ErrorView from '../../components/ErrorView';
 import SuccessView from '../../components/SuccessView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
@@ -23,9 +24,67 @@ import { useMockMode } from '../../contexts/MockModeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
+// 스플래시에서 원래 크기로 돌아온 자리(화면 중앙)에서 위로 튀어오르고 → 제자리에 착지(웅크림 후 출렁) 하는 점프
+const useLogoJump = (logoSize: number) => {
+  const logoRef = useRef<Animated.LegacyRef<any>>(null);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const tx = useRef(new Animated.Value(0)).current;
+  const ty = useRef(new Animated.Value(0)).current;
+  const sx = useRef(new Animated.Value(1)).current;
+  const sy = useRef(new Animated.Value(1)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current; // 점프 동안 로고 외 요소는 숨김
+
+  useEffect(() => {
+    const from = consumeSplashLogoY();
+    const box = logoRef.current as any;
+    const show = () => {
+      opacity.setValue(1);
+    };
+    if (from === null || !box?.measureInWindow) {
+      show();
+      contentOpacity.setValue(1);
+      return;
+    }
+    const landShift = groundShift(logoSize, 0.9);
+    const step = (y: number, x: number, h: number, duration: number, easing: (t: number) => number) =>
+      Animated.parallel([
+        Animated.timing(ty, { toValue: y, duration, easing, useNativeDriver: true }),
+        Animated.timing(sx, { toValue: x, duration, easing, useNativeDriver: true }),
+        Animated.timing(sy, { toValue: h, duration, easing, useNativeDriver: true }),
+      ]);
+    let anim: Animated.CompositeAnimation | undefined;
+    box.measureInWindow((_x: number, y: number) => {
+      const dy = from - y; // 스플래시 위치(아래쪽)에서 시작
+      ty.setValue(dy + logoSize * LOGO_OFFSET_Y); // 스플래시에서 보정해 놓은 자리에서 시작
+      tx.setValue(logoSize * LOGO_OFFSET_X);
+      show();
+      anim = Animated.sequence([
+        // 스플래시에서 원래 크기로 돌아온 그 자리에서 위로 튀어오름
+        Animated.parallel([
+          Animated.timing(tx, { toValue: 0, duration: 340, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          step(-60, 0.9, 1.18, 340, Easing.out(Easing.cubic)), // 위아래로 늘어나며 튀어오름
+        ]),
+        step(landShift, 1.1, 0.9, 240, Easing.in(Easing.quad)), // 내려오며 살짝 다시 웅크린 채 착지
+        Animated.parallel([ty, sx, sy].map((v, i) =>
+          Animated.spring(v, { toValue: i === 0 ? 0 : 1, friction: 5, tension: 160, useNativeDriver: true }),
+        )), // 부드럽게 일어서며 복귀
+      ]);
+      anim.start(({ finished }) => {
+        if (finished) {
+          Animated.timing(contentOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+        }
+      });
+    });
+    return () => anim?.stop();
+  }, [logoSize, opacity, contentOpacity, tx, ty, sx, sy]);
+
+  return { logoRef, contentStyle: { opacity: contentOpacity }, style: { opacity, transform: [{ translateX: tx }, { translateY: ty }, { scaleX: sx }, { scaleY: sy }] } };
+};
+
 const LoginScreen = ({ navigation }: Props) => {
   const { width } = useWindowDimensions();
   const styles = createStyles(width);
+  const logoJump = useLogoJump(width * 0.4);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showMockOptions, setShowMockOptions] = useState(false);
@@ -155,12 +214,20 @@ const LoginScreen = ({ navigation }: Props) => {
       <View style={styles.container}>
         {/* 중앙 상단 영역: 로고, 타이틀, 서브타이틀 */}
         <View style={styles.contentContainer}>
-          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-          <KitschcatchIcon width={119} height={48} />
-          <Text style={styles.subtitle}>굿즈를 캐치하는 즐거운 순간</Text>
+          <Animated.Image
+            ref={logoJump.logoRef}
+            source={require('../../assets/logo.png')}
+            style={[styles.logo, logoJump.style]}
+            resizeMode="contain"
+          />
+          <Animated.View style={[styles.contentGroup, logoJump.contentStyle]}>
+            <KitschcatchIcon width={119} height={48} />
+            <Text style={styles.subtitle}>굿즈를 캐치하는 즐거운 순간</Text>
+          </Animated.View>
         </View>
 
         {/* 하단 영역: 로그인 버튼 */}
+        <Animated.View style={logoJump.contentStyle}>
         <TouchableOpacity style={styles.kakaoButton} onPress={handleKakaoLogin} activeOpacity={0.8}>
           <KakaoIcon width={20} height={18} style={styles.kakaoIcon} />
           <Text style={styles.kakaoButtonText}>카카오로 시작하기</Text>
@@ -223,6 +290,7 @@ const LoginScreen = ({ navigation }: Props) => {
         >
           {/* <Text style={styles.devTestButtonText}>🛠 API 연동 테스트</Text> */}
         </TouchableOpacity>
+        </Animated.View>
       </View>
 
       <ErrorView

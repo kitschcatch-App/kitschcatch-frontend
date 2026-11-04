@@ -21,6 +21,9 @@ export const createStyles = (width: number) => StyleSheet.create({
   contentContainer: {
     alignItems: 'center',
   },
+  contentGroup: {
+    alignItems: 'center',
+  },
   logo: {
     width: width * 0.4,
     height: undefined,
