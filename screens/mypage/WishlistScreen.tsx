@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Image, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Image, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -135,16 +135,19 @@ const WishlistScreen = ({ navigation }: Props) => {
   const [productPage, setProductPage] = useState(0);
   const [productTotalPages, setProductTotalPages] = useState(1);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [productsLoaded, setProductsLoaded] = useState(false); // 첫 조회 전엔 빈 상태 대신 로딩 표시
   const [stores, setStores] = useState<WishlistStore[]>([]);
   const [storePage, setStorePage] = useState(0);
   const [storeTotalPages, setStoreTotalPages] = useState(1);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
+  const [storesLoaded, setStoresLoaded] = useState(false);
 
   // 관심 상품 목록: 화면에 들어올 때마다 새로 조회 (상품 상세에서 해제하고 돌아온 경우 반영)
   useFocusEffect(
     useCallback(() => {
       if (isMockMode) {
         setProducts(MOCK_WISHLIST_PRODUCTS);
+        setProductsLoaded(true);
         return;
       }
       let cancelled = false;
@@ -157,7 +160,8 @@ const WishlistScreen = ({ navigation }: Props) => {
           setProductPage(data.page);
           setProductTotalPages(data.totalPages);
         })
-        .catch(e => console.error('관심 상품 조회 실패:', e));
+        .catch(e => console.error('관심 상품 조회 실패:', e))
+        .finally(() => !cancelled && setProductsLoaded(true));
       return () => {
         cancelled = true;
       };
@@ -185,6 +189,7 @@ const WishlistScreen = ({ navigation }: Props) => {
     useCallback(() => {
       if (isMockMode) {
         setStores(MOCK_WISHLIST_STORES);
+        setStoresLoaded(true);
         return;
       }
       let cancelled = false;
@@ -197,7 +202,8 @@ const WishlistScreen = ({ navigation }: Props) => {
           setStorePage(data.page);
           setStoreTotalPages(data.totalPages);
         })
-        .catch(e => console.error('관심 매장 조회 실패:', e));
+        .catch(e => console.error('관심 매장 조회 실패:', e))
+        .finally(() => !cancelled && setStoresLoaded(true));
       return () => {
         cancelled = true;
       };
@@ -276,11 +282,15 @@ const WishlistScreen = ({ navigation }: Props) => {
             </TouchableOpacity>
           )}
           ListEmptyComponent={
-            <EmptyState
-              image={require('../../assets/wish-product.png')}
-              title="아직 관심 상품이 없어요!"
-              description="마음에 드는 상품을 찜하고 다시 확인해보세요."
-            />
+            productsLoaded ? (
+              <EmptyState
+                image={require('../../assets/wish-product.png')}
+                title="아직 관심 상품이 없어요!"
+                description="마음에 드는 상품을 찜하고 다시 확인해보세요."
+              />
+            ) : (
+              <ActivityIndicator style={styles.loadingIndicator} />
+            )
           }
         />
       ) : (
@@ -308,11 +318,15 @@ const WishlistScreen = ({ navigation }: Props) => {
             />
           )}
           ListEmptyComponent={
-            <EmptyState
-              image={require('../../assets/wish-store.png')}
-              title="아직 관심 매장이 없어요!"
-              description="마음에 드는 매장을 찜하고 새로운 상품을 확인해보세요."
-            />
+            storesLoaded ? (
+              <EmptyState
+                image={require('../../assets/wish-store.png')}
+                title="아직 관심 매장이 없어요!"
+                description="마음에 드는 매장을 찜하고 새로운 상품을 확인해보세요."
+              />
+            ) : (
+              <ActivityIndicator style={styles.loadingIndicator} />
+            )
           }
         />
       )}

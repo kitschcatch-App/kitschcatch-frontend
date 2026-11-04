@@ -3,7 +3,7 @@
  * 역할: 상품 상세에서 판매자를 눌렀을 때 다른 회원의 공개 프로필, 거래활동, 판매 상품을 보여줍니다.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { styles } from './OtherUserProfileScreen.styles';
@@ -42,6 +42,7 @@ const OtherUserProfileScreen = ({ route, navigation }: Props) => {
   const [tradeCount, setTradeCount] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -68,6 +69,8 @@ const OtherUserProfileScreen = ({ route, navigation }: Props) => {
         );
       } catch (e) {
         console.error('다른 사용자 프로필 조회 실패:', e);
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -89,6 +92,9 @@ const OtherUserProfileScreen = ({ route, navigation }: Props) => {
         }
       />
 
+      {isLoading ? (
+        <ActivityIndicator style={styles.loadingIndicator} />
+      ) : (
       <ScrollView
         style={styles.contentContainer}
         contentContainerStyle={styles.contentContainerInner}
@@ -180,6 +186,7 @@ const OtherUserProfileScreen = ({ route, navigation }: Props) => {
           </View>
         </View>
       </ScrollView>
+      )}
 
       <ReportBlockMenu
         visible={menuVisible}
