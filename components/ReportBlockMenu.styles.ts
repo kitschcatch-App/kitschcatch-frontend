@@ -23,6 +23,7 @@ export const styles = StyleSheet.create({
   },
   item: {
     paddingVertical: 4,
+    alignItems: 'center',
   },
   text: {
     fontFamily: typography.M,

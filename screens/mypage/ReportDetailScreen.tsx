@@ -9,6 +9,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './ReportDetailScreen.styles';
 import ScreenHeader from '../../components/ScreenHeader';
+import BouncingView from '../../components/BouncingView';
 import { colors } from '../../styles/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportDetail'>;
@@ -23,7 +24,9 @@ const ReportDetailScreen = ({ navigation, route }: Props) => {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.doneContainer}>
-          <Image source={require('../../assets/report.png')} style={styles.doneImage} resizeMode="contain" />
+          <BouncingView>
+            <Image source={require('../../assets/report.png')} style={styles.doneImage} resizeMode="contain" />
+          </BouncingView>
           <Text style={styles.doneTitle}>{isProduct ? '신고가 접수되었습니다.' : '사용자 신고가 접수되었습니다.'}</Text>
           <Text style={styles.doneDescription}>
             {isProduct

@@ -29,6 +29,20 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 20,
   },
+  wideOverlay: {
+    padding: 32,
+  },
+  wideContainer: {
+    paddingTop: 24,
+  },
+  wideTitle: {
+    textAlign: 'left',
+    paddingHorizontal: 20,
+    marginBottom: 14,
+  },
+  wideButton: {
+    paddingVertical: 12,
+  },
   buttonRow: {
     flexDirection: 'row',
   },

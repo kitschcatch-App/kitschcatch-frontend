@@ -4,8 +4,8 @@
  * 화면의 최상위(SafeAreaView 등 relative 컨테이너) 안에 두면 배경 터치 시 닫힙니다.
  */
 import React from 'react';
-import { View, Text, TouchableOpacity, Pressable, StyleProp, ViewStyle } from 'react-native';
-import { styles } from './ReportBlockMenu.styles';
+import { StyleProp, ViewStyle } from 'react-native';
+import PopupMenu from './PopupMenu';
 
 interface ReportBlockMenuProps {
   visible: boolean;
@@ -16,32 +16,17 @@ interface ReportBlockMenuProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const ReportBlockMenu = ({ visible, onClose, onBlock, onReport, style }: ReportBlockMenuProps) => {
-  if (!visible) {
-    return null;
-  }
-
-  const handle = (action?: () => void) => () => {
-    onClose();
-    action?.();
-  };
-
-  return (
-    <>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.menu, style]}>
-        {/* onBlock이 없으면 신고하기만 보여준다 */}
-        {onBlock && (
-          <TouchableOpacity style={styles.item} onPress={handle(onBlock)}>
-            <Text style={styles.text}>차단하기</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity style={styles.item} onPress={handle(onReport)}>
-          <Text style={[styles.text, styles.textDanger]}>신고하기</Text>
-        </TouchableOpacity>
-      </View>
-    </>
-  );
-};
+const ReportBlockMenu = ({ visible, onClose, onBlock, onReport, style }: ReportBlockMenuProps) => (
+  <PopupMenu
+    visible={visible}
+    onClose={onClose}
+    style={style}
+    // onBlock이 없으면 신고하기만 보여준다
+    items={[
+      ...(onBlock ? [{ label: '차단하기', onPress: onBlock }] : []),
+      { label: '신고하기', onPress: onReport, danger: true },
+    ]}
+  />
+);
 
 export default ReportBlockMenu;

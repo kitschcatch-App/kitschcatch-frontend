@@ -35,7 +35,7 @@ const ScreenHeader = ({ title, onBack, style, rightElement, leftElement }: Scree
       ) : (
         <View style={styles.headerSpacer} />
       )}
-      <Text style={styles.headerTitle}>{title}</Text>
+      <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
       {rightElement ?? <View style={styles.headerSpacer} />}
     </View>
   );
