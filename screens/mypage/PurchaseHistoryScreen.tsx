@@ -121,18 +121,20 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
         >
           {visiblePurchaseHistory.map((item) => {
             const isConfirmed = item.orderStatus === 'PURCHASE_CONFIRMED';
+            const isReturned = item.orderStatus === 'REFUNDED';
+            const openDetail = () => navigation.navigate('PurchaseOrderDetail', {
+              orderId: item.id,
+              orderNumber: item.id,
+              productTitle: item.title,
+              productPrice: item.price,
+              productImage: DEFAULT_PRODUCT_IMAGE,
+            });
             return (
               <View key={item.id} style={styles.purchaseItem}>
                 <TouchableOpacity
                   style={styles.purchaseItemRow}
                   activeOpacity={0.7}
-                  onPress={() => navigation.navigate('PurchaseOrderDetail', {
-                    orderId: item.id,
-                    orderNumber: item.id,
-                    productTitle: item.title,
-                    productPrice: item.price,
-                    productImage: DEFAULT_PRODUCT_IMAGE,
-                  })}
+                  onPress={openDetail}
                 >
                   <Image source={DEFAULT_PRODUCT_IMAGE} style={styles.purchaseItemImage} resizeMode="cover" />
                   <View style={styles.purchaseItemInfo}>
@@ -151,11 +153,21 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
                     </View>
                     <Text style={styles.purchaseItemPrice}>{item.price.toLocaleString()}원</Text>
                     <View style={styles.purchaseItemStatusRow}>
-                      <Text style={styles.purchaseItemStatus}>{item.status}</Text>
+                      <Text style={[styles.purchaseItemStatus, isReturned && styles.purchaseItemStatusReturned]}>{item.status}</Text>
                       <Text style={styles.purchaseItemDate}>{item.date}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
+
+                {isReturned && (
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.confirmButtonReturned]}
+                    activeOpacity={0.7}
+                    onPress={openDetail}
+                  >
+                    <Text style={styles.confirmButtonText}>반품 상세 정보</Text>
+                  </TouchableOpacity>
+                )}
 
                 {(item.orderStatus === 'PAID' || item.orderStatus === 'PURCHASE_CONFIRMED') && (
                   <TouchableOpacity

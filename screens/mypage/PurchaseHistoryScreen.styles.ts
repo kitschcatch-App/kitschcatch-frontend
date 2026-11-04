@@ -112,6 +112,9 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.info,
   },
+  purchaseItemStatusReturned: {
+    color: colors.error,
+  },
   purchaseItemDate: {
     fontFamily: typography.M,
     fontSize: 12,
@@ -130,6 +133,9 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.gray02,
+  },
+  confirmButtonReturned: {
+    backgroundColor: colors.gray02,
   },
   confirmButtonText: {
     fontFamily: typography.SB,

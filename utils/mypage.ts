@@ -20,7 +20,7 @@ export const ORDER_STATUS_LABEL: Record<string, string> = {
   PAID: '거래중',
   PURCHASE_CONFIRMED: '구매완료',
   CANCELED: '취소',
-  REFUNDED: '환불',
+  REFUNDED: '반품완료',
 };
 
 export interface RecentActivity {
@@ -67,6 +67,13 @@ export const mergeRecentActivities = (
 export const formatDateTime = (iso?: string | null): string =>
   iso ? `${iso.slice(0, 4)}.${iso.slice(5, 7)}.${iso.slice(8, 10)}  ${iso.slice(11, 16)}` : '';
 
+/** ISO 일시 + days일 → 'N월 N일' (예상 발송기한용). 값이 없으면 빈 문자열 */
+export const formatMonthDayAfter = (iso?: string | null, days = 0): string => {
+  if (!iso) return '';
+  const d = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)) + days);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+};
+
 /** 서버가 지원하는 택배사 (carrierCode ↔ 화면 표시명) */
 export const CARRIERS: { code: string; label: string }[] = [
   { code: 'CJ_LOGISTICS', label: 'CJ대한통운' },
@@ -103,6 +110,29 @@ export const getBuyerOrderAction = (order: {
   if (order.refund?.status === 'REQUESTED') return 'WITHDRAW';
   if (order.refund?.status === 'PROCESSING') return null;
   return order.shipment ? 'REFUND' : 'CANCEL';
+};
+
+/** 환불 요청 사유 문자열 '[반품사유] 내용' → 반품사유만 추출. 형식이 아니면 원문 */
+export const parseRefundReason = (reason?: string | null): string =>
+  reason ? reason.match(/^\[(.+?)\]/)?.[1] ?? reason : '';
+
+/**
+ * 반품 상세의 4단계(반품 요청·판매자 확인·회수 진행·반품 완료) 중 현재 단계. 반품 건이 아니면 -1
+ * ponytail: 서버 환불 상태값 중 REQUESTED·PROCESSING·주문 REFUNDED만 확인됨. '판매자 확인'(1)에 해당하는 상태값이 확정되면 추가.
+ */
+export const getReturnProgress = (order: {
+  status: string;
+  refund?: { status?: string } | null;
+}): number => {
+  if (order.status === 'REFUNDED') return 3;
+  switch (order.refund?.status) {
+    case 'REQUESTED':
+      return 0;
+    case 'PROCESSING':
+      return 2;
+    default:
+      return -1;
+  }
 };
 
 /** 판매 주문 목록(최신순)에서 상품별로 취소 안 된 가장 최근 주문의 orderId를 찾는다 */

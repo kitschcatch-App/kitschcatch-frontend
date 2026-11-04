@@ -548,7 +548,7 @@ interface MockOrder {
   orderStatus: string;
   orderedAt: string;
   shipment: { carrierName: string; trackingNumber: string; shippedAt: string } | null;
-  refund: { refundId: string; status: string } | null;
+  refund: { refundId: string; status: string; reason?: string } | null;
 }
 const SHIPPED = { carrierName: 'CJ대한통운', trackingNumber: '123456789012', shippedAt: '2026-10-06T09:00:00' };
 const mockOrders: MockOrder[] = [
@@ -559,6 +559,7 @@ const mockOrders: MockOrder[] = [
   { side: 'purchase', orderId: 'ORD-7', postId: 6, orderStatus: 'PAID', orderedAt: '2026-10-15T12:00:00', shipment: SHIPPED, refund: { refundId: 'RF-1', status: 'REQUESTED' } },
   { side: 'purchase', orderId: 'ORD-4', postId: 1, orderStatus: 'PURCHASE_CONFIRMED', orderedAt: '2026-10-05T18:00:00', shipment: SHIPPED, refund: null },
   { side: 'purchase', orderId: 'ORD-5', postId: 5, orderStatus: 'CANCELED', orderedAt: '2026-10-01T11:00:00', shipment: null, refund: null },
+  { side: 'purchase', orderId: 'ORD-8', postId: 3, orderStatus: 'REFUNDED', orderedAt: '2026-09-28T10:00:00', shipment: SHIPPED, refund: { refundId: 'RF-2', status: 'COMPLETED', reason: '[상품에 문제가 있음] 상품에 흠집이 있어요' } },
 ];
 const postOf = (id: number) => POSTS.find(p => p.id === id)!;
 const toSummary = (o: MockOrder) => ({
@@ -595,7 +596,7 @@ const mutateMockOrder = (orderId: string, action: string, body: any) => {
     o.shipment = { carrierName: CARRIER_NAMES[body?.carrierCode] ?? '택배사', trackingNumber: body?.trackingNumber ?? '', shippedAt: new Date().toISOString() };
   } else if (action === 'confirm-purchase') o.orderStatus = 'PURCHASE_CONFIRMED';
   else if (action === 'cancel') o.orderStatus = 'CANCELED';
-  else if (action === 'refunds') o.refund = { refundId: `RF-${Date.now()}`, status: 'REQUESTED' };
+  else if (action === 'refunds') o.refund = { refundId: `RF-${Date.now()}`, status: 'REQUESTED', reason: body?.reason };
   else if (action === 'refunds/withdraw') o.refund = null;
   return ok({ processing: false });
 };
