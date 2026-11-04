@@ -369,29 +369,5 @@ export const styles = StyleSheet.create({
     color: '#CCCCCC',
   },
   // 상품 등록 버튼
-  floatingButton: {
-    position: 'absolute',
-    right: 16,
-    display: 'flex',
-    flexDirection: 'row',
-    padding: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.main05,
-    borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 1.5,
-    elevation: 2,
-  },
-  floatingButtonText: {
-    fontSize: 14,
-    fontFamily: typography.M,
-    color: colors.black,
-  },
+
 });

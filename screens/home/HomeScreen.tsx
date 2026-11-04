@@ -24,7 +24,7 @@ import KitschcatchIcon from '../../assets/kitschcatch.svg';
 import AlarmIcon from '../../assets/alarm.svg';
 import SearchIcon from '../../assets/search.svg';
 import NextIcon from '../../assets/next.svg';
-import AddIcon from '../../assets/plus.svg';
+import FloatingAddButton from '../../components/FloatingAddButton';
 import AnimationLogo1 from '../../assets/animation_logo_1.svg';
 import AnimationLogo2 from '../../assets/animation_logo_2.svg';
 import AnimationLogo3 from '../../assets/animation_logo_3.svg';
@@ -203,9 +203,11 @@ const HomeScreen = ({ navigation }: Props) => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [bannerWidth, setBannerWidth] = useState(INITIAL_BANNER_WIDTH);
   const bannerListRef = useRef<FlatList<string>>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const bannerWidthRef = useRef(INITIAL_BANNER_WIDTH);
   const [selectedProductCategory, setSelectedProductCategory] = useState('ALL');
   const productSlideAnim = useRef(new Animated.Value(0)).current;
+  const [fabCollapsed, setFabCollapsed] = useState(false); // 스크롤하면 상품 등록 버튼 축소
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [nearbyStores, setNearbyStores] = useState<Store[]>([]);
   // 오늘의 추천: 전체 상품 최신순 상위 3개 (실서버 모드)
@@ -375,7 +377,13 @@ const HomeScreen = ({ navigation }: Props) => {
           </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          onScroll={e => setFabCollapsed(e.nativeEvent.contentOffset.y > 10)}
+          scrollEventThrottle={16}
+        >
           {/* 이미지 배너 */}
           <View style={styles.bannerContainer} onLayout={handleBannerLayout}>
             <FlatList
@@ -567,6 +575,10 @@ const HomeScreen = ({ navigation }: Props) => {
                       </Text>
                     </TouchableOpacity>
                   ))}
+                  {/* space-between에서 3개 미만일 때 왼쪽부터 채우도록 빈 칸으로 채움 */}
+                  {Array.from({ length: 3 - row.length }, (_, i) => (
+                    <View key={`empty-${i}`} style={styles.popularProductsCard} />
+                  ))}
                 </View>
               ))}
             </Animated.View>
@@ -627,13 +639,12 @@ const HomeScreen = ({ navigation }: Props) => {
       </View>
 
       {/* 플로팅 상품등록 버튼 */}
-      <TouchableOpacity
-        style={[styles.floatingButton, { bottom: Math.max(insets.bottom, 14) + 85 }]}
+      <FloatingAddButton
+        collapsed={fabCollapsed}
+        bottom={Math.max(insets.bottom, 14) + 85}
         onPress={() => navigation.navigate('ProductRegistration')}
-      >
-        <AddIcon width={20} height={20} />
-        <Text style={styles.floatingButtonText}>상품 등록하기</Text>
-      </TouchableOpacity>
+        onPressTop={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+      />
 
       <BottomNav />
     </SafeAreaView>

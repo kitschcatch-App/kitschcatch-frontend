@@ -16,7 +16,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackIcon from '../../assets/back.svg';
 import SearchIcon from '../../assets/search.svg';
-import AddIcon from '../../assets/plus.svg';
+import FloatingAddButton from '../../components/FloatingAddButton';
 import BottomNav from '../../components/BottomNav';
 import ScreenHeader from '../../components/ScreenHeader';
 import FilterIcon from '../../assets/filter.svg';
@@ -37,6 +37,7 @@ import ErrorView from '../../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
 import { CATEGORY_REVERSE_MAP } from '../../constants/displayMaps';
 import { formatTime } from '../../utils/formatTime';
+import { countActiveFilters } from '../../utils/countActiveFilters';
 
 import { styles } from './ProductListScreen.styles';
 
@@ -49,6 +50,7 @@ const ProductListScreen = ({ navigation, route }: Props) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [fabCollapsed, setFabCollapsed] = useState(false); // 스크롤하면 상품 등록 버튼 축소
   const [currentPage, setCurrentPage] = useState(0);
   const [isLastPage, setIsLastPage] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
@@ -63,6 +65,8 @@ const ProductListScreen = ({ navigation, route }: Props) => {
     maxPrice: '',
     conditions: [],
   });
+
+  const activeFilterCount = countActiveFilters(filterState);
 
   const CATEGORIES = [
     { label: '애니/만화', value: 'ANIME_MANGA' },
@@ -87,6 +91,7 @@ const ProductListScreen = ({ navigation, route }: Props) => {
 
   const insets = useSafeAreaInsets();
   const isInitialFocus = useRef(false);
+  const listRef = useRef<FlatList<Product>>(null);
 
   // fetchProducts가 포커스 리스너 등 오래된 클로저에서 불려도 최신 검색 조건을 쓰도록 ref로 보관
   const queryRef = useRef({ keyword, selectedCategories, filterState });
@@ -342,6 +347,11 @@ const ProductListScreen = ({ navigation, route }: Props) => {
           >
             <FilterIcon width={20} height={20} />
             <Text style={styles.filterText}>필터</Text>
+            {activeFilterCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -353,6 +363,7 @@ const ProductListScreen = ({ navigation, route }: Props) => {
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             data={filteredProducts}
             keyExtractor={(item) => item.id}
             renderItem={renderProductItem}
@@ -361,6 +372,8 @@ const ProductListScreen = ({ navigation, route }: Props) => {
             style={styles.productList}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.productListContent}
+            onScroll={e => setFabCollapsed(e.nativeEvent.contentOffset.y > 10)}
+            scrollEventThrottle={16}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
             ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#000" style={{ marginVertical: 12 }} /> : null}
@@ -369,13 +382,12 @@ const ProductListScreen = ({ navigation, route }: Props) => {
       </View>
 
       {/* 플로팅 상품등록 버튼 */}
-      <TouchableOpacity
-        style={[styles.floatingButton, { bottom: Math.max(insets.bottom, 14) + 85 }]}
+      <FloatingAddButton
+        collapsed={fabCollapsed}
+        bottom={Math.max(insets.bottom, 14) + 85}
         onPress={() => navigation.navigate('ProductRegistration')}
-      >
-        <AddIcon width={20} height={20} />
-        <Text style={styles.floatingButtonText}>상품 등록하기</Text>
-      </TouchableOpacity>
+        onPressTop={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+      />
 
       {/* 필터 바텀 시트 컴포넌트 */}
       <FilterBottomSheet
