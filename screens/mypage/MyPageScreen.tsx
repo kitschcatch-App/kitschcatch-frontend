@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { styles } from './MyPageScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import NextIcon from '../../assets/next.svg';
+import StarIcon from '../../assets/star.svg';
 import SettingIcon from '../../assets/setting.svg';
 import SalesDetailsIcon from '../../assets/sales_details.svg';
 import PurchaseDetailsIcon from '../../assets/purchase_details.svg';
@@ -16,6 +17,7 @@ import { mergeRecentActivities, RecentActivity } from '../../utils/mypage';
 type Props = NativeStackScreenProps<RootStackParamList, 'Mypage'>;
 
 const DEFAULT_PRODUCT_IMAGE = require('../../assets/product_img.png');
+const MOCK_RATING = '3.8';
 
 interface Profile {
     username: string;
@@ -118,6 +120,12 @@ const MyPageScreen = ({ navigation }: Props) => {
                 {/* 나의 거래활동 컨테이너 */}
                 <View style={styles.activityContainer}>
                     <Text style={styles.activityCount}>거래활동 {activityCount}회</Text>
+                    <View style={styles.ratingContainer}>
+                        <Text style={styles.ratingLabel}>별점</Text>
+                        <StarIcon width={14} height={14} />
+                        {/* ponytail: 별점 API 연동 전 mock 값 */}
+                        <Text style={styles.ratingScore}>{MOCK_RATING}</Text>
+                    </View>
                 </View>
 
                 {/* 관심목록/판매내역/구매내역 컨테이너 */}
@@ -142,7 +150,20 @@ const MyPageScreen = ({ navigation }: Props) => {
                         <Text style={styles.recentActivityEmpty}>최근 거래활동이 없습니다.</Text>
                     ) : (
                         recentActivities.map((item) => (
-                            <View key={item.id} style={styles.recentActivityItem}>
+                            <TouchableOpacity
+                                key={item.id}
+                                style={styles.recentActivityItem}
+                                activeOpacity={0.7}
+                                onPress={() =>
+                                    navigation.navigate(item.type === '판매' ? 'OrderDetail' : 'PurchaseOrderDetail', {
+                                        orderId: item.orderId,
+                                        orderNumber: item.orderId,
+                                        productTitle: item.title,
+                                        productPrice: item.price,
+                                        productImage: DEFAULT_PRODUCT_IMAGE,
+                                    })
+                                }
+                            >
                                 <Image source={DEFAULT_PRODUCT_IMAGE} style={styles.recentActivityImage} resizeMode="cover" />
                                 <View style={styles.recentActivityInfo}>
                                     <Text style={styles.recentActivityTitle}>{item.title}</Text>
@@ -153,7 +174,7 @@ const MyPageScreen = ({ navigation }: Props) => {
                                     </View>
                                 </View>
                                 <Text style={styles.recentActivityDate}>{item.date}</Text>
-                            </View>
+                            </TouchableOpacity>
                         ))
                     )}
                 </View>

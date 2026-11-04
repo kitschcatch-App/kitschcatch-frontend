@@ -13,6 +13,7 @@ describe('mergeRecentActivities', () => {
   const order = (orderId: string, orderedAt: string, orderStatus = 'PAID') => ({
     orderId,
     postTitle: `상품 ${orderId}`,
+    amount: 10000,
     orderStatus,
     orderedAt,
   });
@@ -23,7 +24,7 @@ describe('mergeRecentActivities', () => {
       [order('p1', '2026-08-15T00:00:00', 'PURCHASE_CONFIRMED'), order('p2', '2026-08-01T00:00:00')],
     );
     expect(result.map(r => r.id)).toEqual(['판매-s2', '구매-p1', '판매-s1']);
-    expect(result[1]).toMatchObject({ type: '구매', statusLabel: '구매완료', date: '26.08.15' });
+    expect(result[1]).toMatchObject({ orderId: 'p1', price: 10000, type: '구매', statusLabel: '구매완료', date: '26.08.15' });
   });
 });
 

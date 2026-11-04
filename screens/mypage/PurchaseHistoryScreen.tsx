@@ -11,6 +11,7 @@ import ScreenHeader from '../../components/ScreenHeader';
 import EmptyState from '../../components/EmptyState';
 import SortBottomSheet, { SortOption } from '../../components/SortBottomSheet';
 import ConfirmView from '../../components/ConfirmView';
+import RatingPopup from '../../components/RatingPopup';
 import SuccessView from '../../components/SuccessView';
 import CheckIcon from '../../assets/check-sales.svg';
 import DropdownIcon from '../../assets/dropdown.svg';
@@ -44,8 +45,10 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
   const [sortOption, setSortOption] = useState<SortOption>('최신순');
   const [isSortSheetVisible, setSortSheetVisible] = useState(false);
   const [isMoreSheetVisible, setMoreSheetVisible] = useState(false);
+  const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
   const [isConfirmVisible, setConfirmVisible] = useState(false);
   const [isSuccessVisible, setSuccessVisible] = useState(false);
+  const [isPurchaseSuccessVisible, setPurchaseSuccessVisible] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseItem[]>([]);
 
   const loadPurchases = useCallback(() => {
@@ -62,6 +65,7 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
     try {
       await orderAPI.confirmPurchase(orderId);
       loadPurchases();
+      setPurchaseSuccessVisible(true);
     } catch (err: any) {
       // ORDER_005: 발송 전이거나 환불 요청 중
       Alert.alert('구매확정', err.response?.data?.error?.code === 'ORDER_005'
@@ -158,7 +162,7 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
                     style={[styles.confirmButton, isConfirmed && styles.confirmButtonDone]}
                     activeOpacity={0.7}
                     disabled={isConfirmed}
-                    onPress={() => handleConfirmPurchase(item.id)}
+                    onPress={() => setRatingOrderId(item.id)}
                   >
                     <Text style={[styles.confirmButtonText, isConfirmed && styles.confirmButtonTextDone]}>
                       {isConfirmed ? '구매 확정 완료' : '구매확정'}
@@ -189,6 +193,15 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
         }}
       />
 
+      {/* ponytail: 별점 저장 API 미정이라 선택값은 전송하지 않고 구매확정만 처리 */}
+      <RatingPopup
+        visible={ratingOrderId !== null}
+        onConfirm={() => {
+          if (ratingOrderId) handleConfirmPurchase(ratingOrderId);
+          setRatingOrderId(null);
+        }}
+      />
+
       <ConfirmView
         visible={isConfirmVisible}
         title="게시글을 삭제하시겠습니까?"
@@ -197,6 +210,12 @@ const PurchaseHistoryScreen = ({ navigation }: Props) => {
           setConfirmVisible(false);
           setSuccessVisible(true);
         }}
+      />
+
+      <SuccessView
+        visible={isPurchaseSuccessVisible}
+        title="구매확정이 완료되었습니다."
+        onDismiss={() => setPurchaseSuccessVisible(false)}
       />
 
       <SuccessView

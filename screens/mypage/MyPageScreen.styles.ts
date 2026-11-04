@@ -129,7 +129,7 @@ export const styles = StyleSheet.create({
     marginRight: 8,
   },
   ratingScore: {
-    fontFamily: typography.M,
+    fontFamily: typography.SB,
     fontSize: 14,
     color: colors.black,
     marginLeft: 4,

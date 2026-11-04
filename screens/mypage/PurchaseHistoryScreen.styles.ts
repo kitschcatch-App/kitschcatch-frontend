@@ -127,7 +127,9 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.main02,
   },
   confirmButtonDone: {
-    backgroundColor: colors.gray02,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.gray02,
   },
   confirmButtonText: {
     fontFamily: typography.SB,

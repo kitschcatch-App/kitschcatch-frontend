@@ -25,6 +25,8 @@ export const ORDER_STATUS_LABEL: Record<string, string> = {
 
 export interface RecentActivity {
   id: string;
+  orderId: string;
+  price: number;
   title: string;
   type: '구매' | '판매';
   statusLabel: string;
@@ -35,6 +37,7 @@ export interface RecentActivity {
 interface OrderSummary {
   orderId: string;
   postTitle: string;
+  amount: number;
   orderStatus: string;
   orderedAt: string;
 }
@@ -47,6 +50,8 @@ export const mergeRecentActivities = (
 ): RecentActivity[] => {
   const toActivity = (o: OrderSummary, type: '구매' | '판매'): RecentActivity => ({
     id: `${type}-${o.orderId}`,
+    orderId: o.orderId,
+    price: o.amount,
     title: o.postTitle,
     type,
     statusLabel: ORDER_STATUS_LABEL[o.orderStatus] ?? o.orderStatus,
