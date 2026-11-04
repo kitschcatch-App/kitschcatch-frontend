@@ -9,7 +9,7 @@ import { styles } from './EmptyState.styles';
 interface EmptyStateProps {
   image?: ImageSourcePropType;
   title: string;
-  description: string;
+  description?: string;
 }
 
 const EmptyState = ({ image, title, description }: EmptyStateProps) => {
@@ -17,7 +17,7 @@ const EmptyState = ({ image, title, description }: EmptyStateProps) => {
     <View style={styles.container}>
       {image && <Image source={image} style={styles.image} resizeMode="contain" />}
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
+      {!!description && <Text style={styles.description}>{description}</Text>}
     </View>
   );
 };

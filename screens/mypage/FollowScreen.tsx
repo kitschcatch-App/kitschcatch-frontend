@@ -24,6 +24,8 @@ const PAGE_SIZE = 100;
 
 const FollowScreen = ({ navigation, route }: Props) => {
   const [activeTab, setActiveTab] = useState<TabType>(route.params?.initialTab ?? 'follower');
+  const otherUserId = route.params?.userId;
+  const isOther = otherUserId !== undefined;
   const [followerList, setFollowerList] = useState<FollowUser[]>([]);
   const [followingList, setFollowingList] = useState<FollowUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -33,10 +35,10 @@ const FollowScreen = ({ navigation, route }: Props) => {
   useEffect(() => {
     const load = async () => {
       try {
-        const myId = (await userAPI.getMe()).data.data.id;
+        const targetId = otherUserId ?? (await userAPI.getMe()).data.data.id;
         const [followers, followings] = await Promise.all([
-          userAPI.getFollowers(myId, 0, PAGE_SIZE),
-          userAPI.getFollowings(myId, 0, PAGE_SIZE),
+          userAPI.getFollowers(targetId, 0, PAGE_SIZE),
+          userAPI.getFollowings(targetId, 0, PAGE_SIZE),
         ]);
         setFollowerList(followers.data.data.content);
         setFollowingList(followings.data.data.content);
@@ -45,7 +47,7 @@ const FollowScreen = ({ navigation, route }: Props) => {
       }
     };
     load();
-  }, []);
+  }, [otherUserId]);
 
   // 내가 팔로우 중인 사용자 id. 팔로워 중 이미 맞팔로우한 사람 구분에 사용
   const followingIds = new Set(followingList.map(user => user.id));
@@ -78,7 +80,7 @@ const FollowScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScreenHeader title="팔로우 목록" onBack={() => navigation.navigate('Mypage')} />
+      <ScreenHeader title="팔로우 목록" onBack={() => (isOther ? navigation.goBack() : navigation.navigate('Mypage'))} />
 
       <TabBar
         tabs={[
@@ -106,6 +108,8 @@ const FollowScreen = ({ navigation, route }: Props) => {
               <Text style={styles.userNickname}>{item.nickname}</Text>
               <Text style={styles.userProductCount}>판매물품 -개</Text>
             </View>
+            {/* 다른 사용자의 목록은 읽기 전용이라 맞팔로우/삭제 버튼 없음 */}
+            {!isOther && (
             <View style={styles.userActions}>
               {activeTab === 'follower' && !followingIds.has(item.id) && (
                 <TouchableOpacity
@@ -123,16 +127,23 @@ const FollowScreen = ({ navigation, route }: Props) => {
                 <ExitIcon width={12} height={12} />
               </TouchableOpacity>
             </View>
+            )}
           </View>
         )}
         ListEmptyComponent={
           <EmptyState
             image={activeTab === 'follower' ? require('../../assets/follow.png') : require('../../assets/follower.png')}
-            title={activeTab === 'follower' ? '아직 나를 팔로우한 회원이 없어요!' : '아직 팔로잉한 회원이 없어요!'}
-            description={
+            title={
               activeTab === 'follower'
-                ? '회원님의 상품을 등록하고 더 많은 사람들과 만나보세요.'
-                : '관심 있는 판매자를 팔로우하고 새로운 상품을 확인해보세요.'
+                ? isOther ? '아직 팔로우한 회원이 없어요!' : '아직 나를 팔로우한 회원이 없어요!'
+                : '아직 팔로잉한 회원이 없어요!'
+            }
+            description={
+              isOther
+                ? undefined
+                : activeTab === 'follower'
+                  ? '회원님의 상품을 등록하고 더 많은 사람들과 만나보세요.'
+                  : '관심 있는 판매자를 팔로우하고 새로운 상품을 확인해보세요.'
             }
           />
         }

@@ -41,6 +41,11 @@ import SalesHistoryScreen from '../screens/mypage/SalesHistoryScreen';
 import PurchaseHistoryScreen from '../screens/mypage/PurchaseHistoryScreen';
 import OrderDetailScreen from '../screens/mypage/OrderDetailScreen';
 import PurchaseOrderDetailScreen from '../screens/mypage/PurchaseOrderDetailScreen';
+import OtherUserProfileScreen from '../screens/mypage/OtherUserProfileScreen';
+import UserProductsScreen from '../screens/mypage/UserProductsScreen';
+import BlockUserScreen from '../screens/mypage/BlockUserScreen';
+import ReportUserScreen from '../screens/mypage/ReportUserScreen';
+import ReportDetailScreen from '../screens/mypage/ReportDetailScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
 import LogoutScreen from '../screens/settings/LogoutScreen';
 import WithdrawScreen from '../screens/settings/WithdrawScreen';
@@ -137,6 +142,8 @@ export type RootStackParamList = {
   EditProfile: undefined;
   Follow: {
     initialTab?: 'follower' | 'following';
+    /** 지정하면 해당 사용자의 목록을 읽기 전용으로 보여준다 (없으면 내 목록) */
+    userId?: number;
   } | undefined;
   Wishlist: undefined;
   SalesHistory: undefined;
@@ -155,6 +162,12 @@ export type RootStackParamList = {
     productPrice: number;
     productImage: ImageSourcePropType;
   };
+  OtherUserProfile: { userId: number };
+  UserProducts: { userId: number; nickname: string };
+  /** hasActiveTrade: 차단 대상과 진행 중인 거래가 있으면 거래 유지 안내 팝업을 띄운다 */
+  BlockUser: { userId: number; hasActiveTrade?: boolean };
+  ReportUser: { userId: number; target?: 'product' };
+  ReportDetail: { userId: number; reason: string; target?: 'product' };
   ApiTest: undefined;
 };
 
@@ -205,6 +218,11 @@ const RootNavigator = () => {
         <Stack.Screen name="ProductRegistration" component={ProductRegistrationScreen} />
         <Stack.Screen name="ProductEdit" component={ProductEditScreen} />
         <Stack.Screen name="PaymentComplete" component={PaymentCompleteScreen} />
+        <Stack.Screen name="OtherUserProfile" component={OtherUserProfileScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="UserProducts" component={UserProductsScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="BlockUser" component={BlockUserScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="ReportUser" component={ReportUserScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="ReportDetail" component={ReportDetailScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="ApiTest" component={ApiTestScreen} />
       </Stack.Navigator>
     </NavigationContainer>
