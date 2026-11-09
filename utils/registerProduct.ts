@@ -1,6 +1,5 @@
 import { productAPI } from '../api/apiClient';
 import { uploadImagesToS3, ImageAsset } from './uploadImages';
-
 export const CONDITION_MAP: Record<string, string> = {
   '새상품': 'NEW',
   '사용감 적음': 'LIKE_NEW',

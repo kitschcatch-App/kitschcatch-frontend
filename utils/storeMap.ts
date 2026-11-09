@@ -98,6 +98,15 @@ export function getCurrentCoord(): Promise<Coord> {
   });
 }
 
+/** 두 좌표 사이 거리(km) */
+export function distanceKmBetween(a: Coord, b: Coord): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const h =
+    Math.sin(rad(b.latitude - a.latitude) / 2) ** 2 +
+    Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(rad(b.longitude - a.longitude) / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+
 /** 서버/목의 매장 응답을 화면에서 쓰는 Store 형태로 정규화한다. */
 export function normalizeStores(raw: unknown): Store[] {
   if (!Array.isArray(raw)) return [];

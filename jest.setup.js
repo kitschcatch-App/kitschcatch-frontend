@@ -27,6 +27,15 @@ jest.mock('react-native-image-picker', () => ({
   launchCamera: jest.fn(),
 }));
 
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: jest.fn(() => Promise.resolve(null)),
+    setItem: jest.fn(() => Promise.resolve()),
+    removeItem: jest.fn(() => Promise.resolve()),
+  },
+}));
+
 jest.mock('react-native-keychain', () => ({
   setGenericPassword: jest.fn(() => Promise.resolve(false)),
   getGenericPassword: jest.fn(() => Promise.resolve(false)),
