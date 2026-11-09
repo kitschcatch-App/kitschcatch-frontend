@@ -27,46 +27,24 @@
 | 토큰 재발급 | `POST` | `/api/auth/token/refresh` | 유효한 refresh token으로 access token과 refresh token을 재발급합니다. |
 | 카카오 모바일 로그인 | `POST` | `/api/auth/kakao/mobile-login` | 카카오 SDK ID 토큰과 nonce로 로그인하고 access token과 refresh token을 발급합니다. |
 | 카카오 로그인 nonce 발급 | `POST` | `/api/auth/kakao/nonce` | 카카오 모바일 로그인 ID 토큰 검증에 사용할 nonce를 발급합니다. |
+| 네이버 로그인 state 발급 | `POST` | `/api/auth/naver/state` | state, 인증 URL과 유효 시간(초)을 반환합니다. |
 | 네이버 소셜 로그인 | `POST` | `/api/auth/naver/mobile-login` | 네이버 계정으로 로그인하고 신규 사용자의 기본 프로필과 인증 토큰을 생성합니다. |
 | 애플 소셜 로그인 | `POST` | `/api/auth/apple/mobile-login` | Apple 계정으로 로그인하고 신규 사용자의 기본 프로필과 인증 토큰을 생성합니다. |
 
 ### 네이버 소셜 로그인 상세 (`POST /api/auth/naver/mobile-login`)
 
-> 앱(`@react-native-seoul/naver-login`)이 네이버 OAuth를 처리해 Access Token을 받은 뒤 서버로 전달합니다.
-> 네이버는 OIDC(ID Token/nonce)를 지원하지 않으므로 카카오와 달리 nonce 발급 단계가 없습니다.
-
-**Request Body**
+앱은 먼저 `POST /api/auth/naver/state`에서 받은 `authorizationUrl`을 시스템 브라우저로 엽니다. Android App Links와 iOS Universal Links가 등록된 HTTPS 콜백을 앱으로 전달합니다. 콜백 주소와 state가 로그인 시도와 일치하면 다음 요청을 보냅니다.
 
 ```json
 {
-  "accessToken": "<네이버 SDK가 발급한 accessToken>"
+  "authorizationCode": "<콜백의 code>",
+  "state": "<발급받은 state>"
 }
 ```
 
-**서버 처리**
+서버는 일회용 state를 검증한 뒤 네이버 토큰과 이용자 식별자를 조회하고, `(NAVER, providerUserId)`로 회원을 식별합니다. 응답의 `data`에는 키치캐치 access/refresh token과 `user.profileRegistered`가 포함됩니다. 신규 회원은 약관 및 프로필 등록으로 이동합니다.
 
-1. `GET https://openapi.naver.com/v1/nid/me` 를 `Authorization: Bearer <accessToken>` 로 호출해 프로필 조회
-   - 응답 예: `{ "response": { "id": "abc123", "email": "user@example.com", "nickname": "...", "profile_image": "..." } }`
-2. 계정 식별: `provider = "NAVER"`, `providerId = response.id` (불변 고유값)
-   - **`email` 은 네이버 '연락처 이메일'로 고유하지 않고 비어 있을 수 있음. 계정 식별·병합에 사용 금지, 프로필 표시용으로만 저장**
-3. `(provider, providerId)` 로 조회되지 않으면 신규 유저 생성 (이후 앱 회원가입 플로우로 닉네임/프로필 입력)
-
-**Response Body** (카카오 모바일 로그인과 동일 형태)
-
-```json
-{
-  "data": {
-    "accessToken": "<앱 JWT access token>",
-    "refreshToken": "<앱 JWT refresh token>",
-    "user": { "id": 1 }
-  }
-}
-```
-
-**에러**
-
-- 유효하지 않은/만료된 네이버 accessToken → `401`
-- 네이버 프로필 API 호출 실패 → `502` 등
+인증 취소·만료나 `401 AUTH_005` 후에는 새 state를 받아 다시 시작합니다. `503 AUTH_007`이면 서버 설정을 확인합니다. 개발 서버 콜백은 `https://dev-kitschcatch.p-e.kr/api/auth/naver/callback`입니다. 배포 도메인이 달라지면 Android Manifest, iOS entitlements, 네이버 개발자센터 및 서버 설정을 함께 맞춥니다.
 
 ## 회원
 
