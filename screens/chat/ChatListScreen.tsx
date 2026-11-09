@@ -53,7 +53,7 @@ const deletedRoomIds = new Set<number>();
 // 빈 상태 아이콘: 마운트 시 한 번 위로 튀어 오름
 const BouncingChatIcon = () => (
   <BouncingView style={styles.emptyImage}>
-    <ChatIcon width={144} height={120} />
+    <ChatIcon width={192} height={160} />
   </BouncingView>
 );
 
