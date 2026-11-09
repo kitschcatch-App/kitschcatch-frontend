@@ -1,0 +1,261 @@
+import React, { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, ScrollView, Alert, ImageURISource, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/RootNavigator';
+import { styles } from './PurchaseHistoryScreen.styles';
+import { orderAPI, userAPI } from '../../api/apiClient';
+import { formatShortDate, ORDER_STATUS_LABEL } from '../../utils/mypage';
+import ScreenHeader from '../../components/ScreenHeader';
+import EmptyState from '../../components/EmptyState';
+import SortBottomSheet, { SortOption } from '../../components/SortBottomSheet';
+import ConfirmView from '../../components/ConfirmView';
+import RatingPopup from '../../components/RatingPopup';
+import SuccessView from '../../components/SuccessView';
+import CheckIcon from '../../assets/check-sales.svg';
+import DropdownIcon from '../../assets/dropdown.svg';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'PurchaseHistory'>;
+
+// 이미지가 없으면 빈 소스 → 이미지 스타일의 회색 배경이 그대로 보인다.
+const DEFAULT_PRODUCT_IMAGE: ImageURISource = {};
+
+interface PurchaseItem {
+  id: string;
+  title: string;
+  price: number;
+  orderStatus: string;
+  status: string;
+  date: string;
+  orderedAt: string;
+}
+
+const toPurchaseItem = (order: any): PurchaseItem => ({
+  id: order.orderId,
+  title: order.postTitle,
+  price: order.amount,
+  orderStatus: order.orderStatus,
+  status: ORDER_STATUS_LABEL[order.orderStatus] ?? order.orderStatus,
+  date: formatShortDate(order.orderedAt),
+  orderedAt: order.orderedAt,
+});
+
+const PurchaseHistoryScreen = ({ navigation }: Props) => {
+  const [excludeCompleted, setExcludeCompleted] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>('최신순');
+  const [isSortSheetVisible, setSortSheetVisible] = useState(false);
+  const [isMoreSheetVisible, setMoreSheetVisible] = useState(false);
+  const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
+  const [isConfirmVisible, setConfirmVisible] = useState(false);
+  const [isSuccessVisible, setSuccessVisible] = useState(false);
+  const [isPurchaseSuccessVisible, setPurchaseSuccessVisible] = useState(false);
+  const [purchaseHistory, setPurchaseHistory] = useState<PurchaseItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // 최초 목록 조회 중
+
+  const fetchPurchases = useCallback(
+    // ponytail: 최대 100건만 조회. 무한 스크롤은 목록이 길어지면 추가.
+    () =>
+      userAPI
+        .getPurchaseOrders({ page: 0, size: 100 })
+        .then(res => setPurchaseHistory(res.data.data.content.map(toPurchaseItem)))
+        .catch(e => console.error('구매내역 조회 실패:', e))
+        .finally(() => setIsLoading(false)),
+    [],
+  );
+  // useFocusEffect 콜백은 Promise를 반환하면 안 되므로 감싼다.
+  const loadPurchases = useCallback(() => {
+    fetchPurchases();
+  }, [fetchPurchases]);
+  const refreshControl = useRefreshControl(fetchPurchases);
+
+  useFocusEffect(loadPurchases);
+
+  const handleConfirmPurchase = async (orderId: string, rating: number) => {
+    try {
+      await orderAPI.confirmPurchase(orderId);
+      // 후기 등록 실패는 구매확정에 영향을 주지 않는다. (별점 미선택이면 건너뜀)
+      if (rating > 0) {
+        await orderAPI
+          .createReview(orderId, { rating, content: '' })
+          .catch(e => console.error('거래 후기 등록 실패:', e));
+      }
+      loadPurchases();
+      setPurchaseSuccessVisible(true);
+    } catch (err: any) {
+      // ORDER_005: 발송 전이거나 환불 요청 중
+      Alert.alert('구매확정', err.response?.data?.error?.code === 'ORDER_005'
+        ? '발송 전이거나 환불 진행 중인 주문은 구매확정할 수 없어요.'
+        : '구매확정 중 오류가 발생했어요. 다시 시도해주세요.');
+    }
+  };
+
+  const visiblePurchaseHistory = (excludeCompleted
+    ? purchaseHistory.filter((item) => item.orderStatus !== 'PURCHASE_CONFIRMED')
+    : purchaseHistory
+  )
+    .slice()
+    .sort((a, b) =>
+      sortOption === '최신순' ? b.orderedAt.localeCompare(a.orderedAt) : a.orderedAt.localeCompare(b.orderedAt)
+    );
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScreenHeader title="구매내역" onBack={() => navigation.goBack()} />
+
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={styles.checkboxRow}
+          activeOpacity={0.7}
+          onPress={() => setExcludeCompleted(!excludeCompleted)}
+        >
+          {excludeCompleted ? (
+            <CheckIcon width={14} height={14} />
+          ) : (
+            <View style={styles.checkbox} />
+          )}
+          <Text style={styles.checkboxLabel}>구매완료 내역 제외</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.sortRow} activeOpacity={0.7} onPress={() => setSortSheetVisible(true)}>
+          <Text style={styles.sortLabel}>{sortOption}</Text>
+          <DropdownIcon width={10} height={10} style={styles.sortIcon} />
+        </TouchableOpacity>
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator style={styles.loadingIndicator} />
+      ) : visiblePurchaseHistory.length === 0 ? (
+        <EmptyState
+          image={require('../../assets/purchase-details.png')}
+          title="아직 구매한 상품이 없어요!"
+          description="관심 있는 상품을 찾아 첫 거래를 시작해보세요."
+        />
+      ) : (
+        <ScrollView
+          refreshControl={refreshControl}
+          style={styles.purchaseListContainer}
+          contentContainerStyle={styles.purchaseListContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {visiblePurchaseHistory.map((item) => {
+            const isConfirmed = item.orderStatus === 'PURCHASE_CONFIRMED';
+            const isReturned = item.orderStatus === 'REFUNDED';
+            const openDetail = () => navigation.navigate('PurchaseOrderDetail', {
+              orderId: item.id,
+              orderNumber: item.id,
+              productTitle: item.title,
+              productPrice: item.price,
+              productImage: DEFAULT_PRODUCT_IMAGE,
+            });
+            return (
+              <View key={item.id} style={styles.purchaseItem}>
+                <TouchableOpacity
+                  style={styles.purchaseItemRow}
+                  activeOpacity={0.7}
+                  onPress={openDetail}
+                >
+                  <Image source={DEFAULT_PRODUCT_IMAGE} style={styles.purchaseItemImage} resizeMode="cover" />
+                  <View style={styles.purchaseItemInfo}>
+                    <View style={styles.purchaseItemTitleRow}>
+                      <Text style={styles.purchaseItemTitle} numberOfLines={1}>{item.title}</Text>
+                      <TouchableOpacity
+                        style={styles.moreButton}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        onPress={() => setMoreSheetVisible(true)}
+                      >
+                        <View style={styles.moreButtonDot} />
+                        <View style={styles.moreButtonDot} />
+                        <View style={styles.moreButtonDot} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.purchaseItemPrice}>{item.price.toLocaleString()}원</Text>
+                    <View style={styles.purchaseItemStatusRow}>
+                      <Text style={[styles.purchaseItemStatus, isReturned && styles.purchaseItemStatusReturned]}>{item.status}</Text>
+                      <Text style={styles.purchaseItemDate}>{item.date}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {isReturned && (
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.confirmButtonReturned]}
+                    activeOpacity={0.7}
+                    onPress={openDetail}
+                  >
+                    <Text style={styles.confirmButtonText}>반품 상세 정보</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(item.orderStatus === 'PAID' || item.orderStatus === 'PURCHASE_CONFIRMED') && (
+                  <TouchableOpacity
+                    style={[styles.confirmButton, isConfirmed && styles.confirmButtonDone]}
+                    activeOpacity={0.7}
+                    disabled={isConfirmed}
+                    onPress={() => setRatingOrderId(item.id)}
+                  >
+                    <Text style={[styles.confirmButtonText, isConfirmed && styles.confirmButtonTextDone]}>
+                      {isConfirmed ? '구매 확정 완료' : '구매확정'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      <SortBottomSheet
+        visible={isSortSheetVisible}
+        onClose={() => setSortSheetVisible(false)}
+        selectedSort={sortOption}
+        onSelect={setSortOption}
+      />
+
+      <SortBottomSheet
+        visible={isMoreSheetVisible}
+        onClose={() => setMoreSheetVisible(false)}
+        title="삭제"
+        titleStyle={styles.deleteSheetTitle}
+        onTitlePress={() => {
+          setMoreSheetVisible(false);
+          setConfirmVisible(true);
+        }}
+      />
+
+      <RatingPopup
+        visible={ratingOrderId !== null}
+        onConfirm={rating => {
+          if (ratingOrderId) handleConfirmPurchase(ratingOrderId, rating);
+          setRatingOrderId(null);
+        }}
+      />
+
+      <ConfirmView
+        visible={isConfirmVisible}
+        title="게시글을 삭제하시겠습니까?"
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={() => {
+          setConfirmVisible(false);
+          setSuccessVisible(true);
+        }}
+      />
+
+      <SuccessView
+        visible={isPurchaseSuccessVisible}
+        title="구매확정이 완료되었습니다."
+        onDismiss={() => setPurchaseSuccessVisible(false)}
+      />
+
+      <SuccessView
+        visible={isSuccessVisible}
+        title="게시글이 삭제되었습니다."
+        onDismiss={() => setSuccessVisible(false)}
+      />
+    </SafeAreaView>
+  );
+};
+
+export default PurchaseHistoryScreen;

@@ -1,6 +1,7 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -77,13 +78,19 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.kitschatch"
+    namespace "com.kitschcatch"
     defaultConfig {
-        applicationId "com.kitschatch"
+        applicationId "com.kitschcatch"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        resValue "string", "kakao_app_key", project.env.get("KAKAO_APP_KEY")
+        manifestPlaceholders = [
+            kakaoScheme: "kakao" + project.env.get("KAKAO_APP_KEY"),
+            // 네이버 클라우드 플랫폼 Maps Client ID (.env: NAVER_MAP_CLIENT_ID)
+            naverMapClientId: project.env.get("NAVER_MAP_CLIENT_ID") ?: "",
+        ]
     }
     signingConfigs {
         debug {

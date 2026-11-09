@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>kitschatch</string>
+	<string>kitschcatch</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -28,14 +28,17 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
+	<key>NMFNcpKeyId</key>
 	<string></string>
+	<key>NMFClientId</key>
+	<string></string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>내 주변 매장을 지도에 표시하기 위해 위치 정보를 사용합니다.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
@@ -55,5 +58,21 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kitschcatch</string>
+			</array>
+		</dict>
+	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Pretendard-Medium.ttf</string>
+		<string>Pretendard-SemiBold.ttf</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>채팅에서 사진을 촬영해 보내기 위해 카메라 접근이 필요합니다.</string>
 </dict>
 </plist>
