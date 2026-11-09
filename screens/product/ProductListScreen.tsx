@@ -26,6 +26,7 @@ import HeartIcon from '../../assets/detail_heart.svg';
 import ChatIcon from '../../assets/detail_chat.svg';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import axios from 'axios';
 import { productAPI } from '../../api/apiClient';
 import { MOCK_POST_LIST, mockDelay } from '../../api/mockData';
@@ -44,7 +45,7 @@ import { styles } from './ProductListScreen.styles';
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
 
 const ProductListScreen = ({ navigation, route }: Props) => {
-  const { isMockMode, toggleMockMode } = useMockMode();
+  const { isMockMode } = useMockMode();
   const [searchQuery, setSearchQuery] = useState(route.params?.keyword ?? ''); // 입력 중인 검색어
   const [keyword, setKeyword] = useState(route.params?.keyword ?? ''); // 서버에 보내는 확정 검색어
   const [products, setProducts] = useState<Product[]>([]);
@@ -127,10 +128,11 @@ const ProductListScreen = ({ navigation, route }: Props) => {
     createdAt: post.createdAt,
   });
 
-  const fetchProducts = async (page: number, signal?: AbortSignal) => {
+  // silent: 당겨서 새로고침 중에는 전체 스피너로 목록을 바꾸지 않는다.
+  const fetchProducts = async (page: number, signal?: AbortSignal, silent = false) => {
     try {
       if (page === 0) {
-        setLoading(true);
+        if (!silent) setLoading(true);
         setError(null);
       } else {
         setLoadingMore(true);
@@ -185,10 +187,10 @@ const ProductListScreen = ({ navigation, route }: Props) => {
     setCurrentPage(0);
     fetchProducts(0, abortController.signal);
     return () => abortController.abort();
-  }, [isMockMode, queryKey]); // Mock 모드·검색 조건이 바뀌면 자동으로 다시 로드
-
     // fetchProducts는 queryRef로 최신 조건을 읽으므로 deps에서 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMockMode, queryKey]); // Mock 모드·검색 조건이 바뀌면 자동으로 다시 로드
+
   // ProductDetail에서 판매상태 수정 후 돌아올 때 목록 새로고침
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -201,9 +203,15 @@ const ProductListScreen = ({ navigation, route }: Props) => {
       fetchProducts(0);
     });
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation, isMockMode]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const refreshControl = useRefreshControl(() => {
+    setIsLastPage(false);
+    setCurrentPage(0);
+    return fetchProducts(0, undefined, true);
+  });
+
   const handleLoadMore = () => {
     if (loadingMore || isLastPage) return;
     fetchProducts(currentPage + 1);
@@ -224,7 +232,7 @@ const ProductListScreen = ({ navigation, route }: Props) => {
         productImageUrl: item.imageUrl
       })}
     >
-      <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+      <Image source={{ uri: item.imageUrl }} style={styles.productImage} onError={e => console.log('[IMG-DEBUG] 상품 로드 실패', item.imageUrl, e.nativeEvent.error)} />
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={1}>
           {item.name}
@@ -267,24 +275,13 @@ const ProductListScreen = ({ navigation, route }: Props) => {
             resizeMode="contain"
           />
           <KitschcatchIcon width={67} height={23} style={{ marginTop: 8 }} />
-
-          {/* Mock 모드 토글 버튼 (개발/테스트용) */}
-          <TouchableOpacity
-            style={[styles.mockTogglePill, isMockMode && styles.mockTogglePillActive]}
-            onPress={toggleMockMode}
-            activeOpacity={0.75}
-          >
-            <Text style={[styles.mockTogglePillText, isMockMode && styles.mockTogglePillTextActive]}>
-              {isMockMode ? '🧪 Mock' : '🔌 Real'}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* 1. 상단 헤더: 백 버튼 & 검색창 */}
         <View style={styles.headerContainer}>
           <TouchableOpacity 
             style={styles.backButton} 
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.goBack()}
           >
             <BackIcon width={10} height={18} />
           </TouchableOpacity>
@@ -377,8 +374,10 @@ const ProductListScreen = ({ navigation, route }: Props) => {
             contentContainerStyle={styles.productListContent}
             onScroll={e => setFabCollapsed(e.nativeEvent.contentOffset.y > 10)}
             scrollEventThrottle={16}
+            refreshControl={refreshControl}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
+            ListEmptyComponent={<Text style={styles.emptyText}>아직 등록된 상품이 없습니다.</Text>}
             ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#000" style={{ marginVertical: 12 }} /> : null}
           />
         )}

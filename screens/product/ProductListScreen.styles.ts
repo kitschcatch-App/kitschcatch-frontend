@@ -25,26 +25,12 @@ export const styles = StyleSheet.create({
     marginBottom: 5,
   },
   // Mock 모드 토글 버튼 (개발/테스트용)
-  mockTogglePill: {
-    marginLeft: 'auto',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: colors.gray04,
-    backgroundColor: colors.gray03,
-  },
-  mockTogglePillActive: {
-    borderColor: colors.sub01,
-    backgroundColor: `${colors.sub01}22`,
-  },
-  mockTogglePillText: {
-    fontSize: 11,
-    fontFamily: typography.SB,
-    color: colors.gray01,
-  },
-  mockTogglePillTextActive: {
-    color: colors.sub02,
+  emptyText: {
+    marginTop: 120,
+    textAlign: 'center',
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.gray07,
   },
   // 헤더 스타일
   headerContainer: {
