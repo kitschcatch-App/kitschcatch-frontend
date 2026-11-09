@@ -16,6 +16,7 @@ import { login, loginWithNewScopes } from '@react-native-seoul/kakao-login';
 import { authAPI } from '../../api/apiClient';
 import { NAVER_CANCELLED, waitForNaverCode } from '../../utils/naverAuth';
 import { secureStorage } from '../../utils/secureStorage';
+import { isAutoLoginValid } from '../../utils/autoLogin';
 import { consumeSplashLogoY, groundShift, LOGO_OFFSET_X, LOGO_OFFSET_Y } from '../../utils/splashTransition';
 import ErrorView from '../../components/ErrorView';
 import SuccessView from '../../components/SuccessView';
@@ -23,6 +24,8 @@ import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
 // import { useMockMode } from '../../contexts/MockModeContext'; // Mock 버튼 비활성화로 미사용
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
+
+const AUTO_LOGIN_DELAY_MS = 1900; // 로고 점프(340+240ms+스프링) + 콘텐츠 페이드(300ms)가 끝나는 시간
 
 // 스플래시에서 원래 크기로 돌아온 자리(화면 중앙)에서 위로 튀어오르고 → 제자리에 착지(웅크림 후 출렁) 하는 점프
 const useLogoJump = (logoSize: number) => {
@@ -90,6 +93,19 @@ const LoginScreen = ({ navigation }: Props) => {
   // const [showMockOptions, setShowMockOptions] = useState(false); // Mock 버튼 비활성화로 미사용
   const [needsProfile, setNeedsProfile] = useState(false);
   // const { setMockMode } = useMockMode();
+
+  // 자동 로그인: 로고 점프 애니메이션(약 1.3초)을 한 번 보여준 뒤, 세션이 유효하면 Home으로 넘어간다.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([isAutoLoginValid(), new Promise<void>(res => setTimeout(res, AUTO_LOGIN_DELAY_MS))]).then(
+      ([valid]) => {
+        if (valid && !cancelled) navigation.replace('Home');
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [navigation]);
 
   // 로그인 성공 공통 처리: 토큰 저장 → 프로필 미등록 사용자는 약관/회원가입, 그 외는 메인으로 이동
   const finishLogin = async (data: any) => {
