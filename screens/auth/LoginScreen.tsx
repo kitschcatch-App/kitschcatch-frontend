@@ -20,7 +20,7 @@ import { consumeSplashLogoY, groundShift, LOGO_OFFSET_X, LOGO_OFFSET_Y } from '.
 import ErrorView from '../../components/ErrorView';
 import SuccessView from '../../components/SuccessView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
-import { useMockMode } from '../../contexts/MockModeContext';
+// import { useMockMode } from '../../contexts/MockModeContext'; // Mock 버튼 비활성화로 미사용
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -87,9 +87,9 @@ const LoginScreen = ({ navigation }: Props) => {
   const logoJump = useLogoJump(width * 0.4);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showMockOptions, setShowMockOptions] = useState(false);
+  // const [showMockOptions, setShowMockOptions] = useState(false); // Mock 버튼 비활성화로 미사용
   const [needsProfile, setNeedsProfile] = useState(false);
-  const { setMockMode } = useMockMode();
+  // const { setMockMode } = useMockMode();
 
   // 로그인 성공 공통 처리: 토큰 저장 → 프로필 미등록 사용자는 약관/회원가입, 그 외는 메인으로 이동
   const finishLogin = async (data: any) => {
@@ -190,16 +190,16 @@ const LoginScreen = ({ navigation }: Props) => {
     // TODO: Apple 로그인 연동
   };
 
-  // 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입
-  const handleMockSignUp = () => {
-    setMockMode(true);
-    navigation.replace('TermsAgreement');
-  };
-
-  const handleMockHome = () => {
-    setMockMode(true);
-    navigation.replace('Home');
-  };
+  // 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입 (Mock 버튼과 함께 임시 비활성화)
+  // const handleMockSignUp = () => {
+  //   setMockMode(true);
+  //   navigation.replace('TermsAgreement');
+  // };
+  //
+  // const handleMockHome = () => {
+  //   setMockMode(true);
+  //   navigation.replace('Home');
+  // };
 
   const handleOpenTerms = () => {
     navigation.navigate('TermsOfService');
@@ -254,7 +254,7 @@ const LoginScreen = ({ navigation }: Props) => {
           </TouchableOpacity>
         </View>
 
-        {/* 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입 */}
+        {/* 개발/테스트용: 실제 로그인 없이 Mock 데이터로 바로 진입 (임시 비활성화)
         {showMockOptions ? (
           <View style={styles.mockOptionsContainer}>
             <TouchableOpacity
@@ -281,6 +281,7 @@ const LoginScreen = ({ navigation }: Props) => {
             <Text style={styles.mockButtonText}>🧪 Mock으로 시작하기</Text>
           </TouchableOpacity>
         )}
+        */}
 
         {/* 개발자 전용: API 테스트 화면 진입 버튼 */}
         <TouchableOpacity
