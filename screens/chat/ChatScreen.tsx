@@ -473,7 +473,7 @@ const ChatScreen = ({ route, navigation }: Props) => {
           visible={menuVisible}
           onClose={() => setMenuVisible(false)}
           onBlock={() => navigation.push('BlockUser', { userId: opponentId })}
-          onReport={() => navigation.push('ReportUser', { userId: opponentId })}
+          onReport={() => navigation.push('ReportUser', { userId: opponentId, target: 'chat', targetId: Number(chatRoomId) })}
           style={{ top: Math.max(insets.top, 65) + 40, right: 20 }}
         />
       )}

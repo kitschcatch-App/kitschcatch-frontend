@@ -5,6 +5,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -63,29 +64,31 @@ const ChatListScreen = ({ navigation }: Props) => {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
+  const fetchRooms = useCallback(async () => {
+    try {
+      // 스피너는 첫 조회(초기값 true)에만. 재진입 시엔 기존 화면을 유지한 채 조용히 갱신
+      if (isMockMode) {
+        await mockDelay(300);
+        setChatRooms(MOCK_CHAT_ROOMS.data.filter(r => !deletedRoomIds.has(r.chatRoomId)));
+      } else {
+        const res = await chatAPI.getChatRooms();
+        // 서버가 { data: [...] } 래퍼를 사용하는 경우도 처리
+        const rooms = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        setChatRooms(rooms.filter((r: ChatRoom) => !deletedRoomIds.has(r.chatRoomId)));
+      }
+    } catch (e) {
+      console.error('채팅 목록 조회 실패:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isMockMode]);
+
   useFocusEffect(
     useCallback(() => {
-      const fetch = async () => {
-        try {
-          // 스피너는 첫 조회(초기값 true)에만. 재진입 시엔 기존 화면을 유지한 채 조용히 갱신
-          if (isMockMode) {
-            await mockDelay(300);
-            setChatRooms(MOCK_CHAT_ROOMS.data.filter(r => !deletedRoomIds.has(r.chatRoomId)));
-          } else {
-            const res = await chatAPI.getChatRooms();
-            // 서버가 { data: [...] } 래퍼를 사용하는 경우도 처리
-            const rooms = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-            setChatRooms(rooms.filter((r: ChatRoom) => !deletedRoomIds.has(r.chatRoomId)));
-          }
-        } catch (e) {
-          console.error('채팅 목록 조회 실패:', e);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetch();
-    }, [isMockMode])
+      fetchRooms();
+    }, [fetchRooms])
   );
+  const refreshControl = useRefreshControl(fetchRooms);
 
   const renderItem = ({ item }: { item: ChatRoom }) => {
     const isUnread = (item.unreadCount ?? 0) > 0;
@@ -163,6 +166,7 @@ const ChatListScreen = ({ navigation }: Props) => {
           renderItem={renderItem}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          refreshControl={refreshControl}
         />
       )}
 
