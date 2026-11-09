@@ -53,7 +53,9 @@ describe('WishlistScreen 관심 매장 탭', () => {
     const allDay = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map(d => ({
       dayOfWeek: d, openTime: '00:00', closeTime: '00:00', closed: false,
     }));
-    (storeAPI.getStore as jest.Mock).mockResolvedValue({ data: { data: { businessHours: allDay } } });
+    (storeAPI.getStore as jest.Mock).mockResolvedValue({
+      data: { data: { businessHours: allDay, reviewSummary: { averageRating: 4.5 } } },
+    });
     (storeAPI.getFavoriteStores as jest.Mock).mockResolvedValue({
       data: {
         data: {
@@ -80,7 +82,7 @@ describe('WishlistScreen 관심 매장 탭', () => {
 
     const texts = renderer.root.findAllByType(Text).map(n => n.props.children);
     expect(storeAPI.getStore).toHaveBeenCalledWith(7);
-    expect(texts).toContain(4.5);
+    expect(texts).toContain('4.5');
     expect(texts).toContain('영업 중');
   });
 

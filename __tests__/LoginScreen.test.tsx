@@ -60,6 +60,7 @@ jest.mock('../components/SuccessView', () => {
   return function MockSuccessView({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
     React.useEffect(() => {
       if (visible) onDismiss();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visible]);
     return null;
   };
@@ -126,11 +127,11 @@ describe('LoginScreen', () => {
       expect(secureStorage.setItem).toHaveBeenCalledWith('userId', '42');
     });
 
-    it('버튼 클릭 시 ProductList로 이동한다', async () => {
+    it('버튼 클릭 시 Home으로 이동한다', async () => {
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.kakao);
 
-      expect(mockReplace).toHaveBeenCalledWith('ProductList');
+      expect(mockReplace).toHaveBeenCalledWith('Home');
     });
 
     it('프로필 미등록 사용자(profileRegistered=false)는 약관 동의 화면으로 이동한다', async () => {
@@ -153,12 +154,12 @@ describe('LoginScreen', () => {
       expect(authAPI.loginWithNaver).toHaveBeenCalledWith('naver-code', 'naver-state');
     });
 
-    it('버튼 클릭 시 userId 저장 후 ProductList로 이동한다', async () => {
+    it('버튼 클릭 시 userId 저장 후 Home으로 이동한다', async () => {
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.naver);
 
       expect(secureStorage.setItem).toHaveBeenCalledWith('userId', '42');
-      expect(mockReplace).toHaveBeenCalledWith('ProductList');
+      expect(mockReplace).toHaveBeenCalledWith('Home');
     });
 
     it('사용자가 취소하면 백엔드 로그인을 호출하지 않는다', async () => {

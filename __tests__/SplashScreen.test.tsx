@@ -18,11 +18,23 @@ const renderSplash = () =>
   ReactTestRenderer.create(<SplashScreen navigation={navigation} route={route} />);
 
 describe('SplashScreen', () => {
+  // 애니메이션(sequence)을 가로채 완료 콜백을 직접 호출해 전환 시점을 제어한다.
+  let finishAnimation: () => Promise<void>;
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    jest.spyOn(Animated, 'timing').mockReturnValue({
-      start: (cb?: Animated.EndCallback) => cb?.({ finished: true }),
+    jest.spyOn(Animated, 'sequence').mockReturnValue({
+      start: (cb?: Animated.EndCallback) => {
+        finishAnimation = async () => {
+          await act(async () => {
+            cb?.({ finished: true });
+            await Promise.resolve();
+            await Promise.resolve();
+          });
+        };
+      },
+      stop: jest.fn(),
     } as any);
   });
 
@@ -36,15 +48,14 @@ describe('SplashScreen', () => {
   it('accessToken이 있어도 (자동 로그인 비활성) Login으로 이동한다', async () => {
     (secureStorage.getItem as jest.Mock).mockResolvedValue('access-token');
 
-    // secureStorage.getItem 완료 + setTimeout(2000) 등록까지 진행
+    // 마운트 + secureStorage.getItem 호출까지 진행
     await act(async () => {
       renderSplash();
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // act 밖에서 타이머 발화 → 애니메이션 콜백(동기 mock) → navigate 호출
-    jest.advanceTimersByTime(2000);
+    await finishAnimation();
 
     expect(mockReplace).toHaveBeenCalledWith('Login');
   });
@@ -58,7 +69,7 @@ describe('SplashScreen', () => {
       await Promise.resolve();
     });
 
-    jest.advanceTimersByTime(2000);
+    await finishAnimation();
 
     expect(mockReplace).toHaveBeenCalledWith('Login');
   });
@@ -80,18 +91,18 @@ describe('SplashScreen', () => {
 
     let renderer!: ReactTestRenderer.ReactTestRenderer;
 
-    // AsyncStorage 완료 + setTimeout 등록까지만 진행 (타이머는 아직 실행 안 함)
+    // 마운트까지만 진행 (애니메이션 완료 콜백은 아직 호출 안 함)
     await act(async () => {
       renderer = renderSplash();
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // 타이머 실행 전 언마운트 → cleanup: isMounted=false, clearTimeout(timer)
+    // 완료 전 언마운트 → cleanup: isMounted=false
     act(() => { renderer.unmount(); });
 
-    // clearTimeout으로 이미 취소된 타이머이므로 아무것도 실행되지 않아야 함
-    await act(async () => { await jest.runAllTimersAsync(); });
+    // 이후 완료 콜백이 불려도 isMounted 가드로 이동하지 않아야 함
+    await finishAnimation();
 
     expect(mockReplace).not.toHaveBeenCalled();
   });

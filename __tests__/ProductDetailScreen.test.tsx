@@ -35,9 +35,14 @@ jest.mock('../api/apiClient', () => ({
   productAPI: {
     getPostDetail: jest.fn(),
     updatePost: jest.fn(),
+    getFavoritePosts: jest.fn().mockResolvedValue({ data: { data: { content: [] } } }),
   },
   chatAPI: {
     createChatRoom: jest.fn(),
+  },
+  userAPI: {
+    getUser: jest.fn().mockResolvedValue({ data: { data: {} } }),
+    getTrustInfo: jest.fn().mockResolvedValue({ data: { data: {} } }),
   },
 }));
 
@@ -117,9 +122,22 @@ const renderScreen = async () => {
   return renderer;
 };
 
+// props에 React 엘리먼트(_owner 순환 참조)가 들어가도 직렬화되도록 순환 참조·_owner를 건너뛴다
+const dumpTree = (renderer: ReactTestRenderer.ReactTestRenderer) => {
+  const seen = new WeakSet();
+  return JSON.stringify(renderer.toJSON(), (key, value) => {
+    if (key === '_owner') return undefined;
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) return undefined;
+      seen.add(value);
+    }
+    return value;
+  });
+};
+
 // 렌더 트리 전체 텍스트에 특정 문자열이 포함되어 있는지 확인
 const hasText = (renderer: ReactTestRenderer.ReactTestRenderer, text: string) =>
-  JSON.stringify(renderer.toJSON()).includes(text);
+  dumpTree(renderer).includes(text);
 
 // node.children을 재귀 탐색하여 특정 텍스트가 포함되어 있는지 확인
 // React 19에서 node.toJSON()이 null을 반환하는 경우를 우회한다
@@ -302,6 +320,7 @@ describe('ProductDetailScreen - 채팅하기', () => {
     expect(mockNavigate).toHaveBeenCalledWith('Chat', {
       chatRoomId: 100,
       opponentNickname: 'seller1',
+      opponentId: 42,
     });
   });
 
@@ -331,7 +350,7 @@ describe('ProductDetailScreen - API 데이터 매핑', () => {
       data: { data: { ...mockPost, images: undefined } },
     });
     const renderer = await renderScreen();
-    expect(JSON.stringify(renderer.toJSON())).toContain('https://example.com/image.jpg');
+    expect(dumpTree(renderer)).toContain('https://example.com/image.jpg');
   });
 
   it('description이 없으면 "상세 설명이 없습니다."를 표시한다', async () => {
