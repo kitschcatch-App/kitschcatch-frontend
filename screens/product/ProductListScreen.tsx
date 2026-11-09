@@ -120,8 +120,8 @@ const ProductListScreen = ({ navigation, route }: Props) => {
     name: post.title,
     price: post.price,
     imageUrl: post.images?.[0]?.imageUrl || '',
-    heartCount: 0,
-    chatCount: 0,
+    heartCount: post.favoriteCount ?? 0,
+    chatCount: post.chatRoomCount ?? 0,
     status: post.productStatus,
     category: CATEGORY_REVERSE_MAP[post.productCategory] || post.productCategory,
     condition: post.productCondition,
@@ -245,9 +245,9 @@ const ProductListScreen = ({ navigation, route }: Props) => {
         <Text style={styles.metaTimeText}>{formatTime(item.createdAt ?? '')}</Text>
         <View style={styles.metaIconsContainer}>
           <HeartIcon width={8} height={8} style={styles.metaIcon} />
-          <Text style={styles.metaText}>12</Text>
+          <Text style={styles.metaText}>{item.heartCount ?? 0}</Text>
           <ChatIcon width={8} height={8} style={styles.metaIcon} />
-          <Text style={styles.metaText}>3</Text>
+          <Text style={styles.metaText}>{item.chatCount ?? 0}</Text>
         </View>
       </View>
       </View>
