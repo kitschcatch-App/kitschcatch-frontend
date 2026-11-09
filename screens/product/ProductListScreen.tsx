@@ -187,6 +187,8 @@ const ProductListScreen = ({ navigation, route }: Props) => {
     return () => abortController.abort();
   }, [isMockMode, queryKey]); // Mock 모드·검색 조건이 바뀌면 자동으로 다시 로드
 
+    // fetchProducts는 queryRef로 최신 조건을 읽으므로 deps에서 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   // ProductDetail에서 판매상태 수정 후 돌아올 때 목록 새로고침
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -201,6 +203,7 @@ const ProductListScreen = ({ navigation, route }: Props) => {
     return unsubscribe;
   }, [navigation, isMockMode]);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleLoadMore = () => {
     if (loadingMore || isLastPage) return;
     fetchProducts(currentPage + 1);

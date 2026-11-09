@@ -31,6 +31,8 @@ const Toast = ({ visible, message, onDismiss, position = 'bottom' }: ToastProps)
         });
       }, 1500);
     });
+    // onDismiss를 deps에 넣으면 부모 리렌더마다 애니메이션이 재시작되므로 visible 변화에만 반응
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   return (
