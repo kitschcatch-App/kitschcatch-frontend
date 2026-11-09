@@ -208,10 +208,21 @@ export const userAPI = {
   // 다른 회원 공개 프로필 / 거래 신뢰 정보 / 판매 상품 목록
   getUser: (userId: number | string) =>
     apiClient.get(`/users/${userId}`),
+  // 사용자가 받은 거래 후기
+  getReviews: (userId: number | string, page = 0, size = 20) =>
+    apiClient.get(`/users/${userId}/reviews`, { params: { page, size } }),
   getTrustInfo: (userId: number | string) =>
     apiClient.get(`/users/${userId}/trust-info`),
   getUserPosts: (userId: number | string, params?: { status?: string; page?: number; size?: number }) =>
     apiClient.get(`/users/${userId}/posts`, { params }),
+
+  // 사용자 차단 / 차단 해제 / 내 차단 목록(최신순, size 1~100)
+  blockUser: (userId: number | string) =>
+    apiClient.post(`/users/${userId}/block`),
+  unblockUser: (userId: number | string) =>
+    apiClient.delete(`/users/${userId}/block`),
+  getBlocks: (page = 0, size = 100) =>
+    apiClient.get('/users/me/blocks', { params: { page, size } }),
 
   // 팔로우 / 언팔로우
   follow: (userId: number | string) =>
@@ -226,11 +237,39 @@ export const userAPI = {
     apiClient.get(`/users/${userId}/followings`, { params: { page, size } }),
 };
 
+// ─── 배송지 API ─────────────────────────────────────────────────────────────────
+export interface AddressFields {
+  label?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  postalCode?: string;
+  addressLine1?: string;
+  addressLine2?: string | null;
+  deliveryMemo?: string | null;
+  isDefault?: boolean;
+}
+
+export const addressAPI = {
+  // 목록 (기본 배송지 우선)
+  list: () => apiClient.get('/users/me/addresses'),
+  // 등록 (수령인·연락처·5자리 우편번호·기본주소 필수, 첫 배송지는 자동 기본)
+  create: (data: AddressFields) => apiClient.post('/users/me/addresses', data),
+  // 부분 수정 (생략=보존, null=삭제, 기본 해제 단독은 409)
+  update: (id: number | string, data: AddressFields) =>
+    apiClient.patch(`/users/me/addresses/${id}`, data),
+  // 삭제 (기본 삭제 시 서버가 다른 배송지를 기본으로 승격)
+  remove: (id: number | string) => apiClient.delete(`/users/me/addresses/${id}`),
+};
+
 // ─── 상품 관련 API ──────────────────────────────────────────────────────────────
 export const productAPI = {
   // 상품 목록 조회
   getPostList: (config?: AxiosRequestConfig) =>
     apiClient.get('/posts', config),
+
+  // 최근 본 상품과 비슷한 상품 추천 (recentPostIds는 최신순 최대 20개, limit 1~20)
+  getRecentlyViewedRecommendations: (recentPostIds: number[], limit = 10) =>
+    apiClient.post('/posts/recommendations/recently-viewed', { recentPostIds, limit }),
 
   // 상품 상세 정보 조회
   getPostDetail: (productId: string | number, config?: AxiosRequestConfig) =>
@@ -266,7 +305,7 @@ export const productAPI = {
 // ─── 주문 관련 API ──────────────────────────────────────────────────────────────
 export const orderAPI = {
   // 주문 생성 (15분 홀드)
-  createOrder: (data: { postId: number; amount: number; paymentMethod: string }) =>
+  createOrder: (data: { postId: number; amount: number; paymentMethod: string; shippingAddressId?: number }) =>
     apiClient.post('/orders', data),
 
   // 거래 상세 조회 (orderId = ORD-로 시작하는 공개 주문번호, 구매자/판매자만 조회 가능)
@@ -277,17 +316,38 @@ export const orderAPI = {
   registerShipment: (orderId: string, data: { carrierCode: string; trackingNumber: string }) =>
     apiClient.post(`/orders/${orderId}/shipment`, data),
 
+  // 송장 조회 / 수정 (수정은 판매자만, 구매확정·환불 처리 중에는 불가)
+  getShipment: (orderId: string) => apiClient.get(`/orders/${orderId}/shipment`),
+  updateShipment: (orderId: string, data: { carrierCode: string; trackingNumber: string }) =>
+    apiClient.patch(`/orders/${orderId}/shipment`, data),
+
+  // 환불 상태 조회 (거래 당사자)
+  getRefund: (orderId: string) => apiClient.get(`/orders/${orderId}/refunds`),
+
   // 구매 확정 (구매자, 발송 후)
   confirmPurchase: (orderId: string) =>
     apiClient.post(`/orders/${orderId}/confirm-purchase`),
+
+  // 거래 후기 작성 (구매자·판매자 각 1회) / 조회 (거래 당사자만)
+  createReview: (orderId: string, data: { rating: number; content: string }) =>
+    apiClient.post(`/orders/${orderId}/reviews`, data),
+  getReviews: (orderId: string) => apiClient.get(`/orders/${orderId}/reviews`),
 
   // 주문 취소 (구매자, 발송 전). PG 결과가 불확실하면 응답 processing=true
   cancelOrder: (orderId: string, reason: string) =>
     apiClient.post(`/orders/${orderId}/cancel`, { reason }),
 
   // 전액 환불 요청 (구매자). 발송 후에는 REQUESTED로 접수되어 운영자가 승인
-  requestRefund: (orderId: string, amount: number, reason: string) =>
-    apiClient.post(`/orders/${orderId}/refunds`, { amount, reason }),
+  requestRefund: (orderId: string, amount: number, reason: string, imageIds?: number[]) =>
+    apiClient.post(`/orders/${orderId}/refunds`, { amount, reason, imageIds }),
+
+  // 반품 사진 업로드 (최대 5장, 장당 5MiB): URL 발급 → PUT(발급된 headers) → 완료 처리(READY) → imageIds로 제출
+  getRefundImageUploadUrls: (
+    orderId: string,
+    images: { fileName: string; contentType: string; fileSize: number }[],
+  ) => apiClient.post(`/orders/${orderId}/refund-images/upload-urls`, { images }),
+  completeRefundImage: (orderId: string, imageId: number) =>
+    apiClient.post(`/orders/${orderId}/refund-images/${imageId}/complete`),
 
   // 환불 요청 철회 (구매자, REQUESTED 상태만)
   withdrawRefund: (orderId: string, refundId: string) =>
@@ -328,6 +388,10 @@ export const storeAPI = {
   getNearby: (latitude: number, longitude: number, radiusKm: 1 | 3 | 5, page = 0, size = 100) =>
     apiClient.get('/stores/nearby', { params: { latitude, longitude, radiusKm, page, size } }),
 
+  // 선택한 매장 주변의 다른 매장 추천 (기준 매장 제외, 가까운 순, limit 1~10)
+  getRecommendations: (storeId: string | number, radiusKm: 1 | 3 | 5 = 5, limit = 6) =>
+    apiClient.get(`/stores/${storeId}/recommendations`, { params: { radiusKm, limit } }),
+
   // 매장 상세 및 운영 정보 조회
   getStore: (storeId: string | number) =>
     apiClient.get(`/stores/${storeId}`),
@@ -341,6 +405,58 @@ export const storeAPI = {
     apiClient.post(`/stores/${storeId}/favorites`),
   removeFavoriteStore: (storeId: string | number) =>
     apiClient.delete(`/stores/${storeId}/favorites`),
+
+  // 매장 리뷰: 집계 / 목록(최신순) / 사진 모아보기
+  getReviewSummary: (storeId: string | number) =>
+    apiClient.get(`/stores/${storeId}/reviews/summary`),
+  getReviews: (storeId: string | number, page = 0, size = 20) =>
+    apiClient.get(`/stores/${storeId}/reviews`, { params: { page, size } }),
+  getReviewImages: (storeId: string | number, page = 0, size = 30) =>
+    apiClient.get(`/stores/${storeId}/review-images`, { params: { page, size } }),
+
+  // 리뷰 작성 (매장당 1개). imageIds는 업로드 완료된 사진 ID
+  createReview: (storeId: string | number, data: { rating: number; content: string; imageIds?: number[] }) =>
+    apiClient.post(`/stores/${storeId}/reviews`, data),
+
+  // 내 리뷰 조회(미작성이면 review: null) / 수정(version 필요) / 삭제
+  getMyReview: (storeId: string | number) => apiClient.get(`/stores/${storeId}/reviews/me`),
+  updateReview: (
+    reviewId: number,
+    data: { version: number; rating: number; content: string; imageIds: number[] },
+  ) => apiClient.patch(`/store-reviews/${reviewId}`, data),
+  deleteReview: (reviewId: number) => apiClient.delete(`/store-reviews/${reviewId}`),
+
+  // 리뷰 사진 업로드: URL 발급 → PUT(발급된 headers) → 완료 처리
+  getReviewImageUploadUrls: (
+    storeId: string | number,
+    images: { fileName: string; contentType: string; fileSize: number }[],
+  ) => apiClient.post(`/stores/${storeId}/review-images/upload-urls`, { images }),
+  completeReviewImage: (imageId: number) =>
+    apiClient.post(`/store-review-images/${imageId}/complete`),
+};
+
+// ─── 신고 관련 API ──────────────────────────────────────────────────────────────
+export type ReportTargetType = 'USER' | 'POST' | 'CHAT_ROOM' | 'STORE_REVIEW';
+export const reportAPI = {
+  getReasons: (targetType: ReportTargetType) =>
+    apiClient.get('/reports/reasons', { params: { targetType } }),
+  create: (data: {
+    targetType: ReportTargetType;
+    targetId: number;
+    reasonCode: string;
+    description: string;
+  }) => apiClient.post('/reports', data),
+};
+
+// ─── 검색어 관련 API ──────────────────────────────────────────────────────────────
+export const searchAPI = {
+  getPopular: (limit = 10) => apiClient.get('/search/popular', { params: { limit } }),
+  getRelated: (keyword: string, limit = 10) =>
+    apiClient.get('/search/related', { params: { keyword, limit } }),
+  getRecent: () => apiClient.get('/search/recent'),
+  record: (keyword: string) => apiClient.post('/search/records', { keyword }),
+  deleteRecent: (recordId: number) => apiClient.delete(`/search/recent/${recordId}`),
+  clearRecent: () => apiClient.delete('/search/recent'),
 };
 
 // ─── 알림 관련 API ──────────────────────────────────────────────────────────────

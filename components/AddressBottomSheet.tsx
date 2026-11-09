@@ -4,12 +4,14 @@
  */
 
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { addressAPI } from '../api/apiClient';
 import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from './AddressBottomSheet.styles';
 
 export interface SelectedAddress {
+  id: number;
   name: string;
   phone: string;
   address: string;
@@ -21,25 +23,32 @@ interface Props {
   onSelect: (address: SelectedAddress) => void;
 }
 
-const DUMMY_ADDRESSES = [
-  {
-    id: '1',
-    name: '이수진',
-    phone: '010-1234-5678',
-    address: '경기도 화성시 병점구 안녕동 1245678845612546546543234354678',
-    isDefault: true,
-  },
-  {
-    id: '2',
-    name: '홍길동',
-    phone: '010-9876-5432',
-    address: '서울특별시 강남구 테헤란로 123',
-  }
-];
+// API 응답 → 시트 표시용 형태 (기본 배송지가 서버에서 먼저 내려옴)
+export const toSelectedAddress = (a: any): SelectedAddress & { isDefault: boolean } => ({
+  id: a.id,
+  name: a.recipientName,
+  phone: a.recipientPhone,
+  address: [a.addressLine1, a.addressLine2].filter(Boolean).join(' '),
+  isDefault: a.isDefault,
+});
 
 const AddressBottomSheet = ({ visible, onClose, onSelect }: Props) => {
   const insets = useSafeAreaInsets();
-  const [selectedId, setSelectedId] = useState('1');
+  const [addresses, setAddresses] = useState<(SelectedAddress & { isDefault: boolean })[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // 열릴 때마다 최신 목록 조회 (관리 화면에서 바뀐 내용 반영)
+  useEffect(() => {
+    if (!visible) return;
+    addressAPI
+      .list()
+      .then(res => {
+        const list = res.data.data.map(toSelectedAddress);
+        setAddresses(list);
+        setSelectedId(prev => (list.some((a: any) => a.id === prev) ? prev : list[0]?.id ?? null));
+      })
+      .catch(e => console.error('배송지 목록 조회 실패:', e));
+  }, [visible]);
 
   return (
     <Modal
@@ -66,7 +75,7 @@ const AddressBottomSheet = ({ visible, onClose, onSelect }: Props) => {
                 style={styles.addressListContainer}
                 contentContainerStyle={styles.addressListContent}
               >
-                {DUMMY_ADDRESSES.map((item) => (
+                {addresses.map((item) => (
                   <TouchableOpacity
                     key={item.id}
                     style={[styles.addressItem, selectedId === item.id && styles.addressItemActive]}
@@ -93,8 +102,10 @@ const AddressBottomSheet = ({ visible, onClose, onSelect }: Props) => {
               <TouchableOpacity
                 style={styles.submitButton}
                 onPress={() => {
-                  const item = DUMMY_ADDRESSES.find(a => a.id === selectedId)!;
-                  onSelect({ name: item.name, phone: item.phone, address: item.address });
+                  const item = addresses.find(a => a.id === selectedId);
+                  if (item) {
+                    onSelect({ id: item.id, name: item.name, phone: item.phone, address: item.address });
+                  }
                   onClose();
                 }}
                 activeOpacity={0.8}

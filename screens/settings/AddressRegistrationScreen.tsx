@@ -3,7 +3,8 @@
  * 역할: 이름/연락처/우편번호/주소/상세주소를 입력받아 새 배송지를 등록하는 화면입니다.
  */
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { addressAPI } from '../../api/apiClient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -11,6 +12,7 @@ import { styles } from './AddressRegistrationScreen.styles';
 import ScreenHeader from '../../components/ScreenHeader';
 import CommonInput from '../../components/CommonInput';
 import SuccessView from '../../components/SuccessView';
+import PostcodeModal from '../../components/PostcodeModal';
 import RadioOnIcon from '../../assets/radiobutton-on.svg';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddressRegistration'>;
@@ -26,11 +28,12 @@ const AddressRegistrationScreen = ({ navigation, route }: Props) => {
   const [detailAddress, setDetailAddress] = useState(editingAddress?.detailAddress ?? '');
   const [isDefault, setIsDefault] = useState(editingAddress?.isDefault ?? false);
   const [isSuccessVisible, setSuccessVisible] = useState(false);
+  const [isPostcodeVisible, setPostcodeVisible] = useState(false);
 
   const isFormValid =
     name.trim() !== '' &&
     phone.trim() !== '' &&
-    zipCode.trim() !== '' &&
+    /^\d{5}$/.test(zipCode.trim()) &&
     address.trim() !== '' &&
     detailAddress.trim() !== '';
 
@@ -45,13 +48,33 @@ const AddressRegistrationScreen = ({ navigation, route }: Props) => {
 
   const canSubmit = isFormValid && isChanged;
 
-  const handleSearchZipCode = () => {
-    // TODO: 우편번호 검색(다음 우편번호 API 등) 연동
-  };
+  const handleSearchZipCode = () => setPostcodeVisible(true);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!canSubmit) return;
-    // TODO: 배송지 등록/수정 API 연동
+    const body = {
+      recipientName: name.trim(),
+      recipientPhone: phone.trim(),
+      postalCode: zipCode.trim(),
+      addressLine1: address.trim(),
+      addressLine2: detailAddress.trim(),
+      // 기본 해제 단독 요청은 서버가 409로 거절하므로 true일 때만 전송
+      ...(isDefault && !editingAddress?.isDefault ? { isDefault: true } : {}),
+    };
+    try {
+      if (editingAddress) {
+        await addressAPI.update(editingAddress.id, body);
+      } else {
+        await addressAPI.create(body);
+      }
+    } catch (e: any) {
+      console.error('배송지 저장 실패:', e);
+      Alert.alert(
+        '배송지',
+        e?.response?.data?.error?.message ?? '배송지를 저장하지 못했어요. 다시 시도해주세요.',
+      );
+      return;
+    }
     setSuccessVisible(true);
     setTimeout(() => {
       navigation.goBack();
@@ -161,6 +184,16 @@ const AddressRegistrationScreen = ({ navigation, route }: Props) => {
           </Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
+
+      <PostcodeModal
+        visible={isPostcodeVisible}
+        onClose={() => setPostcodeVisible(false)}
+        onSelect={r => {
+          setZipCode(r.zonecode);
+          setAddress(r.address);
+          setPostcodeVisible(false);
+        }}
+      />
 
       <SuccessView
         visible={isSuccessVisible}

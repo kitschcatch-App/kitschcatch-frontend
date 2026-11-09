@@ -60,8 +60,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   doneImage: {
-    width: 140,
-    height: 140,
+    width: 180,
+    height: 180,
   },
   doneTitle: {
     marginTop: 16,

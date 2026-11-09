@@ -7,6 +7,9 @@ import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
 
 export const styles = StyleSheet.create({
+  loadingIndicator: {
+    flex: 1,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: colors.sub01,
@@ -83,6 +86,9 @@ export const styles = StyleSheet.create({
     color: colors.black,
   },
   orderNumberText: {
+    flexShrink: 1,
+    marginLeft: 12,
+    textAlign: 'right',
     fontSize: 14,
     fontFamily: typography.M,
     color: colors.gray07,

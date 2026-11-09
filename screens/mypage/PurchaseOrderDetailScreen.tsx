@@ -11,6 +11,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -28,6 +29,8 @@ import {
   getReturnProgress,
   parseRefundReason,
 } from '../../utils/mypage';
+import { calcSafePaymentFee, SHIPPING_FEE } from '../../utils/payment';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import ScreenHeader from '../../components/ScreenHeader';
 import Collapsible from '../../components/Collapsible';
 import ConfirmView from '../../components/ConfirmView';
@@ -80,8 +83,6 @@ const RETURN_NOTICES = [
   '상품 검수 완료 후 환불이 진행되며, 결제 수단에 따라 환불까지 영업일 기준 2~5일이 소요될 수 있습니다.',
 ];
 
-const BREAKDOWN = { product: '45,000원', shipping: '5,000원', fee: '1,875원' };
-
 const BUYER_INFO = {
   name: '이수진',
   phone: '010-1234-5678',
@@ -101,6 +102,7 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
     route.params;
   const { isMockMode } = useMockMode();
   const [order, setOrder] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true); // 최초 주문 조회 중
   const [isPriceExpanded, setPriceExpanded] = useState(false);
   const [isAddressExpanded, setAddressExpanded] = useState(false);
   const [isShippingExpanded, setShippingExpanded] = useState(false);
@@ -112,7 +114,8 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
       orderAPI
         .getOrder(orderId)
         .then(res => setOrder(res.data.data))
-        .catch(e => console.error('주문 상세 조회 실패:', e)),
+        .catch(e => console.error('주문 상세 조회 실패:', e))
+        .finally(() => setIsLoading(false)),
     [orderId],
   );
 
@@ -123,6 +126,7 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
     }, [loadOrder]),
   );
 
+  const refreshControl = useRefreshControl(loadOrder);
   const action = order ? getBuyerOrderAction(order) : null;
   const ACTION_LABEL = {
     CANCEL: '주문취소',
@@ -220,10 +224,27 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
   const paymentMethodLabel =
     order?.payment?.method === 'CARD' ? '신용카드' : '';
   const title = order?.post?.title ?? productTitle;
+  // order.amount는 상품금액(주문 생성 시 productPrice). 배송비·이용료를 더해 총 결제금액을 만든다.
   const price = order?.amount ?? productPrice;
+  const fee = calcSafePaymentFee(price, SHIPPING_FEE);
+  const totalPrice = price + SHIPPING_FEE + fee;
+  const BREAKDOWN = {
+    product: `${price.toLocaleString()}원`,
+    shipping: `${SHIPPING_FEE.toLocaleString()}원`,
+    fee: `${fee.toLocaleString()}원`,
+  };
   const image = order?.post?.thumbnailUrl
     ? { uri: order.post.thumbnailUrl }
     : productImage;
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScreenHeader title={isReturn ? '반품 상세' : '주문 상세'} onBack={() => navigation.goBack()} />
+        <ActivityIndicator style={styles.loadingIndicator} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -233,6 +254,7 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
       />
 
       <ScrollView
+        refreshControl={refreshControl}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -338,7 +360,7 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
                   onPress={() => setPriceExpanded(v => !v)}
                 >
                   <Text style={styles.totalPaymentValue}>
-                    {price.toLocaleString()}원
+                    {totalPrice.toLocaleString()}원
                   </Text>
                   {isPriceExpanded ? (
                     <DropdownReIcon
@@ -383,7 +405,7 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
               <View style={styles.breakdownRow}>
                 <Text style={styles.refundTotalLabel}>총 결제 금액</Text>
                 <Text style={styles.refundTotalValue}>
-                  {price.toLocaleString()}원
+                  {totalPrice.toLocaleString()}원
                 </Text>
               </View>
               <View style={styles.breakdownRow}>
@@ -407,7 +429,7 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
               <View style={styles.breakdownRow}>
                 <Text style={styles.refundAmountLabel}>총 환불금액</Text>
                 <Text style={styles.refundAmountValue}>
-                  {price.toLocaleString()}원
+                  {totalPrice.toLocaleString()}원
                 </Text>
               </View>
               <View style={styles.breakdownRow}>

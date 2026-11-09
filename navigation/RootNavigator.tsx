@@ -46,6 +46,7 @@ import ReturnRequestScreen from '../screens/mypage/ReturnRequestScreen';
 import OtherUserProfileScreen from '../screens/mypage/OtherUserProfileScreen';
 import UserProductsScreen from '../screens/mypage/UserProductsScreen';
 import BlockUserScreen from '../screens/mypage/BlockUserScreen';
+import type { ReportTargetType } from '../api/apiClient';
 import ReportUserScreen from '../screens/mypage/ReportUserScreen';
 import ReportDetailScreen from '../screens/mypage/ReportDetailScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
@@ -91,8 +92,18 @@ export type RootStackParamList = {
     latitude: number;
     longitude: number;
   };
-  ReviewWrite: undefined;
-  ReviewPhotos: undefined;
+  ReviewWrite: {
+    storeId: string;
+    // 내 리뷰 수정 시 전달
+    review?: {
+      id: number;
+      version: number;
+      rating: number;
+      content: string;
+      images: { id: number; imageUrl: string }[];
+    };
+  };
+  ReviewPhotos: { storeId: string };
   Search: undefined;
   Notification: undefined;
   ProductList: { keyword?: string; category?: string } | undefined;
@@ -198,8 +209,16 @@ export type RootStackParamList = {
   UserProducts: { userId: number; nickname: string };
   /** hasActiveTrade: 차단 대상과 진행 중인 거래가 있으면 거래 유지 안내 팝업을 띄운다 */
   BlockUser: { userId: number; hasActiveTrade?: boolean };
-  ReportUser: { userId: number; target?: 'product' };
-  ReportDetail: { userId: number; reason: string; target?: 'product' };
+  ReportUser: { userId: number; target?: 'product' | 'chat'; targetId?: number; alsoBlock?: boolean };
+  ReportDetail: {
+    userId: number;
+    reason: string;
+    reasonCode: string;
+    targetType: ReportTargetType;
+    targetId: number;
+    target?: 'product' | 'chat';
+    alsoBlock?: boolean;
+  };
   ApiTest: undefined;
 };
 

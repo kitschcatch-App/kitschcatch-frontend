@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, ImageSourcePropType, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, ImageSourcePropType, ImageURISource, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './SalesHistoryScreen.styles';
@@ -18,7 +19,8 @@ import DropdownIcon from '../../assets/dropdown.svg';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SalesHistory'>;
 
-const DEFAULT_PRODUCT_IMAGE = require('../../assets/product_img.png');
+// 이미지가 없으면 빈 소스 → 이미지 스타일의 회색 배경이 그대로 보인다.
+const DEFAULT_PRODUCT_IMAGE: ImageURISource = {};
 
 interface SaleItem {
   id: string;
@@ -44,6 +46,7 @@ const toSaleItem = (post: any, orderIds: Record<string, string>): SaleItem => ({
 
 const SalesHistoryScreen = ({ navigation }: Props) => {
   const [salesHistory, setSalesHistory] = useState<SaleItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // 최초 목록 조회 중
   const [excludeCompleted, setExcludeCompleted] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>('최신순');
   const [isSortSheetVisible, setSortSheetVisible] = useState(false);
@@ -54,18 +57,26 @@ const SalesHistoryScreen = ({ navigation }: Props) => {
 
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
-  const loadSales = useCallback(() => {
+  const fetchSales = useCallback(
     // ponytail: 최대 100건만 조회. 무한 스크롤은 목록이 길어지면 추가.
-    Promise.all([
-      userAPI.getMyPosts({ page: 0, size: 100 }),
-      userAPI.getSaleOrders({ page: 0, size: 100 }),
-    ])
-      .then(([posts, orders]) => {
-        const orderIds = mapOrderIdByPost(orders.data.data.content);
-        setSalesHistory(posts.data.data.content.map((p: any) => toSaleItem(p, orderIds)));
-      })
-      .catch(e => console.error('판매내역 조회 실패:', e));
-  }, []);
+    () =>
+      Promise.all([
+        userAPI.getMyPosts({ page: 0, size: 100 }),
+        userAPI.getSaleOrders({ page: 0, size: 100 }),
+      ])
+        .then(([posts, orders]) => {
+          const orderIds = mapOrderIdByPost(orders.data.data.content);
+          setSalesHistory(posts.data.data.content.map((p: any) => toSaleItem(p, orderIds)));
+        })
+        .catch(e => console.error('판매내역 조회 실패:', e))
+        .finally(() => setIsLoading(false)),
+    [],
+  );
+  // useFocusEffect 콜백은 Promise를 반환하면 안 되므로 감싼다.
+  const loadSales = useCallback(() => {
+    fetchSales();
+  }, [fetchSales]);
+  const refreshControl = useRefreshControl(fetchSales);
 
   useFocusEffect(loadSales);
 
@@ -116,7 +127,9 @@ const SalesHistoryScreen = ({ navigation }: Props) => {
         </TouchableOpacity>
       </View>
 
-      {visibleSalesHistory.length === 0 ? (
+      {isLoading ? (
+        <ActivityIndicator style={styles.loadingIndicator} />
+      ) : visibleSalesHistory.length === 0 ? (
         <EmptyState
           image={require('../../assets/sales-details.png')}
           title="아직 판매한 상품이 없어요!"
@@ -124,6 +137,7 @@ const SalesHistoryScreen = ({ navigation }: Props) => {
         />
       ) : (
         <ScrollView
+          refreshControl={refreshControl}
           style={styles.salesListContainer}
           contentContainerStyle={styles.salesListContent}
           showsVerticalScrollIndicator={false}

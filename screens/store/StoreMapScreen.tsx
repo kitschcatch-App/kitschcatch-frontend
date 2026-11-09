@@ -79,6 +79,9 @@ const StoreMapScreen = ({ navigation }: Props) => {
   const popupAnim = useRef(new Animated.Value(0)).current;
   // 선택한 매장의 영업시간 (nearby 응답에는 없어 상세 API로 조회)
   const [popupHours, setPopupHours] = useState<BusinessHour[] | null>(null);
+  // 선택한 매장의 대표 사진 (목록 응답에는 없어 상세 API로 조회). 없으면 회색 배경
+  const [popupImage, setPopupImage] = useState<string | null>(null);
+  const [popupRating, setPopupRating] = useState<number | null>(null);
   // 매장 상세에서 관심 등록을 바꾸고 돌아오면 마커(하트)를 갱신하기 위한 재조회 트리거
   const [reloadKey, setReloadKey] = useState(0);
   const isInitialFocus = useRef(false);
@@ -191,12 +194,17 @@ const StoreMapScreen = ({ navigation }: Props) => {
 
   useEffect(() => {
     setPopupHours(null);
+    setPopupImage(null);
+    setPopupRating(null);
     if (!selectedStoreId || isMockMode) return;
     let cancelled = false;
     storeAPI
       .getStore(selectedStoreId)
       .then(res => {
-        if (!cancelled) setPopupHours(res.data?.data?.businessHours ?? []);
+        if (cancelled) return;
+        setPopupHours(res.data?.data?.businessHours ?? []);
+        setPopupRating(res.data?.data?.reviewSummary?.averageRating ?? null);
+        setPopupImage(res.data?.data?.thumbnailUrl ?? res.data?.data?.images?.[0]?.imageUrl ?? null);
       })
       .catch(e => console.warn('매장 영업시간 조회 실패:', e));
     return () => {
@@ -342,11 +350,15 @@ const StoreMapScreen = ({ navigation }: Props) => {
               },
             ]}
           >
-            <Image
-              source={require('../../assets/product_img.png')}
-              style={styles.storePopupImage}
-              resizeMode="cover"
-            />
+            {popupImage ? (
+              <Image
+                source={{ uri: popupImage }}
+                style={styles.storePopupImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.storePopupImage} />
+            )}
             <View style={styles.storePopupInfo}>
               <View style={styles.storePopupNameRow}>
                 <Text style={styles.storePopupName} numberOfLines={1}>
@@ -354,7 +366,7 @@ const StoreMapScreen = ({ navigation }: Props) => {
                 </Text>
                 <View style={styles.storePopupRatingContainer}>
                   <StarIcon width={14} height={14} />
-                  <Text style={styles.storePopupRating}>4.5</Text>
+                  <Text style={styles.storePopupRating}>{popupRating?.toFixed(1) ?? '-'}</Text>
                 </View>
               </View>
               {popupStatus?.status === 'OPEN' && (

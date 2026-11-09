@@ -2,12 +2,13 @@
  * 화면: 차단 사용자 관리 (BlockedUsersScreen)
  * 역할: 내가 차단한 사용자 목록을 보여주고, 각 사용자의 차단을 해제할 수 있는 화면입니다.
  */
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, FlatList, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './BlockedUsersScreen.styles';
+import { userAPI } from '../../api/apiClient';
 import ScreenHeader from '../../components/ScreenHeader';
 import Toast from '../../components/Toast';
 
@@ -16,23 +17,43 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BlockedUsers'>;
 interface BlockedUser {
   id: string;
   nickname: string;
-  productCount: number;
+  profileImageUrl: string | null;
+  blockedAt: string;
 }
 
-const INITIAL_BLOCKED_USERS: BlockedUser[] = [
-  { id: '1', nickname: '떠오르는별', productCount: 12 },
-  { id: '2', nickname: '조용한바다', productCount: 5 },
-  { id: '3', nickname: '초코라떼', productCount: 8 },
-];
-
 const BlockedUsersScreen = ({ navigation }: Props) => {
-  const [blockedUsers, setBlockedUsers] = useState(INITIAL_BLOCKED_USERS);
+  const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [unblockTargetId, setUnblockTargetId] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
 
-  const handleUnblock = (userId: string) => {
-    // TODO: 차단 해제 API 연동
+  // ponytail: 최근 100명(API 최대 size)까지만 조회. 더 필요하면 페이지네이션 추가.
+  useEffect(() => {
+    userAPI
+      .getBlocks(0, 100)
+      .then(res =>
+        setBlockedUsers(
+          res.data.data.content.map((u: any) => ({
+            id: String(u.userId),
+            nickname: u.nickname,
+            profileImageUrl: u.profileImageUrl ?? null,
+            blockedAt: u.blockedAt,
+          })),
+        ),
+      )
+      .catch(e => console.error('차단 목록 조회 실패:', e))
+      .finally(() => setIsLoaded(true));
+  }, []);
+
+  const handleUnblock = async (userId: string) => {
+    try {
+      await userAPI.unblockUser(userId);
+    } catch (e) {
+      console.error('차단 해제 실패:', e);
+      Alert.alert('차단해제', '차단을 해제하지 못했어요. 다시 시도해주세요.');
+      return;
+    }
     setBlockedUsers((prev) => prev.filter((user) => user.id !== userId));
     setOpenMenuId(null);
     setUnblockTargetId(null);
@@ -80,13 +101,22 @@ const BlockedUsersScreen = ({ navigation }: Props) => {
         contentContainerStyle={styles.listContainerInner}
         data={blockedUsers}
         keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          isLoaded ? <Text style={styles.emptyText}>차단한 사용자가 없습니다.</Text> : null
+        }
         renderItem={({ item }) => (
           <View style={styles.userItem}>
-            <View style={styles.userImage} />
+            {item.profileImageUrl ? (
+              <Image source={{ uri: item.profileImageUrl }} style={styles.userImage} />
+            ) : (
+              <View style={styles.userImage} />
+            )}
 
             <View style={styles.userInfo}>
               <Text style={styles.userNickname}>{item.nickname}</Text>
-              <Text style={styles.userProductCount}>판매물품 {item.productCount}개</Text>
+              <Text style={styles.userProductCount}>
+                차단일 {item.blockedAt.slice(0, 10).replace(/-/g, '.')}
+              </Text>
             </View>
 
             <View style={styles.menuWrapper}>

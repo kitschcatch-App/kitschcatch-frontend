@@ -95,7 +95,7 @@ const DatePickerModal = ({ visible, value, onClose, onConfirm }: DatePickerModal
   };
 
   const renderColumn = (
-    listRef: React.RefObject<FlatList<number>>,
+    listRef: React.RefObject<FlatList<number> | null>,
     items: number[],
     selectedValue: number,
     setSelected: (value: number) => void,

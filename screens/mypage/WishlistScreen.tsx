@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Image, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './WishlistScreen.styles';
@@ -55,9 +56,6 @@ const MOCK_WISHLIST_STORES: WishlistStore[] = [
   { id: 3, name: '가챠샵', address: '서울 마포구 양화로 188 AK&홍대 5층', latitude: 37.5598, longitude: 126.9425 },
 ];
 
-// ponytail: 매장 평점 API가 없어 매장 상세/지도 팝업과 같은 임시값 사용. API 붙으면 교체.
-const STORE_RATING_PLACEHOLDER = 4.5;
-
 // Mock 모드용 영업시간 (매일 11:00~21:00)
 const MOCK_BUSINESS_HOURS: BusinessHour[] = [
   'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY',
@@ -74,6 +72,7 @@ const WishlistStoreItem = ({
   onPressDetail: () => void;
 }) => {
   const [hours, setHours] = useState<BusinessHour[] | null>(isMockMode ? MOCK_BUSINESS_HOURS : null);
+  const [rating, setRating] = useState<number | null>(null);
 
   useEffect(() => {
     if (isMockMode) return;
@@ -81,7 +80,9 @@ const WishlistStoreItem = ({
     storeAPI
       .getStore(store.id)
       .then(res => {
-        if (!cancelled) setHours(res.data?.data?.businessHours ?? []);
+        if (cancelled) return;
+        setHours(res.data?.data?.businessHours ?? []);
+        setRating(res.data?.data?.reviewSummary?.averageRating ?? null);
       })
       .catch(e => console.warn('매장 영업시간 조회 실패:', e));
     return () => {
@@ -103,7 +104,7 @@ const WishlistStoreItem = ({
           <Text style={styles.storeName}>{store.name}</Text>
           <View style={styles.storeRatingContainer}>
             <StarIcon width={14} height={14} />
-            <Text style={styles.storeRating}>{STORE_RATING_PLACEHOLDER}</Text>
+            <Text style={styles.storeRating}>{rating?.toFixed(1) ?? '-'}</Text>
           </View>
         </View>
         <View style={styles.storeStatusRow}>
@@ -143,29 +144,28 @@ const WishlistScreen = ({ navigation }: Props) => {
   const [storesLoaded, setStoresLoaded] = useState(false);
 
   // 관심 상품 목록: 화면에 들어올 때마다 새로 조회 (상품 상세에서 해제하고 돌아온 경우 반영)
+  const loadProducts = useCallback(async () => {
+    if (isMockMode) {
+      setProducts(MOCK_WISHLIST_PRODUCTS);
+      setProductsLoaded(true);
+      return;
+    }
+    try {
+      const res = await productAPI.getFavoritePosts(0, PRODUCT_PAGE_SIZE);
+      const data = res.data.data;
+      setProducts(data.content);
+      setProductPage(data.page);
+      setProductTotalPages(data.totalPages);
+    } catch (e) {
+      console.error('관심 상품 조회 실패:', e);
+    } finally {
+      setProductsLoaded(true);
+    }
+  }, [isMockMode]);
   useFocusEffect(
     useCallback(() => {
-      if (isMockMode) {
-        setProducts(MOCK_WISHLIST_PRODUCTS);
-        setProductsLoaded(true);
-        return;
-      }
-      let cancelled = false;
-      productAPI
-        .getFavoritePosts(0, PRODUCT_PAGE_SIZE)
-        .then(res => {
-          if (cancelled) return;
-          const data = res.data.data;
-          setProducts(data.content);
-          setProductPage(data.page);
-          setProductTotalPages(data.totalPages);
-        })
-        .catch(e => console.error('관심 상품 조회 실패:', e))
-        .finally(() => !cancelled && setProductsLoaded(true));
-      return () => {
-        cancelled = true;
-      };
-    }, [isMockMode]),
+      loadProducts();
+    }, [loadProducts]),
   );
 
   const handleLoadMoreProducts = async () => {
@@ -185,30 +185,31 @@ const WishlistScreen = ({ navigation }: Props) => {
   };
 
   // 관심 매장 목록: 화면에 들어올 때마다 새로 조회 (매장 상세에서 해제하고 돌아온 경우 반영)
+  const loadStores = useCallback(async () => {
+    if (isMockMode) {
+      setStores(MOCK_WISHLIST_STORES);
+      setStoresLoaded(true);
+      return;
+    }
+    try {
+      const res = await storeAPI.getFavoriteStores(0, STORE_PAGE_SIZE);
+      const data = res.data.data;
+      setStores(data.content);
+      setStorePage(data.page);
+      setStoreTotalPages(data.totalPages);
+    } catch (e) {
+      console.error('관심 매장 조회 실패:', e);
+    } finally {
+      setStoresLoaded(true);
+    }
+  }, [isMockMode]);
   useFocusEffect(
     useCallback(() => {
-      if (isMockMode) {
-        setStores(MOCK_WISHLIST_STORES);
-        setStoresLoaded(true);
-        return;
-      }
-      let cancelled = false;
-      storeAPI
-        .getFavoriteStores(0, STORE_PAGE_SIZE)
-        .then(res => {
-          if (cancelled) return;
-          const data = res.data.data;
-          setStores(data.content);
-          setStorePage(data.page);
-          setStoreTotalPages(data.totalPages);
-        })
-        .catch(e => console.error('관심 매장 조회 실패:', e))
-        .finally(() => !cancelled && setStoresLoaded(true));
-      return () => {
-        cancelled = true;
-      };
-    }, [isMockMode]),
+      loadStores();
+    }, [loadStores]),
   );
+  const productRefresh = useRefreshControl(loadProducts);
+  const storeRefresh = useRefreshControl(loadStores);
 
   const handleLoadMoreStores = async () => {
     if (isMockMode || isLoadingStores || storePage + 1 >= storeTotalPages) return;
@@ -251,6 +252,7 @@ const WishlistScreen = ({ navigation }: Props) => {
           numColumns={2}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
+          refreshControl={productRefresh}
           onEndReached={handleLoadMoreProducts}
           onEndReachedThreshold={0.5}
           renderItem={({ item }) => (
@@ -301,6 +303,7 @@ const WishlistScreen = ({ navigation }: Props) => {
           data={stores}
           keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
+          refreshControl={storeRefresh}
           onEndReached={handleLoadMoreStores}
           onEndReachedThreshold={0.5}
           renderItem={({ item }) => (

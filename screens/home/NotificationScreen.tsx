@@ -3,7 +3,7 @@
  * 역할: 채팅/구매/관심/판매 관련 알림 목록을 최신순으로 보여주는 화면입니다.
  */
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -44,6 +44,7 @@ const NotificationScreen = ({ navigation }: Props) => {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchPage = useCallback(
     async (pageNum: number) => {
@@ -75,6 +76,21 @@ const NotificationScreen = ({ navigation }: Props) => {
       load();
     }, [fetchPage]),
   );
+
+  // 아래로 당겨 새로고침: 첫 페이지부터 다시 조회
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const data = await fetchPage(0);
+      setNotifications(data.notifications.map(toItem));
+      setPage(data.page);
+      setTotalPages(data.totalPages);
+    } catch (e) {
+      console.error('알림 새로고침 실패:', e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleLoadMore = async () => {
     if (isLoadingMore || isLoading || page + 1 >= totalPages) return;
@@ -171,6 +187,7 @@ const NotificationScreen = ({ navigation }: Props) => {
           data={notifications}
           keyExtractor={(item) => item.id.toString()}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={isLoadingMore ? <ActivityIndicator style={styles.loadMoreIndicator} /> : null}

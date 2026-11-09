@@ -12,7 +12,9 @@ import {
   Image,
   Animated,
   TextInput,
+  Alert,
 } from 'react-native';
+import { storeAPI } from '../../api/apiClient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
@@ -31,10 +33,15 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ReviewWrite'>;
 const MAX_PHOTOS = 3;
 const MAX_REVIEW_LENGTH = 85;
 
-const ReviewWriteScreen = ({ navigation }: Props) => {
+const ReviewWriteScreen = ({ navigation, route }: Props) => {
+  const { storeId, review } = route.params;
+  const isEdit = !!review;
+  // 수정 시 기존 사진 (삭제하지 않은 것은 imageIds에 그대로 포함)
+  const [existingImages, setExistingImages] = useState(review?.images ?? []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImages, setSelectedImages] = useState<Asset[]>([]);
-  const [rating, setRating] = useState(0);
-  const [reviewText, setReviewText] = useState('');
+  const [rating, setRating] = useState(review?.rating ?? 0);
+  const [reviewText, setReviewText] = useState(review?.content ?? '');
   const [showSuccess, setShowSuccess] = useState(false);
   // 별점과 리뷰 내용이 있어야 등록 가능 (사진은 선택)
   const canSubmit = rating > 0 && reviewText.trim().length > 0;
@@ -64,20 +71,76 @@ const ReviewWriteScreen = ({ navigation }: Props) => {
   };
 
   const handlePickImage = async () => {
-    if (selectedImages.length >= MAX_PHOTOS) {
+    if (existingImages.length + selectedImages.length >= MAX_PHOTOS) {
       showLimitToast();
       return;
     }
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      selectionLimit: MAX_PHOTOS - selectedImages.length,
+      selectionLimit: MAX_PHOTOS - existingImages.length - selectedImages.length,
       quality: 0.8,
     });
     if (result.didCancel || result.errorCode || !result.assets) return;
-    if (result.assets.length > MAX_PHOTOS - selectedImages.length) {
+    if (result.assets.length > MAX_PHOTOS - existingImages.length - selectedImages.length) {
       showLimitToast();
     }
-    setSelectedImages(prev => [...prev, ...result.assets!].slice(0, MAX_PHOTOS));
+    setSelectedImages(prev => [...prev, ...result.assets!].slice(0, MAX_PHOTOS - existingImages.length));
+  };
+
+  // 사진 업로드(URL 발급 → PUT → 완료) 후 리뷰 등록. 성공하면 완료 팝업.
+  const handleSubmit = async () => {
+    if (!canSubmit || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      let imageIds: number[] = existingImages.map(i => i.id);
+      if (selectedImages.length > 0) {
+        const files = selectedImages.map((a, i) => ({
+          fileName: a.fileName ?? `review-${i}.jpg`,
+          contentType: a.type ?? 'image/jpeg',
+          fileSize: a.fileSize ?? 1,
+        }));
+        const res = await storeAPI.getReviewImageUploadUrls(storeId, files);
+        const uploads: { imageId: number; uploadUrl: string; headers?: Record<string, string> }[] =
+          res.data.data.images;
+        await Promise.all(
+          uploads.map(async (u, i) => {
+            const blob = await (await fetch(selectedImages[i].uri!)).blob();
+            const put = await fetch(u.uploadUrl, {
+              method: 'PUT',
+              body: blob,
+              headers: u.headers ?? { 'Content-Type': files[i].contentType },
+            });
+            if (!put.ok) throw new Error('리뷰 사진 업로드 실패');
+            await storeAPI.completeReviewImage(u.imageId);
+          }),
+        );
+        imageIds = [...imageIds, ...uploads.map(u => u.imageId)];
+      }
+      if (review) {
+        await storeAPI.updateReview(review.id, {
+          version: review.version,
+          rating,
+          content: reviewText.trim(),
+          imageIds,
+        });
+      } else {
+        await storeAPI.createReview(storeId, { rating, content: reviewText.trim(), imageIds });
+      }
+      setShowSuccess(true);
+    } catch (e: any) {
+      console.error('리뷰 등록 실패:', e);
+      const status = e?.response?.status;
+      Alert.alert(
+        isEdit ? '리뷰 수정' : '리뷰 등록',
+        status === 409
+          ? isEdit
+            ? '다른 곳에서 리뷰가 수정되었어요. 매장 화면에서 새로고침 후 다시 시도해주세요.'
+            : '이미 이 매장에 리뷰를 작성했어요.'
+          : '리뷰를 저장하지 못했어요. 다시 시도해주세요.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleRemoveImage = (index: number) => {
@@ -87,7 +150,7 @@ const ReviewWriteScreen = ({ navigation }: Props) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScreenHeader
-        title="리뷰작성"
+        title={isEdit ? '리뷰수정' : '리뷰작성'}
         leftElement={
           <TouchableOpacity
             style={styles.exitButton}
@@ -113,9 +176,21 @@ const ReviewWriteScreen = ({ navigation }: Props) => {
           <TouchableOpacity style={styles.photoBox} onPress={handlePickImage}>
             <CameraIcon width={20} height={18} />
             <Text style={styles.photoCountText}>
-              {selectedImages.length}/{MAX_PHOTOS}
+              {existingImages.length + selectedImages.length}/{MAX_PHOTOS}
             </Text>
           </TouchableOpacity>
+
+          {existingImages.map(image => (
+            <View key={image.id} style={styles.imageWrapper}>
+              <Image source={{ uri: image.imageUrl }} style={styles.selectedImage} />
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => setExistingImages(prev => prev.filter(i => i.id !== image.id))}
+              >
+                <Text style={styles.deleteButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
 
           {selectedImages.map((image, index) => (
             <View key={index} style={styles.imageWrapper}>
@@ -130,7 +205,7 @@ const ReviewWriteScreen = ({ navigation }: Props) => {
           ))}
 
           {Array.from({
-            length: Math.max(0, MAX_PHOTOS - selectedImages.length),
+            length: Math.max(0, MAX_PHOTOS - existingImages.length - selectedImages.length),
           }).map((_, index) => (
             <View key={`empty-${index}`} style={styles.photoBox} />
           ))}
@@ -180,20 +255,19 @@ const ReviewWriteScreen = ({ navigation }: Props) => {
       <TouchableOpacity
         style={[styles.submitButton, canSubmit && styles.submitButtonActive]}
         activeOpacity={0.8}
-        disabled={!canSubmit}
-        // ponytail: 리뷰 등록 API 미연동이라 저장 없이 완료 팝업만 노출. API 붙으면 성공 시점에 setShowSuccess.
-        onPress={() => setShowSuccess(true)}
+        disabled={!canSubmit || isSubmitting}
+        onPress={handleSubmit}
       >
         <Text
           style={[styles.submitText, canSubmit && styles.submitTextActive]}
         >
-          리뷰 등록하기
+          {isEdit ? '리뷰 수정하기' : '리뷰 등록하기'}
         </Text>
       </TouchableOpacity>
 
       <SuccessView
         visible={showSuccess}
-        title="리뷰등록이 완료되었습니다."
+        title={isEdit ? '리뷰수정이 완료되었습니다.' : '리뷰등록이 완료되었습니다.'}
         onDismiss={() => setShowSuccess(false)}
       />
 

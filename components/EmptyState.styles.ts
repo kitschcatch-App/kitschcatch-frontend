@@ -8,8 +8,8 @@ export const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   image: {
-    width: 140,
-    height: 145,
+    width: 180,
+    height: 186,
     marginBottom: 16,
     alignSelf: 'center',
   },

@@ -60,7 +60,9 @@ const SettingsScreen = ({ navigation }: Props) => {
   };
 
   const handleAccountMenuPress = (id: string) => {
-    if (id === 'logout') {
+    if (id === 'editInfo') {
+      navigation.navigate('EditProfile');
+    } else if (id === 'logout') {
       navigation.navigate('Logout');
     } else if (id === 'withdraw') {
       navigation.navigate('Withdraw');

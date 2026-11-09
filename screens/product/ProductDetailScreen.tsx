@@ -3,7 +3,9 @@
  * 역할: 상품 목록에서 선택한 특정 상품의 상세 정보(이미지, 가격, 설명, 판매자 정보 등)와 하단 액션 바를 보여주는 컴포넌트입니다.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, useWindowDimensions } from 'react-native';
+import { addRecentViewed } from '../../utils/recentViewed';
+import { useHeartPop } from '../../hooks/useHeartPop';
+import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, RefreshControl, useWindowDimensions } from 'react-native';
 import ErrorView from '../../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
 import { CONDITION_DISPLAY_MAP, CATEGORY_DISPLAY_MAP, STATUS_DISPLAY_MAP, CATEGORY_REVERSE_MAP } from '../../constants/displayMaps';
@@ -22,7 +24,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import axios from 'axios';
 import { secureStorage } from '../../utils/secureStorage';
-import { productAPI, chatAPI } from '../../api/apiClient';
+import { productAPI, chatAPI, userAPI } from '../../api/apiClient';
 import { getMockPostDetail, getMockCreateChatRoom, mockDelay } from '../../api/mockData';
 import { useMockMode } from '../../contexts/MockModeContext';
 import { formatTime } from '../../utils/formatTime';
@@ -73,10 +75,16 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
+  const [isPulling, setIsPulling] = useState(false); // 당겨서 새로고침 중 (조회가 끝나면 해제)
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [tempStatus, setTempStatus] = useState<string>('');
   const [isFavorite, setIsFavorite] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [chatRoomCount, setChatRoomCount] = useState(0);
+  const [sellerTradeCount, setSellerTradeCount] = useState(0);
+  const [sellerRating, setSellerRating] = useState<number | null>(null);
+  const [sellerImageUrl, setSellerImageUrl] = useState<string | null>(null);
 
   // 애니메이션 값 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -104,6 +112,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             signal: abortController.signal,
           });
           post = response.data.data;
+          addRecentViewed(productId); // 홈 '최근 본 상품과 비슷한 상품' 추천용
         }
 
         const images: any[] = post.images ?? [];
@@ -123,6 +132,8 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
           status: post.productStatus || 'ON_SALE',
           createdAt: post.createdAt || new Date().toISOString(),
         }));
+        setFavoriteCount(post.favoriteCount ?? 0);
+        setChatRoomCount(post.chatRoomCount ?? 0);
         setImageIndex(0);
       } catch (error: any) {
         if (axios.isCancel(error)) return;
@@ -140,6 +151,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
         }
       } finally {
         setIsLoading(false);
+        setIsPulling(false);
       }
     };
 
@@ -166,16 +178,40 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     };
   }, [productId, isMockMode]);
 
+  // 판매자 거래횟수·프로필 사진: 상세 응답(PostResponse)에 없어 회원 API에서 따로 가져온다.
+  useEffect(() => {
+    const sellerId = productDetail.sellerId;
+    if (isMockMode || sellerId === null) return;
+    let cancelled = false;
+    Promise.all([userAPI.getUser(sellerId), userAPI.getTrustInfo(sellerId)])
+      .then(([user, trust]) => {
+        if (cancelled) return;
+        setSellerImageUrl(user.data.data.profileImageUrl ?? null);
+        setSellerTradeCount(trust.data.data.completedTransactionCount ?? 0);
+        setSellerRating(trust.data.data.averageRating ?? null);
+      })
+      .catch(e => console.warn('판매자 정보 조회 실패:', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [productDetail.sellerId, isMockMode]);
+
+  const { scale: heartScale, play: playHeartPop } = useHeartPop();
+
   // 관심 상품 등록/해제: 먼저 화면에 반영하고 실패하면 되돌린다.
   const toggleFavorite = async () => {
     const next = !isFavorite;
+    if (next) playHeartPop();
+    const delta = next ? 1 : -1;
     setIsFavorite(next);
+    setFavoriteCount(c => Math.max(0, c + delta));
     if (isMockMode) return;
     try {
       await (next ? productAPI.addFavoritePost(productId) : productAPI.removeFavoritePost(productId));
     } catch (e) {
       console.error('관심 상품 변경 실패:', e);
       setIsFavorite(!next);
+      setFavoriteCount(c => Math.max(0, c - delta));
     }
   };
 
@@ -263,7 +299,18 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     <View style={styles.container}>
       {/* 상단 (페이드 인 애니메이션 적용) */}
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isPulling}
+              onRefresh={() => {
+                setIsPulling(true);
+                setRetryTrigger(n => n + 1);
+              }}
+            />
+          }
+        >
           {/* 1. 상품 이미지 캐러셀 */}
           <View style={styles.imageContainer}>
             <FlatList
@@ -333,7 +380,9 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
               <Text style={[styles.productName, { flex: 1, marginRight: 10 }]}>{productDetail.name}</Text>
               {!isSeller && (
                 <TouchableOpacity style={styles.wishButton} onPress={toggleFavorite}>
-                  <HeartIcon width={25} height={25} fill={isFavorite ? '#97F2EC' : 'none'} />
+                  <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+                    <HeartIcon width={25} height={25} fill={isFavorite ? '#97F2EC' : 'none'} />
+                  </Animated.View>
                 </TouchableOpacity>
               )}
             </View>
@@ -354,9 +403,9 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
               <View style={styles.metaRight}>
                 <Text style={styles.metaTime}>{formatTime(productDetail.createdAt)}</Text>
                 <DetailHeartIcon width={8} height={8} style={styles.metaIcon} />
-                <Text style={styles.metaText}>12</Text>
+                <Text style={styles.metaText}>{favoriteCount}</Text>
                 <DetailChatIcon width={8} height={8} style={styles.metaIcon} />
-                <Text style={styles.metaText}>3</Text>
+                <Text style={styles.metaText}>{chatRoomCount}</Text>
               </View>
             </View>
           </View>
@@ -366,17 +415,21 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
 
           {/* 3. 판매자 정보 영역 */}
           <View style={styles.sellerContainer}>
-            <Text style={styles.transactionCount}>판매자 거래 횟수 3회</Text>
+            <Text style={styles.transactionCount}>판매자 거래 횟수 {sellerTradeCount}회</Text>
             <TouchableOpacity
               style={styles.sellerRight}
-              disabled={productDetail.sellerId === null}
+              disabled={isSeller || productDetail.sellerId === null}
               onPress={() => navigation.navigate('OtherUserProfile', { userId: productDetail.sellerId as number })}
             >
               <Text style={styles.sellerName}>{productDetail.sellerName}</Text>
               <View style={styles.sellerProfileImageWrapper}>
-                <Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.sellerProfileImage} />
+                {sellerImageUrl ? (
+                  <Image source={{ uri: sellerImageUrl }} style={styles.sellerProfileImage} />
+                ) : (
+                  <View style={styles.sellerProfileImage} />
+                )}
                 <View style={styles.sellerRatingBadge}>
-                  <Text style={styles.sellerRatingText}>3.8</Text>
+                  <Text style={styles.sellerRatingText}>{sellerRating?.toFixed(1) ?? '-'}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -412,7 +465,7 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
             <ReportBlockMenu
               visible={menuVisible}
               onClose={() => setMenuVisible(false)}
-              onReport={() => navigation.navigate('ReportUser', { userId: productDetail.sellerId as number, target: 'product' })}
+              onReport={() => navigation.navigate('ReportUser', { userId: productDetail.sellerId as number, target: 'product', targetId: Number(productId) })}
               style={{ top: insets.top + 44 + 40, right: 20 }}
             />
           </>

@@ -290,11 +290,11 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   popularProductsCard: {
-    width: 112,
+    width: '31%', // 고정 px 대신 비율로 기기 너비에 맞춰 간격 유지
   },
   popularProductsImage: {
-    width: 100,
-    height: 100,
+    width: '100%',
+    aspectRatio: 1,
     borderRadius: 8,
     backgroundColor: colors.gray02,
   },
@@ -346,11 +346,11 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
   },
   nearbyStoreCard: {
-    width: 168,
+    width: '47%',
   },
   nearbyStoreImage: {
-    width: 158,
-    height: 158,
+    width: '100%',
+    aspectRatio: 1,
     borderRadius: 8,
     backgroundColor: colors.gray02,
   },

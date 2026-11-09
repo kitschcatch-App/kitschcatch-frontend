@@ -3,11 +3,12 @@
  * 역할: 다른 사용자 프로필의 더보기 메뉴에서 차단하기를 눌렀을 때, 차단 안내와 적용사항을 보여줍니다.
  */
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './BlockUserScreen.styles';
+import { userAPI } from '../../api/apiClient';
 import ScreenHeader from '../../components/ScreenHeader';
 import Toast from '../../components/Toast';
 import NoticePopup from '../../components/NoticePopup';
@@ -32,7 +33,22 @@ const BlockUserScreen = ({ navigation, route }: Props) => {
   const [toastVisible, setToastVisible] = useState(false);
   const [noticeVisible, setNoticeVisible] = useState(false);
 
-  const handleBlock = () => (hasActiveTrade ? setNoticeVisible(true) : setToastVisible(true));
+  const [isBlocking, setIsBlocking] = useState(false);
+
+  const handleBlock = async () => {
+    if (isBlocking) return;
+    setIsBlocking(true);
+    try {
+      await userAPI.blockUser(route.params.userId);
+      if (hasActiveTrade) setNoticeVisible(true);
+      else setToastVisible(true);
+    } catch (e) {
+      console.error('사용자 차단 실패:', e);
+      Alert.alert('차단하기', '차단하지 못했어요. 다시 시도해주세요.');
+    } finally {
+      setIsBlocking(false);
+    }
+  };
 
   return (
   <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -60,12 +76,11 @@ const BlockUserScreen = ({ navigation, route }: Props) => {
       </View>
     </ScrollView>
 
-    {/* ponytail: 차단/신고 API 미정이라 차단하기는 토스트/팝업만 띄움 */}
     <View style={styles.buttonContainer}>
       <TouchableOpacity style={styles.button} activeOpacity={0.7} onPress={handleBlock}>
         <Text style={styles.buttonText}>차단하기</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button} activeOpacity={0.7} onPress={() => navigation.push('ReportUser', { userId: route.params.userId })}>
+      <TouchableOpacity style={styles.button} activeOpacity={0.7} onPress={() => navigation.push('ReportUser', { userId: route.params.userId, alsoBlock: true })}>
         <Text style={styles.buttonText}>신고하고 차단하기</Text>
       </TouchableOpacity>
     </View>

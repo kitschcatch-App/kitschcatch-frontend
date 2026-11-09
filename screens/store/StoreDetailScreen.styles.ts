@@ -120,6 +120,7 @@ export const styles = StyleSheet.create({
   reviewPhotoImage: {
     width: 112,
     height: 112,
+    backgroundColor: colors.gray02,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -235,6 +236,7 @@ export const styles = StyleSheet.create({
     width: 104,
     height: 104,
     borderRadius: 4,
+    backgroundColor: colors.gray02,
   },
   ratingCount: {
     marginLeft: 12,
@@ -383,29 +385,6 @@ export const styles = StyleSheet.create({
     fontFamily: typography.SB,
     fontSize: 12,
     color: colors.black,
-  },
-  subwayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6.5,
-  },
-  subwayCapsule: {
-    paddingHorizontal: 12,
-    paddingVertical: 2,
-    borderRadius: 99,
-    backgroundColor: colors.sucess,
-    marginLeft: 24,
-  },
-  subwayCapsuleText: {
-    fontFamily: typography.SB,
-    fontSize: 12,
-    color: colors.black,
-  },
-  subwayText: {
-    fontFamily: typography.M,
-    fontSize: 14,
-    color: colors.black,
-    marginLeft: 4,
   },
   categoryPhotoScroll: {
     paddingVertical: 16,
