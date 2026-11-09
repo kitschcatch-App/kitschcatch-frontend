@@ -4,6 +4,7 @@
  * 상품 카드 스타일은 ProductListScreen과 동일하게 맞춰 그 스타일을 재사용합니다.
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -67,6 +68,8 @@ const UserProductsScreen = ({ route, navigation }: Props) => {
     fetchPage(0);
   }, [fetchPage]);
 
+  const refreshControl = useRefreshControl(() => fetchPage(0));
+
   const handleLoadMore = () => {
     if (loadingMore || isLastPage) return;
     setLoadingMore(true);
@@ -124,6 +127,7 @@ const UserProductsScreen = ({ route, navigation }: Props) => {
             style={styles.productList}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.productListContent}
+            refreshControl={refreshControl}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
             ListEmptyComponent={<EmptyState title="판매 중인 상품이 없어요!" />}

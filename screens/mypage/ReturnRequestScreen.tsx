@@ -50,11 +50,36 @@ const ReturnRequestScreen = ({ navigation, route }: Props) => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // ponytail: 환불 요청 API에 사진 첨부 필드가 없어 사진은 전송하지 않음. 서버 명세가 생기면 업로드 후 objectKey 전달.
+      // 사진 업로드(URL 발급 → PUT → 완료) 후 imageIds를 환불 요청에 포함
+      let imageIds: number[] | undefined;
+      if (images.length > 0) {
+        const files = images.map((a, i) => ({
+          fileName: a.fileName ?? `refund-${i}.jpg`,
+          contentType: a.type ?? 'image/jpeg',
+          fileSize: a.fileSize ?? 1,
+        }));
+        const res = await orderAPI.getRefundImageUploadUrls(orderId, files);
+        const uploads: { imageId: number; uploadUrl: string; headers?: Record<string, string> }[] =
+          res.data.data.images;
+        await Promise.all(
+          uploads.map(async (u, i) => {
+            const blob = await (await fetch(images[i].uri!)).blob();
+            const put = await fetch(u.uploadUrl, {
+              method: 'PUT',
+              body: blob,
+              headers: u.headers ?? { 'Content-Type': files[i].contentType },
+            });
+            if (!put.ok) throw new Error('반품 사진 업로드 실패');
+            await orderAPI.completeRefundImage(orderId, u.imageId);
+          }),
+        );
+        imageIds = uploads.map(u => u.imageId);
+      }
       await orderAPI.requestRefund(
         orderId,
         amount,
         `[${reason}] ${content.trim()}`,
+        imageIds,
       );
       setShowSuccess(true);
     } catch (e: any) {

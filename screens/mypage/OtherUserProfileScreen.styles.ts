@@ -84,6 +84,25 @@ export const styles = StyleSheet.create({
     marginRight: 16,
   },
 
+  followButton: {
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.main05,
+    backgroundColor: colors.main05,
+  },
+  followButtonActive: {
+    borderColor: colors.gray03,
+    backgroundColor: colors.white,
+  },
+  followButtonText: {
+    fontFamily: typography.M,
+    fontSize: 14,
+    color: colors.black,
+  },
   activityContainer: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -2,8 +2,9 @@
  * 화면: 다른 사용자 프로필 (OtherUserProfileScreen)
  * 역할: 상품 상세에서 판매자를 눌렀을 때 다른 회원의 공개 프로필, 거래활동, 판매 상품을 보여줍니다.
  */
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
+import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, ImageURISource, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { styles } from './OtherUserProfileScreen.styles';
@@ -17,8 +18,8 @@ import { userAPI } from '../../api/apiClient';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OtherUserProfile'>;
 
-const DEFAULT_PRODUCT_IMAGE = require('../../assets/product_img.png');
-const MOCK_RATING = '3.8';
+// 이미지가 없으면 빈 소스 → 이미지 스타일의 회색 배경이 그대로 보인다.
+const DEFAULT_PRODUCT_IMAGE: ImageURISource = {};
 
 interface Profile {
   username: string;
@@ -40,25 +41,33 @@ const OtherUserProfileScreen = ({ route, navigation }: Props) => {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [tradeCount, setTradeCount] = useState(0);
+  const [rating, setRating] = useState<number | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [canFollow, setCanFollow] = useState(false); // 본인·차단 상태면 false
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isTogglingFollow, setIsTogglingFollow] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(async () => {
       try {
-        const [user, followers, followings, trust, posts] = await Promise.all([
+        const [user, followers, followings, trust, posts, me] = await Promise.all([
           userAPI.getUser(userId),
-          userAPI.getFollowers(userId, 0, 1),
+          // ponytail: 내 팔로우 여부는 팔로워 100명 안에서만 확인. 더 많아지면 서버 필드 요청.
+          userAPI.getFollowers(userId, 0, 100),
           userAPI.getFollowings(userId, 0, 1),
           userAPI.getTrustInfo(userId),
           userAPI.getUserPosts(userId, { status: 'ON_SALE', page: 0, size: 100 }),
+          userAPI.getMe(),
         ]);
         const u = user.data.data;
         setProfile({ username: u.username, nickname: u.nickname, bio: u.bio ?? '', profileImageUrl: u.profileImageUrl ?? null });
         setFollowerCount(followers.data.data.totalElements);
+        setCanFollow(!!u.canFollow);
+        setIsFollowing(followers.data.data.content.some((f: any) => f.id === me.data.data.id));
         setFollowingCount(followings.data.data.totalElements);
-        setTradeCount(trust.data.data.tradeCount ?? 0);
+        setTradeCount(trust.data.data.completedTransactionCount ?? 0);
+        setRating(trust.data.data.averageRating ?? null);
         setProducts(
           posts.data.data.content.map((p: any) => ({
             id: String(p.id),
@@ -72,9 +81,31 @@ const OtherUserProfileScreen = ({ route, navigation }: Props) => {
       } finally {
         setIsLoading(false);
       }
-    };
-    load();
   }, [userId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+  const refreshControl = useRefreshControl(load);
+
+  // 팔로우/언팔로우 (화면에 먼저 반영하고 실패하면 되돌림)
+  const toggleFollow = async () => {
+    if (isTogglingFollow) return;
+    const next = !isFollowing;
+    setIsTogglingFollow(true);
+    setIsFollowing(next);
+    setFollowerCount(c => c + (next ? 1 : -1));
+    try {
+      await (next ? userAPI.follow(userId) : userAPI.unfollow(userId));
+    } catch (e) {
+      console.error('팔로우 변경 실패:', e);
+      setIsFollowing(!next);
+      setFollowerCount(c => c + (next ? -1 : 1));
+      Alert.alert('팔로우', '처리하지 못했어요. 다시 시도해주세요.');
+    } finally {
+      setIsTogglingFollow(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -96,6 +127,7 @@ const OtherUserProfileScreen = ({ route, navigation }: Props) => {
         <ActivityIndicator style={styles.loadingIndicator} />
       ) : (
       <ScrollView
+        refreshControl={refreshControl}
         style={styles.contentContainer}
         contentContainerStyle={styles.contentContainerInner}
         showsVerticalScrollIndicator={false}
@@ -129,14 +161,23 @@ const OtherUserProfileScreen = ({ route, navigation }: Props) => {
           </View>
         </View>
 
+        {canFollow && (
+          <TouchableOpacity
+            style={[styles.followButton, isFollowing && styles.followButtonActive]}
+            activeOpacity={0.7}
+            onPress={toggleFollow}
+          >
+            <Text style={styles.followButtonText}>{isFollowing ? '팔로잉' : '팔로우'}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* 거래활동 컨테이너 */}
         <View style={styles.activityContainer}>
           <Text style={styles.activityCount}>거래활동 {tradeCount}회</Text>
           <View style={styles.ratingContainer}>
             <Text style={styles.ratingLabel}>별점</Text>
             <StarIcon width={14} height={14} />
-            {/* ponytail: 별점 API 연동 전 mock 값 */}
-            <Text style={styles.ratingScore}>{MOCK_RATING}</Text>
+            <Text style={styles.ratingScore}>{rating === null ? '-' : rating.toFixed(1)}</Text>
           </View>
         </View>
 

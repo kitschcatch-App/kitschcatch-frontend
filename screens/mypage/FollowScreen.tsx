@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Image, Alert } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, FlatList, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import { styles } from './FollowScreen.styles';
 import { userAPI } from '../../api/apiClient';
 import ExitIcon from '../../assets/exit.svg';
@@ -19,8 +20,30 @@ type TabType = 'follower' | 'following';
 
 type FollowUser = { id: number; nickname: string; profileImageUrl?: string | null };
 
-// ponytail: 각 목록 최대 100명만 조회. 무한 스크롤은 목록이 길어지면 추가.
-const PAGE_SIZE = 100;
+// 팔로워는 20명씩 이어서 불러오고, 팔로잉은 맞팔로우 판별에 쓰이므로 100명까지 한 번에 조회.
+// ponytail: 팔로잉이 100명을 넘으면 맞팔로우 표시가 부정확할 수 있음.
+const FOLLOWER_PAGE_SIZE = 20;
+const FOLLOWING_PAGE_SIZE = 100;
+
+// 화면을 다시 열어도 재조회하지 않도록 캐시 (내 id, 사용자별 판매물품 수)
+let cachedMyId: number | null = null;
+const productCountCache = new Map<number, number>();
+
+// 판매중 상품 수 (목록 API에 없어서 행이 화면에 나타날 때 사용자별로 조회)
+const ProductCount = ({ userId }: { userId: number }) => {
+  const [count, setCount] = useState<number | null>(productCountCache.get(userId) ?? null);
+  useEffect(() => {
+    if (productCountCache.has(userId)) return;
+    userAPI
+      .getUserPosts(userId, { status: 'ON_SALE', page: 0, size: 1 })
+      .then(res => {
+        productCountCache.set(userId, res.data.data.totalElements);
+        setCount(res.data.data.totalElements);
+      })
+      .catch(e => console.error('판매물품 수 조회 실패:', e));
+  }, [userId]);
+  return <Text style={styles.userProductCount}>판매물품 {count ?? '-'}개</Text>;
+};
 
 const FollowScreen = ({ navigation, route }: Props) => {
   const [activeTab, setActiveTab] = useState<TabType>(route.params?.initialTab ?? 'follower');
@@ -31,23 +54,55 @@ const FollowScreen = ({ navigation, route }: Props) => {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [deleteCompleteVisible, setDeleteCompleteVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // 최초 목록 로딩 중
+  const [followerTotal, setFollowerTotal] = useState(0);
+  const loadingMoreRef = useRef(false);
+  const targetIdRef = useRef<number | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      if (otherUserId === undefined && cachedMyId === null) {
+        cachedMyId = (await userAPI.getMe()).data.data.id;
+      }
+      const targetId = (otherUserId ?? cachedMyId) as number;
+      targetIdRef.current = targetId;
+      const [followers, followings] = await Promise.all([
+        userAPI.getFollowers(targetId, 0, FOLLOWER_PAGE_SIZE),
+        userAPI.getFollowings(targetId, 0, FOLLOWING_PAGE_SIZE),
+      ]);
+      setFollowerTotal(followers.data.data.totalElements);
+      setFollowerList(followers.data.data.content);
+      setFollowingList(followings.data.data.content);
+    } catch (e) {
+      console.error('팔로우 목록 조회 실패:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [otherUserId]);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const targetId = otherUserId ?? (await userAPI.getMe()).data.data.id;
-        const [followers, followings] = await Promise.all([
-          userAPI.getFollowers(targetId, 0, PAGE_SIZE),
-          userAPI.getFollowings(targetId, 0, PAGE_SIZE),
-        ]);
-        setFollowerList(followers.data.data.content);
-        setFollowingList(followings.data.data.content);
-      } catch (e) {
-        console.error('팔로우 목록 조회 실패:', e);
-      }
-    };
     load();
-  }, [otherUserId]);
+  }, [load]);
+  const refreshControl = useRefreshControl(load);
+
+  // 팔로워 탭 끝에 닿으면 다음 20명
+  const loadMoreFollowers = async () => {
+    if (activeTab !== 'follower' || loadingMoreRef.current || targetIdRef.current === null) return;
+    if (followerList.length >= followerTotal) return;
+    loadingMoreRef.current = true;
+    try {
+      const res = await userAPI.getFollowers(
+        targetIdRef.current,
+        Math.floor(followerList.length / FOLLOWER_PAGE_SIZE),
+        FOLLOWER_PAGE_SIZE,
+      );
+      setFollowerList(prev => [...prev, ...res.data.data.content.filter((u: FollowUser) => !prev.some(p => p.id === u.id))]);
+    } catch (e) {
+      console.error('팔로워 추가 조회 실패:', e);
+    } finally {
+      loadingMoreRef.current = false;
+    }
+  };
 
   // 내가 팔로우 중인 사용자 id. 팔로워 중 이미 맞팔로우한 사람 구분에 사용
   const followingIds = new Set(followingList.map(user => user.id));
@@ -97,8 +152,16 @@ const FollowScreen = ({ navigation, route }: Props) => {
         contentContainerStyle={styles.listContainerInner}
         data={activeTab === 'follower' ? followerList : followingList}
         keyExtractor={(item) => String(item.id)}
+        refreshControl={refreshControl}
+        onEndReached={loadMoreFollowers}
+        onEndReachedThreshold={0.5}
         renderItem={({ item }) => (
-          <View style={styles.userItem}>
+          <TouchableOpacity
+            style={styles.userItem}
+            activeOpacity={0.7}
+            disabled={activeTab !== 'following'}
+            onPress={() => navigation.push('OtherUserProfile', { userId: item.id })}
+          >
             {item.profileImageUrl ? (
               <Image source={{ uri: item.profileImageUrl }} style={styles.userImage} />
             ) : (
@@ -106,7 +169,7 @@ const FollowScreen = ({ navigation, route }: Props) => {
             )}
             <View style={styles.userInfo}>
               <Text style={styles.userNickname}>{item.nickname}</Text>
-              <Text style={styles.userProductCount}>판매물품 -개</Text>
+              <ProductCount userId={item.id} />
             </View>
             {/* 다른 사용자의 목록은 읽기 전용이라 맞팔로우/삭제 버튼 없음 */}
             {!isOther && (
@@ -120,17 +183,22 @@ const FollowScreen = ({ navigation, route }: Props) => {
                   <Text style={styles.mutualButtonText}>맞팔로우</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                onPress={() => setSelectedUserId(item.id)}
-              >
-                <ExitIcon width={12} height={12} />
-              </TouchableOpacity>
+              {activeTab === 'following' && (
+                <TouchableOpacity
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  onPress={() => setSelectedUserId(item.id)}
+                >
+                  <ExitIcon width={12} height={12} />
+                </TouchableOpacity>
+              )}
             </View>
             )}
-          </View>
+          </TouchableOpacity>
         )}
         ListEmptyComponent={
+          isLoading ? (
+            <ActivityIndicator style={{ marginTop: 80 }} />
+          ) : (
           <EmptyState
             image={activeTab === 'follower' ? require('../../assets/follow.png') : require('../../assets/follower.png')}
             title={
@@ -146,6 +214,7 @@ const FollowScreen = ({ navigation, route }: Props) => {
                   : '관심 있는 판매자를 팔로우하고 새로운 상품을 확인해보세요.'
             }
           />
+          )
         }
       />
 

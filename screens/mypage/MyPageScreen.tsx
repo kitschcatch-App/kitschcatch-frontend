@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, ImageURISource } from 'react-native';
 import { styles } from './MyPageScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import NextIcon from '../../assets/next.svg';
@@ -9,6 +9,7 @@ import SalesDetailsIcon from '../../assets/sales_details.svg';
 import PurchaseDetailsIcon from '../../assets/purchase_details.svg';
 import BottomNav from '../../components/BottomNav';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { userAPI } from '../../api/apiClient';
@@ -16,8 +17,8 @@ import { mergeRecentActivities, RecentActivity } from '../../utils/mypage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Mypage'>;
 
-const DEFAULT_PRODUCT_IMAGE = require('../../assets/product_img.png');
-const MOCK_RATING = '3.8';
+// 이미지가 없으면 빈 소스 → 이미지 스타일의 회색 배경이 그대로 보인다.
+const DEFAULT_PRODUCT_IMAGE: ImageURISource = {};
 
 interface Profile {
     username: string;
@@ -31,32 +32,37 @@ const MyPageScreen = ({ navigation }: Props) => {
     const [followerCount, setFollowerCount] = useState(0);
     const [followingCount, setFollowingCount] = useState(0);
     const [activityCount, setActivityCount] = useState(0);
+    const [rating, setRating] = useState<number | null>(null);
     const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+
+    const load = useCallback(async () => {
+        try {
+            const me = (await userAPI.getMe()).data.data;
+            setProfile({ username: me.username, nickname: me.nickname, bio: me.bio ?? '', profileImageUrl: me.profileImageUrl ?? null });
+            // 개수는 totalElements만 쓰므로 size=1로 조회
+            const [followers, followings, sales, purchases, trust] = await Promise.all([
+                userAPI.getFollowers(me.id, 0, 1),
+                userAPI.getFollowings(me.id, 0, 1),
+                userAPI.getSaleOrders({ page: 0, size: 3 }),
+                userAPI.getPurchaseOrders({ page: 0, size: 3 }),
+                userAPI.getTrustInfo(me.id),
+            ]);
+            setRating(trust.data.data.averageRating ?? null);
+            setFollowerCount(followers.data.data.totalElements);
+            setFollowingCount(followings.data.data.totalElements);
+            setActivityCount(sales.data.data.totalElements + purchases.data.data.totalElements);
+            setRecentActivities(mergeRecentActivities(sales.data.data.content, purchases.data.data.content));
+        } catch (e) {
+            console.error('마이페이지 조회 실패:', e);
+        }
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
-            const load = async () => {
-                try {
-                    const me = (await userAPI.getMe()).data.data;
-                    setProfile({ username: me.username, nickname: me.nickname, bio: me.bio ?? '', profileImageUrl: me.profileImageUrl ?? null });
-                    // 개수는 totalElements만 쓰므로 size=1로 조회
-                    const [followers, followings, sales, purchases] = await Promise.all([
-                        userAPI.getFollowers(me.id, 0, 1),
-                        userAPI.getFollowings(me.id, 0, 1),
-                        userAPI.getSaleOrders({ page: 0, size: 3 }),
-                        userAPI.getPurchaseOrders({ page: 0, size: 3 }),
-                    ]);
-                    setFollowerCount(followers.data.data.totalElements);
-                    setFollowingCount(followings.data.data.totalElements);
-                    setActivityCount(sales.data.data.totalElements + purchases.data.data.totalElements);
-                    setRecentActivities(mergeRecentActivities(sales.data.data.content, purchases.data.data.content));
-                } catch (e) {
-                    console.error('마이페이지 조회 실패:', e);
-                }
-            };
             load();
-        }, []),
+        }, [load]),
     );
+    const refreshControl = useRefreshControl(load);
 
     return (
         // 헤더 컨테이너
@@ -72,6 +78,7 @@ const MyPageScreen = ({ navigation }: Props) => {
             </View>
 
             <ScrollView
+                refreshControl={refreshControl}
                 style={styles.contentContainer}
                 contentContainerStyle={styles.contentContainerInner}
                 showsVerticalScrollIndicator={false}
@@ -79,7 +86,7 @@ const MyPageScreen = ({ navigation }: Props) => {
                 {/* 사용자 프로필 컨테이너 */}
                 <View style={styles.profileContainer}>
                     {profile?.profileImageUrl ? (
-                        <Image source={{ uri: profile.profileImageUrl }} style={styles.profileImage} />
+                        <Image source={{ uri: profile.profileImageUrl }} style={styles.profileImage} onError={e => console.log('[IMG-DEBUG] 프로필 로드 실패', profile.profileImageUrl, e.nativeEvent.error)} />
                     ) : (
                         <View style={styles.profileImage}></View>
                     )}
@@ -123,8 +130,7 @@ const MyPageScreen = ({ navigation }: Props) => {
                     <View style={styles.ratingContainer}>
                         <Text style={styles.ratingLabel}>별점</Text>
                         <StarIcon width={14} height={14} />
-                        {/* ponytail: 별점 API 연동 전 mock 값 */}
-                        <Text style={styles.ratingScore}>{MOCK_RATING}</Text>
+                        <Text style={styles.ratingScore}>{rating === null ? '-' : rating.toFixed(1)}</Text>
                     </View>
                 </View>
 

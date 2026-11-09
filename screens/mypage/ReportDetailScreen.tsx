@@ -3,12 +3,13 @@
  * 역할: 신고하기 화면에서 사유를 고른 뒤 '다음'을 눌렀을 때, 구체적인 신고 내용을 입력하는 화면입니다.
  */
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './ReportDetailScreen.styles';
 import ScreenHeader from '../../components/ScreenHeader';
+import { reportAPI, userAPI } from '../../api/apiClient';
 import BouncingView from '../../components/BouncingView';
 import { colors } from '../../styles/colors';
 
@@ -18,7 +19,25 @@ const ReportDetailScreen = ({ navigation, route }: Props) => {
   const isProduct = route.params.target === 'product';
   const [content, setContent] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const canSubmit = content.trim().length > 0;
+  const [submitting, setSubmitting] = useState(false);
+  const canSubmit = content.trim().length > 0 && !submitting;
+
+  const handleSubmit = async () => {
+    const { targetType, targetId, reasonCode, alsoBlock, userId } = route.params;
+    setSubmitting(true);
+    try {
+      await reportAPI.create({ targetType, targetId, reasonCode, description: content.trim() });
+    } catch (e) {
+      console.error('신고 접수 실패:', e);
+      Alert.alert('신고하기', '신고를 접수하지 못했어요. 다시 시도해주세요.');
+      setSubmitting(false);
+      return;
+    }
+    // '신고하고 차단하기'로 들어온 경우 신고가 접수된 뒤 차단까지 진행 (차단 실패해도 신고는 완료)
+    if (alsoBlock) await userAPI.blockUser(userId).catch(e => console.error('사용자 차단 실패:', e));
+    setSubmitted(true);
+    setSubmitting(false);
+  };
 
   if (submitted) {
     return (
@@ -69,13 +88,12 @@ const ReportDetailScreen = ({ navigation, route }: Props) => {
         </View>
       </ScrollView>
 
-      {/* ponytail: 신고 API 미정이라 API 호출 없이 접수 완료 화면만 전환 */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
           activeOpacity={0.7}
           disabled={!canSubmit}
-          onPress={() => setSubmitted(true)}
+          onPress={handleSubmit}
         >
           <Text style={[styles.submitButtonText, !canSubmit && styles.submitButtonTextDisabled]}>신고하기</Text>
         </TouchableOpacity>

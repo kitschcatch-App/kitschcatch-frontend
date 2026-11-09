@@ -3,12 +3,13 @@
  * 역할: 판매내역에서 상품을 선택했을 때 주문의 진행 상태를 단계별로 보여주는 화면입니다.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './OrderDetailScreen.styles';
 import { orderAPI } from '../../api/apiClient';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import { CARRIERS, getOrderProgress } from '../../utils/mypage';
 import { colors } from '../../styles/colors';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -60,6 +61,8 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
   const [shipDate, setShipDate] = useState('');
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // 최초 주문 조회 중
+  const [isEditing, setIsEditing] = useState(false); // 등록된 송장 수정 중
 
   const loadOrder = useCallback(async () => {
     try {
@@ -67,14 +70,18 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
       setOrder(res.data.data);
     } catch (e) {
       console.error('주문 상세 조회 실패:', e);
+    } finally {
+      setIsLoading(false);
     }
   }, [orderId]);
 
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
+  const refreshControl = useRefreshControl(loadOrder);
 
   const shipment = order?.shipment ?? null;
+  const locked = !!shipment && !isEditing; // 등록된 송장은 수정 모드에서만 입력 가능
   const progress = getOrderProgress(order ?? { status: 'PAID' });
   const currentStep = PROCESS_STEPS[Math.max(progress.index, 0)];
   const title = order?.post?.title ?? productTitle;
@@ -84,12 +91,24 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
   const isRegisterEnabled =
     !isRegistering && !shipment && order?.status === 'PAID' && selectedCourier !== '택배사 선택' && trackingNumber.trim() !== '';
 
+  const isSaveEnabled = !isRegistering && selectedCourier !== '택배사 선택' && trackingNumber.trim() !== '';
+
+  const startEditing = () => {
+    setSelectedCourier(shipment.carrierName);
+    setTrackingNumber(shipment.trackingNumber);
+    setIsEditing(true);
+  };
+
+  // 최초 등록(POST)과 수정(PATCH)을 같은 핸들러로 처리
   const handleRegisterShipment = async () => {
     const carrier = CARRIERS.find(c => c.label === selectedCourier);
-    if (!carrier || !isRegisterEnabled) return;
+    if (!carrier || !(isEditing ? isSaveEnabled : isRegisterEnabled)) return;
     setIsRegistering(true);
     try {
-      await orderAPI.registerShipment(orderId, { carrierCode: carrier.code, trackingNumber: trackingNumber.trim() });
+      const body = { carrierCode: carrier.code, trackingNumber: trackingNumber.trim() };
+      if (isEditing) await orderAPI.updateShipment(orderId, body);
+      else await orderAPI.registerShipment(orderId, body);
+      setIsEditing(false);
       await loadOrder();
     } catch (err: any) {
       const status = err.response?.status;
@@ -98,7 +117,9 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
         status === 400
           ? '택배사 또는 운송장 번호(하이픈 없는 숫자 8~40자리)를 확인해주세요.'
           : status === 409
-            ? '이미 다른 운송장이 등록되었거나 등록할 수 없는 주문 상태예요.'
+            ? isEditing
+              ? '구매확정되었거나 환불 처리 중인 주문은 운송장을 수정할 수 없어요.'
+              : '이미 다른 운송장이 등록되었거나 등록할 수 없는 주문 상태예요.'
             : '등록 중 오류가 발생했어요. 다시 시도해주세요.',
       );
     } finally {
@@ -106,11 +127,20 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScreenHeader title="주문 상세" onBack={() => navigation.goBack()} />
+        <ActivityIndicator style={styles.loadingIndicator} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScreenHeader title="주문 상세" onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView refreshControl={refreshControl} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.processContainer}>
           <Text style={styles.processTitle}>{progress.title ?? currentStep.label}</Text>
           <Text style={styles.processSubtitle}>{progress.title ? '' : currentStep.subtitle}</Text>
@@ -181,11 +211,11 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
             <Text style={[styles.formLabel, styles.formLabelTop]}>택배사</Text>
             <CommonDropdown
               label=""
-              value={shipment?.carrierName ?? selectedCourier}
-              options={shipment ? [] : COURIER_OPTIONS}
+              value={locked ? shipment.carrierName : selectedCourier}
+              options={locked ? [] : COURIER_OPTIONS}
               placeholder="택배사 선택"
               isExpanded={isCourierExpanded}
-              onToggle={() => !shipment && setCourierExpanded(!isCourierExpanded)}
+              onToggle={() => !locked && setCourierExpanded(!isCourierExpanded)}
               onSelect={(option) => {
                 setSelectedCourier(option);
                 setCourierExpanded(false);
@@ -198,9 +228,9 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
             <Text style={styles.formLabel}>운송장</Text>
             <View style={styles.formInputWrapper}>
               <CommonInput
-                value={shipment?.trackingNumber ?? trackingNumber}
+                value={locked ? shipment.trackingNumber : trackingNumber}
                 onChangeText={setTrackingNumber}
-                editable={!shipment}
+                editable={!locked}
                 keyboardType="number-pad"
                 placeholder="운송장 번호 입력"
                 placeholderTextColor={colors.gray06}
@@ -232,14 +262,20 @@ const OrderDetailScreen = ({ navigation, route }: Props) => {
             </TouchableOpacity>
           </View>
 
-          {!shipment && (
+          {locked ? (
+            <TouchableOpacity style={styles.registerButton} activeOpacity={0.7} onPress={startEditing}>
+              <Text style={styles.registerButtonText}>운송장 수정하기</Text>
+            </TouchableOpacity>
+          ) : (
             <TouchableOpacity
-              style={[styles.registerButton, !isRegisterEnabled && styles.registerButtonDisabled]}
+              style={[styles.registerButton, !(isEditing ? isSaveEnabled : isRegisterEnabled) && styles.registerButtonDisabled]}
               activeOpacity={0.7}
-              disabled={!isRegisterEnabled}
+              disabled={!(isEditing ? isSaveEnabled : isRegisterEnabled)}
               onPress={handleRegisterShipment}
             >
-              <Text style={styles.registerButtonText}>{isRegistering ? '등록 중...' : '발송 정보 등록하기'}</Text>
+              <Text style={styles.registerButtonText}>
+                {isRegistering ? '저장 중...' : isEditing ? '수정 완료' : '발송 정보 등록하기'}
+              </Text>
             </TouchableOpacity>
           )}
 
