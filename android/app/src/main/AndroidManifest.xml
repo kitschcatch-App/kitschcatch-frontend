@@ -45,6 +45,15 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="kitschcatch" />
         </intent-filter>
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data
+                android:scheme="https"
+                android:host="dev-kitschcatch.p-e.kr"
+                android:path="/api/auth/naver/callback" />
+        </intent-filter>
       </activity>
 
       <!-- 카카오 로그인 완료 후 앱으로 돌아오기 위한 커스텀 탭 설정 -->
