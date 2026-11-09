@@ -2,9 +2,11 @@
  * 화면: 배송지 관리 (AddressManagementScreen)
  * 역할: 등록된 배송지 목록을 보여주고 각 배송지를 삭제/수정할 수 있는 화면입니다.
  */
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { addressAPI } from '../../api/apiClient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './AddressManagementScreen.styles';
@@ -24,39 +26,49 @@ interface Address {
   isDefault?: boolean;
 }
 
-const ADDRESSES: Address[] = [
-  {
-    id: '1',
-    name: '김수진',
-    phone: '010-1234-5678',
-    zipCode: '18288',
-    address:
-      '경기도 화성시 병점구 안녕동 12345678923456789234567812345678912345612345678',
-    detailAddress: '101동 1234호',
-    isDefault: true,
-  },
-  {
-    id: '2',
-    name: '홍길동',
-    phone: '010-9876-5432',
-    zipCode: '06234',
-    address: '서울특별시 강남구 테헤란로 123',
-    detailAddress: '5층 501호',
-  },
-];
-
 const AddressManagementScreen = ({ navigation }: Props) => {
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isSuccessVisible, setSuccessVisible] = useState(false);
+
+  // 등록/수정 화면에서 돌아올 때도 최신 목록을 다시 불러온다.
+  const load = useCallback(() => {
+    addressAPI
+      .list()
+      .then(res =>
+        setAddresses(
+          res.data.data.map((a: any) => ({
+            id: String(a.id),
+            name: a.recipientName,
+            phone: a.recipientPhone,
+            zipCode: a.postalCode,
+            address: a.addressLine1,
+            detailAddress: a.addressLine2 ?? '',
+            isDefault: a.isDefault,
+          })),
+        ),
+      )
+      .catch(e => console.error('배송지 목록 조회 실패:', e));
+  }, []);
+  useFocusEffect(load);
 
   const handleDelete = (id: string) => {
     setDeleteTargetId(id);
   };
 
-  const handleConfirmDelete = () => {
-    // TODO: 배송지 삭제 API 연동
+  const handleConfirmDelete = async () => {
+    if (deleteTargetId === null) return;
+    try {
+      await addressAPI.remove(deleteTargetId);
+    } catch (e) {
+      console.error('배송지 삭제 실패:', e);
+      setDeleteTargetId(null);
+      Alert.alert('배송지', '배송지를 삭제하지 못했어요. 다시 시도해주세요.');
+      return;
+    }
     setDeleteTargetId(null);
     setSuccessVisible(true);
+    load();
   };
 
   const handleEdit = (item: Address) => {
@@ -76,7 +88,7 @@ const AddressManagementScreen = ({ navigation }: Props) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {ADDRESSES.map((item, index) => (
+        {addresses.map((item, index) => (
           <View
             key={item.id}
             style={[

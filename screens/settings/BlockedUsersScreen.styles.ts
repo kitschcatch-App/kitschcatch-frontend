@@ -14,6 +14,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
   },
+  emptyText: {
+    marginTop: 120,
+    textAlign: 'center',
+    fontFamily: typography.M,
+    fontSize: 14,
+    color: colors.gray06,
+  },
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
