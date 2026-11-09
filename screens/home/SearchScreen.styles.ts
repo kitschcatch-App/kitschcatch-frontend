@@ -87,6 +87,28 @@ export const styles = StyleSheet.create({
     fontFamily: typography.M,
     color: colors.gray07,
   },
+  recentSearchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  recentSearchClear: {
+    fontSize: 12,
+    fontFamily: typography.M,
+    color: colors.gray07,
+  },
+  recentSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  recentSearchText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: typography.M,
+    color: colors.black,
+  },
   // 인기 검색어 컨테이너
   popularSearchContainer: {
     marginTop: 24,

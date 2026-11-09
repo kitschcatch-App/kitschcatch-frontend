@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRefreshControl } from '../../hooks/useRefreshControl';
 import Svg, { Defs, LinearGradient, Stop, Rect, SvgProps } from 'react-native-svg';
 import KitschcatchIcon from '../../assets/kitschcatch.svg';
 import AlarmIcon from '../../assets/alarm.svg';
@@ -37,9 +38,12 @@ import { RootStackParamList } from '../../navigation/RootNavigator';
 import { notificationAPI, productAPI } from '../../api/apiClient';
 import { getMockUnreadNotificationCount } from '../../api/mockData';
 import { useMockMode } from '../../contexts/MockModeContext';
+import { getRecentViewed } from '../../utils/recentViewed';
 import {
   DEFAULT_COORD,
+  fetchAllStores,
   fetchNearbyStores,
+  distanceKmBetween,
   getCurrentCoord,
   requestLocationPermission,
   Store,
@@ -213,82 +217,124 @@ const HomeScreen = ({ navigation }: Props) => {
   // 오늘의 추천: 전체 상품 최신순 상위 3개 (실서버 모드)
   const [latestRecommended, setLatestRecommended] = useState<PopularProduct[]>([]);
 
-  useEffect(() => {
+  const loadRecommended = useCallback(async () => {
     if (isMockMode) return;
-    let cancelled = false;
-    productAPI
-      .getPostList({ params: { sort: 'LATEST', page: 0, size: 3 } })
-      .then(res => {
-        if (!cancelled) setLatestRecommended(res.data.data.content.map(postToProduct));
-      })
-      .catch(e => console.error('오늘의 추천 조회 실패:', e));
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const res = await productAPI.getPostList({ params: { sort: 'LATEST', page: 0, size: 3 } });
+      setLatestRecommended(res.data.data.content.map(postToProduct));
+    } catch (e) {
+      console.error('오늘의 추천 조회 실패:', e);
+    }
   }, [isMockMode]);
+
+  useEffect(() => {
+    loadRecommended();
+  }, [loadRecommended]);
+
+  // 최근 본 상품과 비슷한 상품 (로컬 최근 본 ID → 추천 API). 본 상품이 없거나 결과가 없으면 섹션 숨김.
+  const [similar, setSimilar] = useState<PopularProduct[]>([]);
+  const loadSimilar = useCallback(async () => {
+    if (isMockMode) return;
+    try {
+      const ids = await getRecentViewed();
+      if (ids.length === 0) {
+        setSimilar([]);
+        return;
+      }
+      const res = await productAPI.getRecentlyViewedRecommendations(ids, 10);
+      setSimilar(res.data.data.posts.map(postToProduct));
+    } catch (e) {
+      console.error('최근 본 상품 추천 조회 실패:', e);
+    }
+  }, [isMockMode]);
+
+  // 상품 상세를 보고 돌아올 때마다 갱신
+  useFocusEffect(
+    useCallback(() => {
+      loadSimilar();
+    }, [loadSimilar]),
+  );
 
   // 실서버 모드의 카테고리별 최신 상품 6개 (한 번 불러온 카테고리는 재사용)
   const [latestByCategory, setLatestByCategory] = useState<Record<string, PopularProduct[]>>({});
 
+  const loadCategory = useCallback(
+    async (category: string) => {
+      if (isMockMode) return;
+      const params: Record<string, string | number> = { sort: 'LATEST', page: 0, size: 6 };
+      if (category !== 'ALL') params.category = category;
+      try {
+        const res = await productAPI.getPostList({ params });
+        const items = res.data.data.content.map(postToProduct);
+        setLatestByCategory(prev => ({ ...prev, [category]: items }));
+      } catch (e) {
+        console.error('현재 인기있는 상품 조회 실패:', e);
+      }
+    },
+    [isMockMode],
+  );
+
   useEffect(() => {
     if (isMockMode || latestByCategory[selectedProductCategory]) return;
-    let cancelled = false;
-    const params: Record<string, string | number> = { sort: 'LATEST', page: 0, size: 6 };
-    if (selectedProductCategory !== 'ALL') params.category = selectedProductCategory;
-    productAPI
-      .getPostList({ params })
-      .then(res => {
-        if (cancelled) return;
-        const items = res.data.data.content.map(postToProduct);
-        setLatestByCategory(prev => ({ ...prev, [selectedProductCategory]: items }));
-      })
-      .catch(e => console.error('현재 인기있는 상품 조회 실패:', e));
-    return () => {
-      cancelled = true;
-    };
-  }, [isMockMode, selectedProductCategory, latestByCategory]);
+    loadCategory(selectedProductCategory);
+  }, [isMockMode, selectedProductCategory, latestByCategory, loadCategory]);
 
   // 내 위치 기준 가까운 매장 4개 (권한 거부/위치 실패 시 기본 좌표 사용)
-  useEffect(() => {
-    let cancelled = false;
-    const loadNearbyStores = async () => {
-      try {
-        const coord = (await requestLocationPermission())
-          ? await getCurrentCoord().catch(() => DEFAULT_COORD)
-          : DEFAULT_COORD;
-        const stores = await fetchNearbyStores(coord, NEARBY_RADIUS_KM, isMockMode);
-        if (cancelled) return;
-        const byDistance = [...stores].sort(
-          (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
-        );
-        setNearbyStores(byDistance.slice(0, NEARBY_STORE_COUNT));
-      } catch (e) {
-        console.error('내 주변 매장 조회 실패:', e);
+  const loadNearbyStores = useCallback(async () => {
+    try {
+      const coord = (await requestLocationPermission())
+        ? await getCurrentCoord().catch(() => DEFAULT_COORD)
+        : DEFAULT_COORD;
+      let stores = await fetchNearbyStores(coord, NEARBY_RADIUS_KM, isMockMode);
+      // 반경 안에 매장이 없으면 전국 매장 중 가장 가까운 곳을 보여준다.
+      if (stores.length === 0) {
+        stores = (await fetchAllStores(coord, isMockMode)).map(s => ({
+          ...s,
+          distanceKm: s.distanceKm ?? distanceKmBetween(coord, s),
+        }));
       }
-    };
-    loadNearbyStores();
-    return () => {
-      cancelled = true;
-    };
+      const byDistance = [...stores].sort(
+        (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
+      );
+      setNearbyStores(byDistance.slice(0, NEARBY_STORE_COUNT));
+    } catch (e) {
+      console.error('내 주변 매장 조회 실패:', e);
+    }
   }, [isMockMode]);
 
+  useEffect(() => {
+    loadNearbyStores();
+  }, [loadNearbyStores]);
+
   // 알림 화면을 다녀온 뒤에도 최신 미읽음 상태가 반영되도록 포커스마다 조회
+  const checkUnreadNotifications = useCallback(async () => {
+    try {
+      if (isMockMode) {
+        setHasUnreadNotifications(getMockUnreadNotificationCount() > 0);
+      } else {
+        const res = await notificationAPI.getNotifications({ page: 0, size: 1 });
+        setHasUnreadNotifications(res.data.data.unreadCount > 0);
+      }
+    } catch (e) {
+      console.error('알림 미읽음 여부 조회 실패:', e);
+    }
+  }, [isMockMode]);
+
   useFocusEffect(
     useCallback(() => {
-      const checkUnreadNotifications = async () => {
-        try {
-          if (isMockMode) {
-            setHasUnreadNotifications(getMockUnreadNotificationCount() > 0);
-          } else {
-            const res = await notificationAPI.getNotifications({ page: 0, size: 1 });
-            setHasUnreadNotifications(res.data.data.unreadCount > 0);
-          }
-        } catch (e) {
-          console.error('알림 미읽음 여부 조회 실패:', e);
-        }
-      };
       checkUnreadNotifications();
-    }, [isMockMode]),
+    }, [checkUnreadNotifications]),
+  );
+
+  // 당겨서 새로고침: 추천·인기 상품·주변 매장·알림 표시를 모두 다시 조회
+  const refreshControl = useRefreshControl(() =>
+    Promise.all([
+      loadRecommended(),
+      loadSimilar(),
+      loadCategory(selectedProductCategory),
+      loadNearbyStores(),
+      checkUnreadNotifications(),
+    ]),
   );
 
   // 배너 컨테이너의 실제 렌더 너비를 측정해 화면 폭과 정확히 일치시킴
@@ -379,6 +425,7 @@ const HomeScreen = ({ navigation }: Props) => {
 
         <ScrollView
           ref={scrollRef}
+          refreshControl={refreshControl}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           onScroll={e => setFabCollapsed(e.nativeEvent.contentOffset.y > 10)}
@@ -476,6 +523,7 @@ const HomeScreen = ({ navigation }: Props) => {
           </View>
 
           {/* 최근 본 상품과 비슷한 상품 */}
+          {(isMockMode ? SIMILAR_PRODUCTS : similar).length > 0 && (
           <View style={styles.similarContainer}>
             <Text style={styles.similarTitle}>👀 최근 본 상품과 비슷한 상품</Text>
             <ScrollView
@@ -483,7 +531,7 @@ const HomeScreen = ({ navigation }: Props) => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.similarScrollContent}
             >
-              {SIMILAR_PRODUCTS.map((product) => (
+              {(isMockMode ? SIMILAR_PRODUCTS : similar).map((product) => (
                 <TouchableOpacity
                   key={product.id}
                   style={styles.similarCard}
@@ -501,6 +549,7 @@ const HomeScreen = ({ navigation }: Props) => {
               ))}
             </ScrollView>
           </View>
+          )}
 
           {/* 인기 작품 */}
           <View style={styles.popularContainer}>
@@ -518,7 +567,6 @@ const HomeScreen = ({ navigation }: Props) => {
                       {work.title}
                     </Text>
                   </View>
-                  <Text style={styles.popularCount}>상품 {work.count}개</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>

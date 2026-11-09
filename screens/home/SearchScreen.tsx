@@ -2,19 +2,19 @@
  * 화면: 검색 화면 (SearchScreen)
  * 역할: 홈 화면의 검색 아이콘을 통해 진입하며, 상품 검색어 입력과 최근 검색어를 보여주는 화면 컴포넌트입니다.
  */
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SvgProps } from 'react-native-svg';
 import BackIcon from '../../assets/back.svg';
 import SearchIcon from '../../assets/search.svg';
 import SearchGrayIcon from '../../assets/search-g.svg';
 import ExitIcon from '../../assets/exit-w.svg';
 import ArrowUpIcon from '../../assets/arrow-up.svg';
 import KitschcatchIcon from '../../assets/kitschcatch.svg';
-import UpIcon from '../../assets/up.svg';
-import DownIcon from '../../assets/down.svg';
-import DashIcon from '../../assets/dash.svg';
+import ExitGrayIcon from '../../assets/exit.svg';
+import { searchAPI } from '../../api/apiClient';
+import { useMockMode } from '../../contexts/MockModeContext';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -22,51 +22,72 @@ import { styles } from './SearchScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Search'>;
 
-type Trend = 'up' | 'down' | 'dash';
-type PopularKeyword = { rank: number; keyword: string; trend: Trend };
+type PopularKeyword = { rank: number; keyword: string };
+type RecentKeyword = { id: number; keyword: string };
 
-// 인기 검색어 (mock)
-const POPULAR_KEYWORDS: PopularKeyword[] = [
-  { rank: 1, keyword: '원신', trend: 'up' },
-  { rank: 2, keyword: '블루 아카이브', trend: 'up' },
-  { rank: 3, keyword: '프로젝트 세카이', trend: 'dash' },
-  { rank: 4, keyword: '붕괴: 스타레일', trend: 'down' },
-  { rank: 5, keyword: '하이큐!!', trend: 'dash' },
-  { rank: 6, keyword: '주술회전', trend: 'dash' },
-  { rank: 7, keyword: '홀로라이브', trend: 'up' },
-  { rank: 8, keyword: '귀멸의 칼날', trend: 'down' },
-  { rank: 9, keyword: '명탐정 코난', trend: 'dash' },
-  { rank: 10, keyword: '앙상블 스타즈!!', trend: 'down' },
-];
-
-const TREND_ICONS: Record<Trend, React.FC<SvgProps>> = {
-  up: UpIcon,
-  down: DownIcon,
-  dash: DashIcon,
-};
-
-const TREND_SIZES: Record<Trend, { width: number; height: number }> = {
-  up: { width: 8, height: 5 },
-  down: { width: 8, height: 5 },
-  dash: { width: 6, height: 2 },
-};
-
-// 연관 검색어 (mock)
-const RELATED_KEYWORDS = [
-  '귀멸의 칼날 탄지로',
-  '귀멸의 칼날 무이치로',
-  '귀멸의 칼날 피규어',
-  '귀멸의 칼날 렌고쿠 피규어',
-];
+// Mock 모드용 인기 검색어
+const MOCK_POPULAR: PopularKeyword[] = ['원신', '블루 아카이브', '프로젝트 세카이', '붕괴: 스타레일', '하이큐!!', '주술회전', '홀로라이브', '귀멸의 칼날', '명탐정 코난', '앙상블 스타즈!!'].map(
+  (keyword, i) => ({ rank: i + 1, keyword }),
+);
 
 const SearchScreen = ({ navigation }: Props) => {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const isSearching = searchQuery.trim().length > 0;
+  const { isMockMode } = useMockMode();
+  const [popular, setPopular] = useState<PopularKeyword[]>(isMockMode ? MOCK_POPULAR : []);
+  const [recent, setRecent] = useState<RecentKeyword[]>([]);
+  const [recentLoading, setRecentLoading] = useState(!isMockMode); // 최근 검색어 최초 로딩 중
+  const [related, setRelated] = useState<string[]>([]);
 
-  // 검색 실행: 상품 목록 화면에서 keyword로 서버 검색
-  const submitSearch = () => {
-    if (isSearching) navigation.navigate('ProductList', { keyword: searchQuery.trim() });
+  // 인기·최근 검색어 (화면에 돌아올 때마다 갱신)
+  useFocusEffect(
+    useCallback(() => {
+      if (isMockMode) return;
+      searchAPI
+        .getPopular()
+        .then(res => setPopular(res.data.data.items))
+        .catch(e => console.error('인기 검색어 조회 실패:', e));
+      searchAPI
+        .getRecent()
+        .then(res => setRecent(res.data.data.items))
+        .catch(e => console.error('최근 검색어 조회 실패:', e))
+        .finally(() => setRecentLoading(false));
+    }, [isMockMode]),
+  );
+
+  // 연관 검색어 (입력 후 250ms 지나면 조회)
+  useEffect(() => {
+    const k = searchQuery.trim();
+    if (isMockMode || !k) {
+      setRelated([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      searchAPI
+        .getRelated(k)
+        .then(res => setRelated(res.data.data.items.map((i: { keyword: string }) => i.keyword)))
+        .catch(e => console.error('연관 검색어 조회 실패:', e));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchQuery, isMockMode]);
+
+  // 검색 실행: 기록 저장 후 상품 목록 화면에서 keyword로 서버 검색
+  const search = (keyword: string) => {
+    const k = keyword.trim();
+    if (!k) return;
+    if (!isMockMode) searchAPI.record(k).catch(e => console.error('검색 기록 저장 실패:', e));
+    navigation.navigate('ProductList', { keyword: k });
+  };
+  const submitSearch = () => search(searchQuery);
+
+  const deleteRecent = (id: number) => {
+    setRecent(r => r.filter(x => x.id !== id));
+    if (!isMockMode) searchAPI.deleteRecent(id).catch(e => console.error('최근 검색어 삭제 실패:', e));
+  };
+  const clearRecent = () => {
+    setRecent([]);
+    if (!isMockMode) searchAPI.clearRecent().catch(e => console.error('최근 검색어 전체 삭제 실패:', e));
   };
 
   return (
@@ -129,7 +150,7 @@ const SearchScreen = ({ navigation }: Props) => {
           {isSearching ? (
             /* 연관 검색어 */
             <View style={styles.relatedSearchContainer}>
-              {RELATED_KEYWORDS.map((keyword) => (
+              {related.map((keyword) => (
                 <TouchableOpacity
                   key={keyword}
                   style={styles.relatedSearchRow}
@@ -147,34 +168,63 @@ const SearchScreen = ({ navigation }: Props) => {
             <>
               {/* 최근 검색어 */}
               <View style={styles.recentSearchContainer}>
-                <Text style={styles.recentSearchTitle}>최근 검색어</Text>
-                <View style={styles.recentSearchEmpty}>
-                  <Text style={styles.recentSearchEmptyText}>최근검색어가 없습니다.</Text>
+                <View style={styles.recentSearchHeader}>
+                  <Text style={styles.recentSearchTitle}>최근 검색어</Text>
+                  {recent.length > 0 && (
+                    <TouchableOpacity onPress={clearRecent}>
+                      <Text style={styles.recentSearchClear}>전체 삭제</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
+                {recentLoading ? (
+                  <View style={styles.recentSearchEmpty}>
+                    <ActivityIndicator />
+                  </View>
+                ) : recent.length === 0 ? (
+                  <View style={styles.recentSearchEmpty}>
+                    <Text style={styles.recentSearchEmptyText}>최근검색어가 없습니다.</Text>
+                  </View>
+                ) : (
+                  recent.map(item => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.recentSearchRow}
+                      activeOpacity={0.7}
+                      onPress={() => search(item.keyword)}
+                    >
+                      <Text style={styles.recentSearchText} numberOfLines={1} ellipsizeMode="tail">
+                        {item.keyword}
+                      </Text>
+                      <TouchableOpacity hitSlop={8} onPress={() => deleteRecent(item.id)}>
+                        <ExitGrayIcon width={10} height={10} />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  ))
+                )}
               </View>
 
               {/* 인기 검색어 */}
               <View style={styles.popularSearchContainer}>
                 <Text style={styles.popularSearchTitle}>인기 검색어</Text>
                 <View style={styles.popularSearchColumns}>
-                  {[POPULAR_KEYWORDS.slice(0, 5), POPULAR_KEYWORDS.slice(5, 10)].map((column, columnIndex) => (
+                  {[popular.slice(0, 5), popular.slice(5, 10)].map((column, columnIndex) => (
                     <View
                       key={columnIndex}
                       style={[styles.popularSearchColumn, columnIndex === 1 && styles.popularSearchColumnRight]}
                     >
-                      {column.map((item) => {
-                        const TrendIcon = TREND_ICONS[item.trend];
-                        const trendSize = TREND_SIZES[item.trend];
-                        return (
-                          <View key={item.rank} style={styles.popularSearchRow}>
-                            <Text style={styles.popularSearchRank}>{item.rank}</Text>
-                            <Text style={styles.popularSearchKeyword} numberOfLines={1} ellipsizeMode="tail">
-                              {item.keyword}
-                            </Text>
-                            <TrendIcon width={trendSize.width} height={trendSize.height} />
-                          </View>
-                        );
-                      })}
+                      {column.map(item => (
+                        <TouchableOpacity
+                          key={item.rank}
+                          style={styles.popularSearchRow}
+                          activeOpacity={0.7}
+                          onPress={() => search(item.keyword)}
+                        >
+                          <Text style={styles.popularSearchRank}>{item.rank}</Text>
+                          <Text style={styles.popularSearchKeyword} numberOfLines={1} ellipsizeMode="tail">
+                            {item.keyword}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
                     </View>
                   ))}
                 </View>
