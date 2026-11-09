@@ -15,12 +15,12 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../styles/colors';
 import CommonPopup from '../../components/CommonPopup';
-import AddressBottomSheet,{ SelectedAddress } from '../../components/AddressBottomSheet';
+import AddressBottomSheet, { SelectedAddress, toSelectedAddress } from '../../components/AddressBottomSheet';
 import Config from 'react-native-config';
 import { useMockMode } from '../../contexts/MockModeContext';
-import { orderAPI, paymentAPI } from '../../api/apiClient';
+import { addressAPI, orderAPI, paymentAPI } from '../../api/apiClient';
 import { getMockCreateOrder, mockDelay } from '../../api/mockData';
-import { calcSafePaymentFee } from '../../utils/payment';
+import { calcSafePaymentFee, SHIPPING_FEE } from '../../utils/payment';
 
 // Toss JS SDK v1은 successUrl/failUrl이 반드시 https://로 시작해야 한다.
 // onShouldStartLoadWithRequest에서 실제 로드 전에 가로채므로 서버가 없어도 동작한다.
@@ -88,11 +88,21 @@ const PaymentScreen = ({ route, navigation }: Props) => {
 
   // 배송지 바텀시트 및 선택된 주소
   const [isAddressSheetVisible, setIsAddressSheetVisible] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState<SelectedAddress>({
-    name: '이수진',
-    phone: '010-1234-5678',
-    address: '경기도 화성시 병점구 안녕동 1245678845612',
-  });
+  const [selectedAddress, setSelectedAddress] = useState<SelectedAddress | null>(
+    isMockMode ? { id: 0, name: '이수진', phone: '010-1234-5678', address: '경기도 화성시 병점구 안녕동 1245678845612' } : null,
+  );
+
+  // 첫 진입 시 기본 배송지(서버가 맨 앞으로 정렬)를 자동 선택
+  useEffect(() => {
+    if (isMockMode) return;
+    addressAPI
+      .list()
+      .then(res => {
+        const first = res.data.data[0];
+        if (first) setSelectedAddress(toSelectedAddress(first));
+      })
+      .catch(e => console.error('배송지 조회 실패:', e));
+  }, [isMockMode]);
 
   // 결제 진행 상태 및 WebView 데이터 (null이면 WebView 닫힘)
   const [isLoading, setIsLoading] = useState(false);
@@ -131,9 +141,10 @@ const PaymentScreen = ({ route, navigation }: Props) => {
     />
   );
 
-  const shippingFee = 5000;
+  const shippingFee = SHIPPING_FEE;
   const safePaymentFee = calcSafePaymentFee(productPrice, shippingFee);
-  const totalPrice = productPrice + shippingFee + safePaymentFee;
+  // 안심결제 이용료는 판매자 부담(서버 스펙: 구매자 수수료 0원)이라 구매자 총액에서 제외
+  const totalPrice = productPrice + shippingFee;
 
   const MEMO_OPTIONS = [
     '요청사항 없음',
@@ -207,6 +218,10 @@ ${extraParamsJs}
   };
 
   const handlePay = async () => {
+    if (!selectedAddress) {
+      Alert.alert('배송지', '배송지를 먼저 등록해주세요. (회원정보 > 배송지 관리)');
+      return;
+    }
     if (selectedMemo === '배송시 요청사항 선택') {
       setShowMemoError(true);
       scrollToError(memoSectionY.current);
@@ -249,6 +264,7 @@ ${extraParamsJs}
           postId: Number(productId),
           amount: productPrice,
           paymentMethod: method.backendEnum,
+          shippingAddressId: selectedAddress.id,
         });
       } catch (error: any) {
         console.error('[결제] 주문 생성 실패:', JSON.stringify(error?.response?.data));
@@ -336,6 +352,22 @@ ${extraParamsJs}
       .finally(() => setIsLoading(false));
   }, [isMockMode, navigation, productName, productPrice, totalPrice, productImageUrl]);
 
+  // 결제창을 닫거나 결제가 실패하면 미결제 주문(결제대기)이 남지 않도록 주문을 취소한다.
+  // 이미 결제됐거나 결과 확인 중이면 건드리지 않는다.
+  const cancelPendingOrder = useCallback(
+    async (data: WebViewPaymentData) => {
+      if (isMockMode) return;
+      try {
+        const status = (await paymentAPI.getPayment(data.paymentId)).data.data?.status;
+        if (status === 'SUCCESS' || status === 'PROCESSING') return;
+        await orderAPI.cancelOrder(data.pgOrderId, '결제 취소');
+      } catch (e) {
+        console.error('[결제] 미결제 주문 취소 실패:', e);
+      }
+    },
+    [isMockMode],
+  );
+
   // 외부 은행 앱이 결제 완료 후 kitschcatch:// 딥링크로 복귀할 때 처리
   useEffect(() => {
     const sub = Linking.addEventListener('url', ({ url }) => {
@@ -348,12 +380,13 @@ ${extraParamsJs}
         const code = parseQueryParam(url, 'code') || '';
         const message = parseQueryParam(url, 'message') || '결제가 취소되었거나 실패했습니다.';
         setWebViewPayment(null);
+        cancelPendingOrder(data);
         setOpeningExternalApp(false);
         Alert.alert('결제 실패', `[${code}] ${message}`);
       }
     });
     return () => sub.remove();
-  }, [processSuccess]);
+  }, [processSuccess, cancelPendingOrder]);
 
   const handleWebViewMessage = useCallback((e: any) => {
     try {
@@ -399,6 +432,7 @@ ${extraParamsJs}
       const code = parseQueryParam(url, 'code') || '';
       const message = parseQueryParam(url, 'message') || '결제가 취소되었거나 실패했습니다.';
       setWebViewPayment(null);
+      cancelPendingOrder(webViewPayment);
       Alert.alert('결제 실패', `[${code}] ${message}`);
       return false;
     }
@@ -411,7 +445,7 @@ ${extraParamsJs}
     }
 
     return true;
-  }, [webViewPayment, processSuccess]);
+  }, [webViewPayment, processSuccess, cancelPendingOrder]);
 
   if (webViewPayment) {
     return (
@@ -419,7 +453,10 @@ ${extraParamsJs}
         <View style={styles.container}>
           <View style={[styles.topSpacer, { height: Math.max(insets.top, 65) }]} />
           <View style={styles.headerContainer}>
-            <TouchableOpacity style={styles.backButton} onPress={() => setWebViewPayment(null)}>
+            <TouchableOpacity style={styles.backButton} onPress={() => {
+                setWebViewPayment(null);
+                cancelPendingOrder(webViewPayment);
+              }}>
               <BackIcon width={10} height={18} />
             </TouchableOpacity>
             <View style={styles.headerCenter}>
@@ -552,9 +589,15 @@ ${extraParamsJs}
               </View>
               <View style={[styles.sectionContentRow, { alignItems: 'flex-end' }]}>
                 <View style={styles.infoTextGroup}>
-                  <Text style={styles.infoName}>{selectedAddress.name}</Text>
-                  <Text style={styles.infoTel}>{selectedAddress.phone}</Text>
-                  <Text style={styles.addressText}>{selectedAddress.address}</Text>
+                  {selectedAddress ? (
+                    <>
+                      <Text style={styles.infoName}>{selectedAddress.name}</Text>
+                      <Text style={styles.infoTel}>{selectedAddress.phone}</Text>
+                      <Text style={styles.addressText}>{selectedAddress.address}</Text>
+                    </>
+                  ) : (
+                    <Text style={styles.addressText}>등록된 배송지가 없습니다.</Text>
+                  )}
                 </View>
               </View>
 
@@ -669,12 +712,6 @@ ${extraParamsJs}
                 <View style={styles.paymentDetailRow}>
                   <Text style={styles.paymentDetailLabel}>배송비</Text>
                   <Text style={styles.paymentDetailValue}>{shippingFee.toLocaleString()}원</Text>
-                </View>
-                <View style={styles.paymentDetailRow}>
-                  <Text style={styles.paymentDetailLabel}>
-                    <Text style={styles.paymentDetailIcon}>ⓘ</Text> 안심결제 이용료
-                  </Text>
-                  <Text style={styles.paymentDetailValue}>{safePaymentFee.toLocaleString()}원</Text>
                 </View>
               </View>
 
