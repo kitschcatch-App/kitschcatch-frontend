@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRefreshControl } from '../../hooks/useRefreshControl';
+import { useHeartPop } from '../../hooks/useHeartPop';
 import {
   View,
   Text,
@@ -14,6 +15,7 @@ import {
   ScrollView,
   Linking,
   Alert,
+  Animated,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -272,9 +274,12 @@ const StoreDetailScreen = ({ navigation, route }: Props) => {
       },
     ]);
 
+  const { scale: heartScale, play: playHeartPop } = useHeartPop();
+
   // 관심 매장 등록/해제: 먼저 화면에 반영하고 실패하면 되돌린다.
   const toggleFavorite = async () => {
     const next = !isFavorite;
+    if (next) playHeartPop();
     setIsFavorite(next);
     if (isMockMode) return;
     try {
@@ -322,11 +327,13 @@ const StoreDetailScreen = ({ navigation, route }: Props) => {
             onPress={toggleFavorite}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            {isFavorite ? (
-              <HeartFilledIcon width={20} height={18} />
-            ) : (
-              <HeartIcon width={20} height={18} />
-            )}
+            <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+              {isFavorite ? (
+                <HeartFilledIcon width={20} height={18} />
+              ) : (
+                <HeartIcon width={20} height={18} />
+              )}
+            </Animated.View>
           </TouchableOpacity>
         }
       />

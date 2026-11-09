@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { addRecentViewed } from '../../utils/recentViewed';
+import { useHeartPop } from '../../hooks/useHeartPop';
 import { View, Text, TouchableOpacity, Image, ScrollView, Animated, ActivityIndicator, Modal, FlatList, RefreshControl, useWindowDimensions } from 'react-native';
 import ErrorView from '../../components/ErrorView';
 import { ERROR_MESSAGES, ErrorMessage } from '../../constants/errorMessages';
@@ -195,9 +196,12 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
     };
   }, [productDetail.sellerId, isMockMode]);
 
+  const { scale: heartScale, play: playHeartPop } = useHeartPop();
+
   // 관심 상품 등록/해제: 먼저 화면에 반영하고 실패하면 되돌린다.
   const toggleFavorite = async () => {
     const next = !isFavorite;
+    if (next) playHeartPop();
     const delta = next ? 1 : -1;
     setIsFavorite(next);
     setFavoriteCount(c => Math.max(0, c + delta));
@@ -376,7 +380,9 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
               <Text style={[styles.productName, { flex: 1, marginRight: 10 }]}>{productDetail.name}</Text>
               {!isSeller && (
                 <TouchableOpacity style={styles.wishButton} onPress={toggleFavorite}>
-                  <HeartIcon width={25} height={25} fill={isFavorite ? '#97F2EC' : 'none'} />
+                  <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+                    <HeartIcon width={25} height={25} fill={isFavorite ? '#97F2EC' : 'none'} />
+                  </Animated.View>
                 </TouchableOpacity>
               )}
             </View>
