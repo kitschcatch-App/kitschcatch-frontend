@@ -18,16 +18,18 @@ const renderSplash = () =>
   ReactTestRenderer.create(<SplashScreen navigation={navigation} route={route} />);
 
 describe('SplashScreen', () => {
+  let finishAnimation: Animated.EndCallback | undefined;
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
-    jest.spyOn(Animated, 'timing').mockReturnValue({
-      start: (cb?: Animated.EndCallback) => cb?.({ finished: true }),
-    } as any);
+    finishAnimation = undefined;
+    jest.spyOn(Animated, 'sequence').mockReturnValue({
+      start: callback => { finishAnimation = callback; },
+      stop: jest.fn(),
+      reset: jest.fn(),
+    });
   });
 
   afterEach(() => {
-    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -36,15 +38,13 @@ describe('SplashScreen', () => {
   it('accessToken이 있어도 (자동 로그인 비활성) Login으로 이동한다', async () => {
     (secureStorage.getItem as jest.Mock).mockResolvedValue('access-token');
 
-    // secureStorage.getItem 완료 + setTimeout(2000) 등록까지 진행
     await act(async () => {
       renderSplash();
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // act 밖에서 타이머 발화 → 애니메이션 콜백(동기 mock) → navigate 호출
-    jest.advanceTimersByTime(2000);
+    await act(async () => { finishAnimation?.({ finished: true }); });
 
     expect(mockReplace).toHaveBeenCalledWith('Login');
   });
@@ -58,7 +58,7 @@ describe('SplashScreen', () => {
       await Promise.resolve();
     });
 
-    jest.advanceTimersByTime(2000);
+    await act(async () => { finishAnimation?.({ finished: true }); });
 
     expect(mockReplace).toHaveBeenCalledWith('Login');
   });
@@ -80,18 +80,15 @@ describe('SplashScreen', () => {
 
     let renderer!: ReactTestRenderer.ReactTestRenderer;
 
-    // AsyncStorage 완료 + setTimeout 등록까지만 진행 (타이머는 아직 실행 안 함)
     await act(async () => {
       renderer = renderSplash();
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // 타이머 실행 전 언마운트 → cleanup: isMounted=false, clearTimeout(timer)
     act(() => { renderer.unmount(); });
 
-    // clearTimeout으로 이미 취소된 타이머이므로 아무것도 실행되지 않아야 함
-    await act(async () => { await jest.runAllTimersAsync(); });
+    await act(async () => { finishAnimation?.({ finished: true }); });
 
     expect(mockReplace).not.toHaveBeenCalled();
   });

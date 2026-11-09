@@ -18,7 +18,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import CommonInput from '../../components/CommonInput';
 import CommonDropdown from '../../components/CommonDropdown';
-import { productAPI } from '../../api/apiClient';
 import { MOCK_PRESIGNED_URLS, MOCK_CREATE_POST, mockDelay } from '../../api/mockData';
 import { validateProductForm } from '../../utils/validateProductForm';
 import { registerProduct, CONDITION_MAP } from '../../utils/registerProduct';

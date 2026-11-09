@@ -5,7 +5,7 @@
 
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Modal, Animated } from 'react-native';
+import { Text, Modal, Animated } from 'react-native';
 import { styles } from './SuccessView.styles';
 
 interface SuccessViewProps {
@@ -18,6 +18,9 @@ const SuccessView = ({ visible, title, onDismiss }: SuccessViewProps) => {
   const [modalVisible, setModalVisible] = useState(false);
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.85)).current;
+
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   useEffect(() => {
     if (!visible) return;
@@ -36,11 +39,11 @@ const SuccessView = ({ visible, title, onDismiss }: SuccessViewProps) => {
           Animated.timing(scale, { toValue: 0.85, duration: 250, useNativeDriver: true }),
         ]).start(() => {
           setModalVisible(false);
-          onDismiss();
+          onDismissRef.current();
         });
       }, 1300);
     });
-  }, [visible]);
+  }, [visible, opacity, scale]);
 
   return (
     <Modal visible={modalVisible} transparent animationType="none" statusBarTranslucent>

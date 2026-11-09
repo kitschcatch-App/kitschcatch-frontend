@@ -17,6 +17,9 @@ const Toast = ({ visible, message, onDismiss, position = 'bottom' }: ToastProps)
   const [modalVisible, setModalVisible] = useState(false);
   const opacity = useRef(new Animated.Value(0)).current;
 
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+
   useEffect(() => {
     if (!visible) return;
 
@@ -27,11 +30,11 @@ const Toast = ({ visible, message, onDismiss, position = 'bottom' }: ToastProps)
       setTimeout(() => {
         Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
           setModalVisible(false);
-          onDismiss();
+          onDismissRef.current();
         });
       }, 1500);
     });
-  }, [visible]);
+  }, [visible, opacity]);
 
   return (
     <Modal visible={modalVisible} transparent animationType="none" statusBarTranslucent>

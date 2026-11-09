@@ -27,6 +27,7 @@ jest.mock('../contexts/MockModeContext', () => ({
 }));
 
 jest.mock('../api/apiClient', () => ({
+  productAPI: { getFavoritePosts: jest.fn().mockResolvedValue({ data: { data: { content: [], last: true } } }) },
   storeAPI: { getFavoriteStores: jest.fn(), getStore: jest.fn() },
 }));
 

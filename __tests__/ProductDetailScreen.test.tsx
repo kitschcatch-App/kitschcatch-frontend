@@ -34,6 +34,7 @@ jest.mock('../contexts/MockModeContext', () => ({
 jest.mock('../api/apiClient', () => ({
   productAPI: {
     getPostDetail: jest.fn(),
+    getFavoritePosts: jest.fn().mockResolvedValue({ data: { data: { content: [] } } }),
     updatePost: jest.fn(),
   },
   chatAPI: {
@@ -301,6 +302,7 @@ describe('ProductDetailScreen - 채팅하기', () => {
     });
     expect(mockNavigate).toHaveBeenCalledWith('Chat', {
       chatRoomId: 100,
+      opponentId: 42,
       opponentNickname: 'seller1',
     });
   });

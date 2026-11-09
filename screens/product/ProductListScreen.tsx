@@ -2,7 +2,7 @@
  * 화면: 상품 목록 화면 (ProductListScreen)
  * 역할: 상품 검색, 정렬(최신순, 가격순 등) 필터링, 전체 상품 리스트 출력 및 네비게이션을 담당하는 메인 화면 컴포넌트입니다.
  */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -42,6 +42,19 @@ import { countActiveFilters } from '../../utils/countActiveFilters';
 import { styles } from './ProductListScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductList'>;
+
+const mapPostToProduct = (post: any): Product => ({
+  id: post.id.toString(),
+  name: post.title,
+  price: post.price,
+  imageUrl: post.images?.[0]?.imageUrl || '',
+  heartCount: 0,
+  chatCount: 0,
+  status: post.productStatus,
+  category: CATEGORY_REVERSE_MAP[post.productCategory] || post.productCategory,
+  condition: post.productCondition,
+  createdAt: post.createdAt,
+});
 
 const ProductListScreen = ({ navigation, route }: Props) => {
   const { isMockMode, toggleMockMode } = useMockMode();
@@ -114,20 +127,7 @@ const ProductListScreen = ({ navigation, route }: Props) => {
   }, [route.params?.category]);
 
   // ─── Mock / Real 공통 상품 목록 로더 ──────────────────────────────────────
-  const mapPostToProduct = (post: any): Product => ({
-    id: post.id.toString(),
-    name: post.title,
-    price: post.price,
-    imageUrl: post.images?.[0]?.imageUrl || '',
-    heartCount: 0,
-    chatCount: 0,
-    status: post.productStatus,
-    category: CATEGORY_REVERSE_MAP[post.productCategory] || post.productCategory,
-    condition: post.productCondition,
-    createdAt: post.createdAt,
-  });
-
-  const fetchProducts = async (page: number, signal?: AbortSignal) => {
+  const fetchProducts = useCallback(async (page: number, signal?: AbortSignal) => {
     try {
       if (page === 0) {
         setLoading(true);
@@ -177,7 +177,7 @@ const ProductListScreen = ({ navigation, route }: Props) => {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [isMockMode, navigation]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -185,7 +185,7 @@ const ProductListScreen = ({ navigation, route }: Props) => {
     setCurrentPage(0);
     fetchProducts(0, abortController.signal);
     return () => abortController.abort();
-  }, [isMockMode, queryKey]); // Mock 모드·검색 조건이 바뀌면 자동으로 다시 로드
+  }, [fetchProducts, queryKey]); // Mock 모드·검색 조건이 바뀌면 자동으로 다시 로드
 
   // ProductDetail에서 판매상태 수정 후 돌아올 때 목록 새로고침
   useEffect(() => {
@@ -199,7 +199,7 @@ const ProductListScreen = ({ navigation, route }: Props) => {
       fetchProducts(0);
     });
     return unsubscribe;
-  }, [navigation, isMockMode]);
+  }, [navigation, fetchProducts]);
 
   const handleLoadMore = () => {
     if (loadingMore || isLastPage) return;
