@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Linking, TouchableOpacity } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import { login } from '@react-native-seoul/kakao-login';
-import { waitForNaverCode } from '../utils/naverAuth';
+import { openNaverAuthorization } from '../utils/naverAuth';
 import { secureStorage } from '../utils/secureStorage';
 import { authAPI } from '../api/apiClient';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -20,7 +20,8 @@ jest.mock('@react-native-seoul/kakao-login', () => ({
 
 jest.mock('../utils/naverAuth', () => ({
   NAVER_CANCELLED: 'NAVER_CANCELLED',
-  waitForNaverCode: jest.fn(),
+  NAVER_EXPIRED: 'NAVER_EXPIRED',
+  openNaverAuthorization: jest.fn(),
 }));
 
 jest.mock('../api/apiClient', () => ({
@@ -60,7 +61,7 @@ jest.mock('../components/SuccessView', () => {
   return function MockSuccessView({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
     React.useEffect(() => {
       if (visible) onDismiss();
-    }, [visible]);
+    }, [visible, onDismiss]);
     return null;
   };
 });
@@ -69,10 +70,10 @@ jest.mock('../components/SuccessView', () => {
 jest.setTimeout(20000);
 
 const mockLogin = login as jest.Mock;
-const mockWaitForNaverCode = waitForNaverCode as jest.Mock;
+const mockOpenNaverAuthorization = openNaverAuthorization as jest.Mock;
 
-// 버튼 렌더 순서: 0 카카오 / 1 네이버 / 2 애플 / 3 약관 / 4 정책 / 5 개발자 API 테스트
-const BUTTON = { kakao: 0, naver: 1, apple: 2, devTest: 5 } as const;
+// 버튼 렌더 순서: 0 카카오 / 1 네이버 / 2 애플 / 3 약관 / 4 정책 / 5 Mock / 6 개발자 API 테스트
+const BUTTON = { kakao: 0, naver: 1, apple: 2, devTest: 6 } as const;
 
 const mockReplace = jest.fn();
 const mockNavigate = jest.fn();
@@ -112,10 +113,9 @@ describe('LoginScreen', () => {
     (authAPI.loginWithNaver as jest.Mock).mockResolvedValue(jwtResponse);
     mockLogin.mockResolvedValue({ idToken: 'kakao-id-token' });
     (authAPI.getNaverState as jest.Mock).mockResolvedValue({
-      data: { data: { state: 'naver-state', authorizationUrl: 'https://nid.naver.com/auth?x=1' } },
+      data: { data: { state: 'naver-state', authorizationUrl: 'https://nid.naver.com/auth?x=1', expiresIn: 300 } },
     });
-    mockWaitForNaverCode.mockResolvedValue('naver-code');
-    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as any);
+    mockOpenNaverAuthorization.mockResolvedValue('naver-code');
   });
 
   describe('카카오 로그인', () => {
@@ -126,11 +126,11 @@ describe('LoginScreen', () => {
       expect(secureStorage.setItem).toHaveBeenCalledWith('userId', '42');
     });
 
-    it('버튼 클릭 시 ProductList로 이동한다', async () => {
+    it('버튼 클릭 시 Home로 이동한다', async () => {
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.kakao);
 
-      expect(mockReplace).toHaveBeenCalledWith('ProductList');
+      expect(mockReplace).toHaveBeenCalledWith('Home');
     });
 
     it('프로필 미등록 사용자(profileRegistered=false)는 약관 동의 화면으로 이동한다', async () => {
@@ -149,20 +149,23 @@ describe('LoginScreen', () => {
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.naver);
 
-      expect(Linking.openURL).toHaveBeenCalledWith('https://nid.naver.com/auth?x=1');
+      expect(mockOpenNaverAuthorization).toHaveBeenCalledWith(
+        expect.objectContaining({ authorizationUrl: 'https://nid.naver.com/auth?x=1', expiresIn: 300 }),
+        expect.objectContaining({ aborted: false }),
+      );
       expect(authAPI.loginWithNaver).toHaveBeenCalledWith('naver-code', 'naver-state');
     });
 
-    it('버튼 클릭 시 userId 저장 후 ProductList로 이동한다', async () => {
+    it('버튼 클릭 시 userId 저장 후 Home로 이동한다', async () => {
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.naver);
 
       expect(secureStorage.setItem).toHaveBeenCalledWith('userId', '42');
-      expect(mockReplace).toHaveBeenCalledWith('ProductList');
+      expect(mockReplace).toHaveBeenCalledWith('Home');
     });
 
     it('사용자가 취소하면 백엔드 로그인을 호출하지 않는다', async () => {
-      mockWaitForNaverCode.mockRejectedValue(new Error('NAVER_CANCELLED'));
+      mockOpenNaverAuthorization.mockRejectedValue(new Error('NAVER_CANCELLED'));
 
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.naver);

@@ -12,6 +12,8 @@ export const ERROR_MESSAGES = {
     CANCELLED:     { title: '로그인이 취소되었어요',            subtitle: '카카오 로그인이 중단되었어요.' },
     NETWORK:       { title: '인터넷 연결을 확인해주세요',       subtitle: '네트워크 상태가 불안정해요.' },
     FAILED:        { title: '로그인 처리 중 오류가 발생했어요', subtitle: '잠시 후 다시 시도해주세요.' },
+    NAVER_CANCELLED: { title: '로그인이 취소되었어요', subtitle: '네이버 로그인을 다시 시작할 수 있어요.' },
+    NAVER_EXPIRED:   { title: '로그인 시간이 지났어요', subtitle: '네이버 로그인을 다시 시작해주세요.' },
     EMAIL_CONSENT: { title: '이메일 동의가 필요해요',           subtitle: '카카오 계정 설정에서 이메일 제공에 동의해주세요.' },
   },
   PRODUCT: {
