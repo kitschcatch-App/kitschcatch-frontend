@@ -1,37 +1,102 @@
-/**
- * 유틸: 네이버 브라우저 로그인 콜백 처리
- * 역할: 백엔드가 발급한 authorizationUrl을 외부 브라우저로 연 뒤, 앱 딥링크(kitschcatch://...)로
- *       돌아오는 콜백 URL에서 authorizationCode를 꺼냅니다. (네이버는 SDK access token 직접 전달 미지원)
- */
+// 네이버 HTTPS 콜백을 현재 로그인 시도와 대조하고 인증 대기를 정리한다.
 import { Linking } from 'react-native';
 
-export type NaverCallback = { code: string; state: string } | { error: string; state?: string };
+export const NAVER_CALLBACK_URL =
+  'https://dev-kitschcatch.p-e.kr/api/auth/naver/callback';
+export const NAVER_CANCELLED = 'NAVER_CANCELLED';
+export const NAVER_TIMEOUT = 'NAVER_TIMEOUT';
+export const NAVER_FAILED = 'NAVER_FAILED';
 
-const getParam = (url: string, key: string) => {
-  const m = url.match(new RegExp(`[?&#]${key}=([^&#]*)`));
-  return m ? decodeURIComponent(m[1]) : undefined;
+export type NaverCallback =
+  | { code: string; state: string }
+  | { error: string; state: string };
+export type NaverAuthorization = {
+  state: string;
+  authorizationUrl: string;
+  expiresIn: number;
 };
 
-/** 콜백 URL 파싱. 네이버 콜백이 아니면 null */
+// RN의 URL 구현에 의존하지 않고 중복·손상된 쿼리를 거절한다.
+const query = (url: string): Record<string, string> | null => {
+  if (url.includes('#') || !url.includes('?')) return null;
+  const result: Record<string, string> = Object.create(null);
+  try {
+    for (const pair of url.slice(url.indexOf('?') + 1).split('&')) {
+      const separator = pair.indexOf('=');
+      if (separator < 1) return null;
+      const decode = (value: string) =>
+        decodeURIComponent(value.replace(/\+/g, ' '));
+      const key = decode(pair.slice(0, separator));
+      if (Object.prototype.hasOwnProperty.call(result, key)) return null;
+      result[key] = decode(pair.slice(separator + 1));
+    }
+    return result;
+  } catch {
+    return null;
+  }
+};
+
 export const parseNaverCallback = (url: string): NaverCallback | null => {
-  const state = getParam(url, 'state');
-  const code = getParam(url, 'code');
-  if (code && state) return { code, state };
-  const error = getParam(url, 'error');
-  if (error) return { error, state };
+  if (url.split('?')[0] !== NAVER_CALLBACK_URL) return null;
+  const params = query(url);
+  if (!params?.state || (params.code && params.error)) return null;
+  if (params.code && params.code.length <= 2048)
+    return { code: params.code, state: params.state };
+  if (params.error) return { error: params.error, state: params.state };
   return null;
 };
 
-export const NAVER_CANCELLED = 'NAVER_CANCELLED';
+export const startNaverLogin = ({
+  state,
+  authorizationUrl,
+  expiresIn,
+}: NaverAuthorization) => {
+  const params = query(authorizationUrl);
+  if (
+    authorizationUrl.split('?')[0] !==
+      'https://nid.naver.com/oauth2.0/authorize' ||
+    params?.state !== state ||
+    !state ||
+    params?.redirect_uri !== NAVER_CALLBACK_URL ||
+    !Number.isFinite(expiresIn) ||
+    expiresIn <= 0
+  )
+    throw new Error(NAVER_FAILED);
 
-/** 같은 state의 콜백이 올 때까지 대기해 authorizationCode를 반환. 사용자가 거부하면 NAVER_CANCELLED로 reject */
-export const waitForNaverCode = (state: string) =>
-  new Promise<string>((resolve, reject) => {
-    const sub = Linking.addEventListener('url', ({ url }) => {
-      const cb = parseNaverCallback(url);
-      if (!cb || (cb.state && cb.state !== state)) return;
-      sub.remove();
-      if ('code' in cb) resolve(cb.code);
-      else reject(new Error(NAVER_CANCELLED)); // ponytail: error 종류 구분 없이 취소로 처리
+  let cancel = () => {};
+  const promise = new Promise<string>((resolve, reject) => {
+    let finished = false;
+    const finish = (code?: string, error?: string) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      subscription.remove();
+      if (code) resolve(code);
+      else reject(new Error(error ?? NAVER_FAILED));
+    };
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      const callback = parseNaverCallback(url);
+      if (!callback || callback.state !== state) return;
+      if ('code' in callback) finish(callback.code);
+      else
+        finish(
+          undefined,
+          callback.error === 'access_denied' ? NAVER_CANCELLED : NAVER_FAILED,
+        );
     });
+    const timer = setTimeout(
+      () => finish(undefined, NAVER_TIMEOUT),
+      Math.min(expiresIn, 300) * 1000,
+    );
+    cancel = () => finish(undefined, NAVER_CANCELLED);
+    // 리스너를 등록한 다음 브라우저를 열어 빠른 콜백도 놓치지 않는다.
+    try {
+      Linking.openURL(authorizationUrl).catch(() =>
+        finish(undefined, NAVER_FAILED),
+      );
+    } catch {
+      finish(undefined, NAVER_FAILED);
+    }
   });
+  return { promise, cancel };
+};

@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Linking, TouchableOpacity } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import { login } from '@react-native-seoul/kakao-login';
-import { waitForNaverCode } from '../utils/naverAuth';
+import { startNaverLogin } from '../utils/naverAuth';
 import { secureStorage } from '../utils/secureStorage';
 import { authAPI } from '../api/apiClient';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -20,7 +20,7 @@ jest.mock('@react-native-seoul/kakao-login', () => ({
 
 jest.mock('../utils/naverAuth', () => ({
   NAVER_CANCELLED: 'NAVER_CANCELLED',
-  waitForNaverCode: jest.fn(),
+  startNaverLogin: jest.fn(),
 }));
 
 jest.mock('../api/apiClient', () => ({
@@ -70,7 +70,7 @@ jest.mock('../components/SuccessView', () => {
 jest.setTimeout(20000);
 
 const mockLogin = login as jest.Mock;
-const mockWaitForNaverCode = waitForNaverCode as jest.Mock;
+const mockStartNaverLogin = startNaverLogin as jest.Mock;
 
 // 버튼 렌더 순서: 0 카카오 / 1 네이버 / 2 애플 / 3 약관 / 4 정책 / 5 개발자 API 테스트
 const BUTTON = { kakao: 0, naver: 1, apple: 2, devTest: 5 } as const;
@@ -86,6 +86,12 @@ const jwtResponse = {
 };
 
 // create()를 act 안에서 실행해야 React 19 스케줄러가 완전히 플러시됨
+const rendered: ReactTestRenderer.ReactTestRenderer[] = [];
+afterEach(async () => {
+  await act(async () => { rendered.splice(0).forEach(renderer => renderer.unmount()); });
+  jest.useRealTimers();
+});
+
 const renderLogin = async () => {
   let renderer!: ReactTestRenderer.ReactTestRenderer;
   await act(async () => {
@@ -93,6 +99,7 @@ const renderLogin = async () => {
       <LoginScreen navigation={navigation} route={route} />,
     );
   });
+  rendered.push(renderer);
   return renderer;
 };
 
@@ -105,6 +112,7 @@ const pressButton = async (renderer: ReactTestRenderer.ReactTestRenderer, index:
 
 describe('LoginScreen', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
     (secureStorage.setItem as jest.Mock).mockResolvedValue(undefined);
 
@@ -115,8 +123,7 @@ describe('LoginScreen', () => {
     (authAPI.getNaverState as jest.Mock).mockResolvedValue({
       data: { data: { state: 'naver-state', authorizationUrl: 'https://nid.naver.com/auth?x=1' } },
     });
-    mockWaitForNaverCode.mockResolvedValue('naver-code');
-    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as any);
+    mockStartNaverLogin.mockReturnValue({ promise: Promise.resolve('naver-code'), cancel: jest.fn() });
   });
 
   describe('카카오 로그인', () => {
@@ -146,11 +153,24 @@ describe('LoginScreen', () => {
   });
 
   describe('네이버 로그인', () => {
+    it('진행 중 재클릭은 무시하고 화면 종료 시 인증 대기를 취소한다', async () => {
+      let reject!: (error: Error) => void;
+      const cancel = jest.fn(() => reject(new Error('NAVER_CANCELLED')));
+      mockStartNaverLogin.mockReturnValue({ promise: new Promise((_, fail) => { reject = fail; }), cancel });
+      const renderer = await renderLogin();
+      await pressButton(renderer, BUTTON.naver);
+      await pressButton(renderer, BUTTON.naver);
+      expect(authAPI.getNaverState).toHaveBeenCalledTimes(1);
+      await act(async () => { renderer.unmount(); });
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(authAPI.loginWithNaver).not.toHaveBeenCalled();
+    });
+
     it('버튼 클릭 시 authorizationUrl을 열고 콜백 code+state로 백엔드 로그인을 호출한다', async () => {
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.naver);
 
-      expect(Linking.openURL).toHaveBeenCalledWith('https://nid.naver.com/auth?x=1');
+      expect(mockStartNaverLogin).toHaveBeenCalledWith(expect.objectContaining({ state: 'naver-state' }));
       expect(authAPI.loginWithNaver).toHaveBeenCalledWith('naver-code', 'naver-state');
     });
 
@@ -163,7 +183,7 @@ describe('LoginScreen', () => {
     });
 
     it('사용자가 취소하면 백엔드 로그인을 호출하지 않는다', async () => {
-      mockWaitForNaverCode.mockRejectedValue(new Error('NAVER_CANCELLED'));
+      mockStartNaverLogin.mockImplementation(() => ({ promise: Promise.reject(new Error('NAVER_CANCELLED')), cancel: jest.fn() }));
 
       const renderer = await renderLogin();
       await pressButton(renderer, BUTTON.naver);
