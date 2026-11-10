@@ -95,7 +95,7 @@ const WishlistStoreItem = ({
   return (
     <View style={styles.storeItem}>
       <Image
-        source={store.thumbnailUrl ? { uri: store.thumbnailUrl } : require('../../assets/product_img.png')}
+        source={store.thumbnailUrl ? { uri: store.thumbnailUrl } : {}}
         style={styles.storeImage}
         resizeMode="cover"
       />
@@ -268,7 +268,7 @@ const WishlistScreen = ({ navigation }: Props) => {
               }
             >
               <Image
-                source={item.thumbnailUrl ? { uri: item.thumbnailUrl } : require('../../assets/product_img.png')}
+                source={item.thumbnailUrl ? { uri: item.thumbnailUrl } : {}}
                 style={[styles.productImage, { width: productImageSize, height: productImageSize }]}
                 resizeMode="cover"
               />
