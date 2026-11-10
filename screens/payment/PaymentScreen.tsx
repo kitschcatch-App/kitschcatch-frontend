@@ -20,7 +20,7 @@ import Config from 'react-native-config';
 import { useMockMode } from '../../contexts/MockModeContext';
 import { addressAPI, orderAPI, paymentAPI } from '../../api/apiClient';
 import { getMockCreateOrder, mockDelay } from '../../api/mockData';
-import { calcSafePaymentFee, SHIPPING_FEE } from '../../utils/payment';
+import { mockPricing, requireCheckoutPricing, OrderQuote, PriceBreakdown } from '../../utils/payment';
 
 // Toss JS SDK v1은 successUrl/failUrl이 반드시 https://로 시작해야 한다.
 // onShouldStartLoadWithRequest에서 실제 로드 전에 가로채므로 서버가 없어도 동작한다.
@@ -49,6 +49,7 @@ const PAYMENT_METHODS: PaymentMethod[] = [
 // 토스 결제창(WebView)이 열려 있는 동안 필요한 데이터
 interface WebViewPaymentData {
   html: string;
+  pricing: PriceBreakdown;
   paymentId: string;
   attemptId?: string;   // 승인 요청에 같이 보내는 결제 시도 ID
   pgOrderId: string;    // 주문번호 (결제 완료 화면 표시용)
@@ -91,6 +92,35 @@ const PaymentScreen = ({ route, navigation }: Props) => {
   const [selectedAddress, setSelectedAddress] = useState<SelectedAddress | null>(
     isMockMode ? { id: 0, name: '이수진', phone: '010-1234-5678', address: '경기도 화성시 병점구 안녕동 1245678845612' } : null,
   );
+
+  const [quote, setQuote] = useState<OrderQuote | null>(null);
+  const [quoteAddressId, setQuoteAddressId] = useState<number | null>(null);
+  const [quoteRevision, setQuoteRevision] = useState(0);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState('');
+  const paymentInFlight = useRef(false);
+  useEffect(() => {
+    let active = true;
+    setQuote(null);
+    setQuoteAddressId(null);
+    setQuoteError('');
+    setQuoteLoading(false);
+    if (isMockMode || !selectedAddress) return;
+    setQuoteLoading(true);
+    orderAPI.getQuote(Number(productId), selectedAddress.id)
+      .then(res => {
+        const next: OrderQuote = res.data.data;
+        requireCheckoutPricing(next.pricing);
+        if (!next.quoteId) throw new Error('견적을 받지 못했습니다.');
+        if (active) {
+          setQuote(next);
+          setQuoteAddressId(selectedAddress.id);
+        }
+      })
+      .catch(() => { if (active) setQuoteError('결제 금액을 불러오지 못했습니다. 다시 조회해주세요.'); })
+      .finally(() => { if (active) setQuoteLoading(false); });
+    return () => { active = false; };
+  }, [isMockMode, productId, selectedAddress, quoteRevision]);
 
   // 첫 진입 시 기본 배송지(서버가 맨 앞으로 정렬)를 자동 선택
   useEffect(() => {
@@ -141,10 +171,9 @@ const PaymentScreen = ({ route, navigation }: Props) => {
     />
   );
 
-  const shippingFee = SHIPPING_FEE;
-  const safePaymentFee = calcSafePaymentFee(productPrice, shippingFee);
-  // 안심결제 이용료는 판매자 부담(서버 스펙: 구매자 수수료 0원)이라 구매자 총액에서 제외
-  const totalPrice = productPrice + shippingFee;
+  const pricing = isMockMode ? mockPricing(productPrice) : quote?.pricing;
+  const totalPrice = pricing?.totalAmount;
+  const money = (amount: number | undefined) => amount === undefined ? '확인 중' : `${amount.toLocaleString()}원`;
 
   const MEMO_OPTIONS = [
     '요청사항 없음',
@@ -163,7 +192,7 @@ const PaymentScreen = ({ route, navigation }: Props) => {
     if (errCode === 'ORDER_001') return '주문 정보를 찾을 수 없습니다.';
     if (errCode === 'ORDER_002') return '현재 주문할 수 없는 상품입니다.';
     if (errCode === 'ORDER_003') return '주문 결제 시간이 만료되었습니다. 다시 시도해주세요.';
-    return errMsg || '오류가 발생했습니다. 다시 시도해주세요.';
+    return errMsg || error?.message || '오류가 발생했습니다. 다시 시도해주세요.';
   };
 
   const buildTossHtml = (
@@ -218,8 +247,13 @@ ${extraParamsJs}
   };
 
   const handlePay = async () => {
+    if (paymentInFlight.current || remainingSec === 0) return;
     if (!selectedAddress) {
       Alert.alert('배송지', '배송지를 먼저 등록해주세요. (회원정보 > 배송지 관리)');
+      return;
+    }
+    if (!isMockMode && (!quote || quoteAddressId !== selectedAddress?.id)) {
+      setQuoteRevision(value => value + 1);
       return;
     }
     if (selectedMemo === '배송시 요청사항 선택') {
@@ -237,6 +271,7 @@ ${extraParamsJs}
       scrollToError(termsSectionY.current);
       return;
     }
+    paymentInFlight.current = true;
     setIsLoading(true);
     try {
       const method = PAYMENT_METHODS.find(m => m.label === selectedPayment)!;
@@ -244,11 +279,11 @@ ${extraParamsJs}
       // Mock 모드: Toss WebView 없이 바로 결제 완료 화면으로 이동
       if (isMockMode) {
         await mockDelay();
-        const mockOrderId = `ORD-MOCK-${getMockCreateOrder(Number(productId), productPrice).data.data.id}`;
+        const mockOrderId = `ORD-MOCK-${getMockCreateOrder(Number(productId), mockPricing(productPrice).totalAmount).data.data.id}`;
         navigation.navigate('PaymentComplete', {
           productName,
           productPrice,
-          totalPrice,
+          totalPrice: mockPricing(productPrice).totalAmount,
           productImageUrl,
           pgOrderId: mockOrderId,
           paymentMethod: method.backendEnum,
@@ -262,7 +297,8 @@ ${extraParamsJs}
       try {
         orderRes = await orderAPI.createOrder({
           postId: Number(productId),
-          amount: productPrice,
+          amount: quote!.pricing.totalAmount,
+          quoteId: quote!.quoteId,
           paymentMethod: method.backendEnum,
           shippingAddressId: selectedAddress.id,
         });
@@ -271,13 +307,24 @@ ${extraParamsJs}
         throw error;
       }
       const orderData = orderRes.data.data;
-      console.log('[결제] 주문 생성 응답:', JSON.stringify(orderData));
       const orderId: string = orderData.orderId ?? orderData.id;
       const paymentId: string = orderData.paymentId;
       // Toss에 넘기는 orderId는 서버가 발급한 pgOrderId (없으면 주문번호)
       const tossOrderId: string = orderData.pgOrderId ?? orderId;
       if (!orderId || !paymentId) {
         throw new Error('주문 ID 또는 결제 ID를 받지 못했습니다.');
+      }
+
+      let orderPricing: PriceBreakdown;
+      try {
+        orderPricing = requireCheckoutPricing(orderData.pricing);
+        if (orderPricing.totalAmount !== quote!.pricing.totalAmount ||
+            orderPricing.productAmount !== quote!.pricing.productAmount) {
+          throw new Error('결제 금액이 변경되었습니다. 다시 확인해주세요.');
+        }
+      } catch (error) {
+        await orderAPI.cancelOrder(orderId, '결제 금액 확인 실패').catch(() => {});
+        throw error;
       }
 
       // [2단계] Toss 결제창 열기
@@ -291,7 +338,7 @@ ${extraParamsJs}
       const html = buildTossHtml(
         clientKey,
         tossOrderId,
-        productPrice,
+        orderPricing.totalAmount,
         productName,
         TOSS_SUCCESS_URL,
         TOSS_FAIL_URL,
@@ -300,6 +347,7 @@ ${extraParamsJs}
       );
       setWebViewPayment({
         html,
+        pricing: orderPricing,
         paymentId,
         attemptId: orderData.attemptId,
         pgOrderId: orderId,
@@ -307,9 +355,16 @@ ${extraParamsJs}
         successUrlBase: TOSS_SUCCESS_URL,
         failUrlBase: TOSS_FAIL_URL,
       });
-    } catch (error) {
-      Alert.alert('오류', getErrorMessage(error));
+    } catch (error: any) {
+      if (error?.response?.data?.error?.code === 'ORDER_095_001') {
+        setQuote(null);
+        setQuoteRevision(value => value + 1);
+        Alert.alert('결제 금액 확인', '견적이 만료되었거나 상품 정보가 변경되었습니다. 새 금액을 확인한 뒤 다시 결제해주세요.');
+      } else {
+        Alert.alert('오류', getErrorMessage(error));
+      }
     } finally {
+      paymentInFlight.current = false;
       setIsLoading(false);
     }
   };
@@ -320,7 +375,7 @@ ${extraParamsJs}
     setIsLoading(true);
     if (isMockMode) {
       navigation.navigate('PaymentComplete', {
-        productName, productPrice, totalPrice, productImageUrl, pgOrderId: data.pgOrderId,
+        productName, productPrice: data.pricing.productAmount, totalPrice: data.pricing.totalAmount, productImageUrl, pgOrderId: data.pgOrderId,
         paymentMethod: data.paymentMethod,
       });
       setIsLoading(false);
@@ -344,13 +399,13 @@ ${extraParamsJs}
           return;
         }
         navigation.navigate('PaymentComplete', {
-          productName, productPrice, totalPrice, productImageUrl, pgOrderId: data.pgOrderId,
+          productName, productPrice: data.pricing.productAmount, totalPrice: data.pricing.totalAmount, productImageUrl, pgOrderId: data.pgOrderId,
           paymentMethod: data.paymentMethod,
         });
       })
       .catch((error) => Alert.alert('결제 오류', getErrorMessage(error)))
       .finally(() => setIsLoading(false));
-  }, [isMockMode, navigation, productName, productPrice, totalPrice, productImageUrl]);
+  }, [isMockMode, navigation, productName, productImageUrl]);
 
   // 결제창을 닫거나 결제가 실패하면 미결제 주문(결제대기)이 남지 않도록 주문을 취소한다.
   // 이미 결제됐거나 결과 확인 중이면 건드리지 않는다.
@@ -419,7 +474,6 @@ ${extraParamsJs}
     const { url } = request;
     if (!url) return false;
 
-    console.log('[ShouldLoad]', url);
 
     // 결제 성공 콜백 (WebView 내 네비게이션으로 도달한 경우)
     if (url.startsWith(webViewPayment.successUrlBase)) {
@@ -485,7 +539,7 @@ ${extraParamsJs}
                 }
                 var _origOpen = window.open;
                 window.open = function(url, target, features) {
-                  try { window.ReactNativeWebView.postMessage(JSON.stringify({type:'log', message:'[window.open] url=' + url})); } catch(e) {}
+
                   if (isDeepLink(url)) { notify(url); return window; }
                   if (url) { window.location.href = url; return window; }
                   return _origOpen ? _origOpen.apply(this, arguments) : window;
@@ -518,8 +572,7 @@ ${extraParamsJs}
             `}
             onMessage={handleWebViewMessage}
             onError={handleWebViewError}
-            onHttpError={(e) => console.log('[WebView HTTP오류]', e.nativeEvent.statusCode, e.nativeEvent.url)}
-            onLoadStart={(e) => console.log('[WebView LoadStart]', e.nativeEvent.url)}
+            onHttpError={(e) => console.log('[WebView HTTP오류]', e.nativeEvent.statusCode)}
             style={{ flex: 1 }}
           />
           {openingExternalApp && (
@@ -571,7 +624,7 @@ ${extraParamsJs}
                 <Image source={{ uri: productImageUrl }} style={styles.productImage} />
                 <View style={styles.productDetails}>
                   <Text style={styles.productName} numberOfLines={2}>{productName}</Text>
-                  <Text style={styles.productPrice}>{productPrice.toLocaleString()}원</Text>
+                  <Text style={styles.productPrice}>{money(pricing?.productAmount ?? productPrice)}</Text>
                 </View>
               </View>
             </View>
@@ -688,8 +741,8 @@ ${extraParamsJs}
                 결제대금은 구매 확정 전까지 안전하게 보관되며, 구매 확정 후 판매자에게 지급됩니다.
               </Text>
 
-              <Text style={styles.safePaymentFeeText}>안심결제 이용료 {safePaymentFee.toLocaleString()}원</Text>
-              <Text style={styles.safePaymentFeeDescText}>상품금액+배송비의 5.5% (최소 800원 / VAT 포함)</Text>
+              <Text style={styles.safePaymentFeeText}>안심결제 이용료 {money(pricing?.buyerFeeAmount)}</Text>
+              <Text style={styles.safePaymentFeeDescText}>구매자 이용료는 0원입니다. 판매자 수수료는 상품금액의 5%입니다.</Text>
 
               <TouchableOpacity
                 style={styles.safePaymentPolicyRow}
@@ -707,11 +760,11 @@ ${extraParamsJs}
               <View style={styles.paymentDetailsContainer}>
                 <View style={styles.paymentDetailRow}>
                   <Text style={styles.paymentDetailLabel}>상품 금액</Text>
-                  <Text style={styles.paymentDetailValue}>{productPrice.toLocaleString()}원</Text>
+                  <Text style={styles.paymentDetailValue}>{money(pricing?.productAmount ?? productPrice)}</Text>
                 </View>
                 <View style={styles.paymentDetailRow}>
                   <Text style={styles.paymentDetailLabel}>배송비</Text>
-                  <Text style={styles.paymentDetailValue}>{shippingFee.toLocaleString()}원</Text>
+                  <Text style={styles.paymentDetailValue}>{money(pricing?.shippingAmount)}</Text>
                 </View>
               </View>
 
@@ -719,7 +772,7 @@ ${extraParamsJs}
 
               <View style={styles.paymentTotalRow}>
                 <Text style={styles.totalPaymentLabel}>총 결제금액</Text>
-                <Text style={styles.totalPaymentLabel}>{totalPrice.toLocaleString()}원</Text>
+                <Text style={styles.totalPaymentLabel} testID="checkout-total">{money(totalPrice)}</Text>
               </View>
             </View>
 
@@ -762,6 +815,7 @@ ${extraParamsJs}
               )}
             </View>
 
+            {!!quoteError && <Text accessibilityRole="alert">{quoteError}</Text>}
             {/* 5. 결제하기 버튼 */}
             <View style={styles.payButtonContainer}>
               <TouchableOpacity
@@ -770,10 +824,11 @@ ${extraParamsJs}
                   selectedPayment && agreeTerms && styles.payButtonActive,
                   isLoading && styles.payButtonDisabled,
                 ]}
+                testID="checkout-pay"
                 onPress={handlePay}
-                disabled={isLoading}
+                disabled={isLoading || quoteLoading || remainingSec === 0}
               >
-                <Text style={styles.payButtonText}>{totalPrice.toLocaleString()}원 결제하기</Text>
+                <Text style={styles.payButtonText}>{quoteLoading ? '결제 금액 확인 중' : totalPrice === undefined ? '결제 금액 다시 조회' : `${money(totalPrice)} 결제하기`}</Text>
               </TouchableOpacity>
             </View>
 

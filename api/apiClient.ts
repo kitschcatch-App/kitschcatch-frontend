@@ -304,8 +304,10 @@ export const productAPI = {
 
 // ─── 주문 관련 API ──────────────────────────────────────────────────────────────
 export const orderAPI = {
+  getQuote: (postId: number, shippingAddressId: number) =>
+    apiClient.post('/orders/quotes', { postId, shippingAddressId }),
   // 주문 생성 (15분 홀드)
-  createOrder: (data: { postId: number; amount: number; paymentMethod: string; shippingAddressId?: number }) =>
+  createOrder: (data: { postId: number; amount: number; paymentMethod: string; shippingAddressId: number; quoteId: string }) =>
     apiClient.post('/orders', data),
 
   // 거래 상세 조회 (orderId = ORD-로 시작하는 공개 주문번호, 구매자/판매자만 조회 가능)

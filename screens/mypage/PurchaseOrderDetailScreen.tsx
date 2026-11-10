@@ -29,7 +29,7 @@ import {
   getReturnProgress,
   parseRefundReason,
 } from '../../utils/mypage';
-import { calcSafePaymentFee, SHIPPING_FEE } from '../../utils/payment';
+import { orderAmounts } from '../../utils/payment';
 import { useRefreshControl } from '../../hooks/useRefreshControl';
 import ScreenHeader from '../../components/ScreenHeader';
 import Collapsible from '../../components/Collapsible';
@@ -224,14 +224,13 @@ const PurchaseOrderDetailScreen = ({ navigation, route }: Props) => {
   const paymentMethodLabel =
     order?.payment?.method === 'CARD' ? '신용카드' : '';
   const title = order?.post?.title ?? productTitle;
-  // order.amount는 상품금액(주문 생성 시 productPrice). 배송비·이용료를 더해 총 결제금액을 만든다.
-  const price = order?.amount ?? productPrice;
-  const fee = calcSafePaymentFee(price, SHIPPING_FEE);
-  const totalPrice = price + SHIPPING_FEE + fee;
+  const pricing = orderAmounts(order ?? { amount: productPrice });
+  const price = pricing.productAmount;
+  const totalPrice = pricing.totalAmount;
   const BREAKDOWN = {
     product: `${price.toLocaleString()}원`,
-    shipping: `${SHIPPING_FEE.toLocaleString()}원`,
-    fee: `${fee.toLocaleString()}원`,
+    shipping: `${pricing.shippingAmount.toLocaleString()}원`,
+    fee: `${pricing.buyerFeeAmount.toLocaleString()}원`,
   };
   const image = order?.post?.thumbnailUrl
     ? { uri: order.post.thumbnailUrl }
