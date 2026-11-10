@@ -105,6 +105,7 @@ beforeEach(() => {
   (orderAPI.getQuote as jest.Mock).mockResolvedValue(response(quote));
   (orderAPI.createOrder as jest.Mock).mockResolvedValue(
     response({
+      status: 'READY',
       orderId: 'ORD-test',
       paymentId: 'PAY-test',
       attemptId: 'ATT-test',
@@ -113,6 +114,9 @@ beforeEach(() => {
     }),
   );
   (orderAPI.cancelOrder as jest.Mock).mockResolvedValue(response({}));
+  (paymentAPI.getPayment as jest.Mock).mockResolvedValue(
+    response({ status: 'READY' }),
+  );
   (paymentAPI.confirmPayment as jest.Mock).mockResolvedValue(
     response({ status: 'SUCCESS' }),
   );
@@ -183,6 +187,7 @@ it('주문 응답 금액이 견적과 다르면 주문을 취소하고 결제창
   await ready();
   (orderAPI.createOrder as jest.Mock).mockResolvedValueOnce(
     response({
+      status: 'READY',
       orderId: 'ORD-test',
       paymentId: 'PAY-test',
       pricing: { ...pricing, totalAmount: 30000 },
@@ -194,4 +199,24 @@ it('주문 응답 금액이 견적과 다르면 주문을 취소하고 결제창
     '결제 금액 확인 실패',
   );
   expect(screen.root.findAllByType('WebView' as any)).toHaveLength(0);
+});
+
+it('결제창 취소 후에는 사용한 견적 대신 새 견적으로 주문한다', async () => {
+  await ready();
+  await pay();
+  (orderAPI.getQuote as jest.Mock).mockResolvedValueOnce(
+    response({ ...quote, quoteId: 'QUOTE-new' }),
+  );
+  const webview = screen.root.findByType('WebView' as any);
+  await act(async () => {
+    webview.props.onShouldStartLoadWithRequest({
+      url: 'https://payment.kitschcatch.com/fail?code=USER_CANCEL&message=cancelled',
+    });
+  });
+  expect(orderAPI.cancelOrder).toHaveBeenCalledWith('ORD-test', '결제 취소');
+  expect(orderAPI.getQuote).toHaveBeenCalledTimes(2);
+  await pay();
+  expect(orderAPI.createOrder).toHaveBeenLastCalledWith(
+    expect.objectContaining({ quoteId: 'QUOTE-new', amount: 33000 }),
+  );
 });

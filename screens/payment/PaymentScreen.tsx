@@ -315,6 +315,11 @@ ${extraParamsJs}
         throw new Error('주문 ID 또는 결제 ID를 받지 못했습니다.');
       }
 
+      if (orderData.status !== 'READY') {
+        setQuote(null);
+        setQuoteRevision(value => value + 1);
+        throw new Error('이미 처리된 주문입니다. 주문 내역을 확인해주세요.');
+      }
       let orderPricing: PriceBreakdown;
       try {
         orderPricing = requireCheckoutPricing(orderData.pricing);
@@ -324,6 +329,8 @@ ${extraParamsJs}
         }
       } catch (error) {
         await orderAPI.cancelOrder(orderId, '결제 금액 확인 실패').catch(() => {});
+        setQuote(null);
+        setQuoteRevision(value => value + 1);
         throw error;
       }
 
@@ -411,13 +418,20 @@ ${extraParamsJs}
   // 이미 결제됐거나 결과 확인 중이면 건드리지 않는다.
   const cancelPendingOrder = useCallback(
     async (data: WebViewPaymentData) => {
-      if (isMockMode) return;
+      if (isMockMode || paymentInFlight.current) return;
+      paymentInFlight.current = true;
+      setIsLoading(true);
+      setQuote(null);
       try {
         const status = (await paymentAPI.getPayment(data.paymentId)).data.data?.status;
         if (status === 'SUCCESS' || status === 'PROCESSING') return;
         await orderAPI.cancelOrder(data.pgOrderId, '결제 취소');
+        setQuoteRevision(value => value + 1);
       } catch (e) {
         console.error('[결제] 미결제 주문 취소 실패:', e);
+      } finally {
+        paymentInFlight.current = false;
+        setIsLoading(false);
       }
     },
     [isMockMode],
