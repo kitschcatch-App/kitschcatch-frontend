@@ -260,11 +260,14 @@ ${extraParamsJs}
       // 백엔드가 주문 생성 시 결제 레코드도 함께 생성하여 paymentId를 반환
       let orderRes: any;
       try {
+        // 서버 견적(상품+배송비) 발급 후 그 totalAmount·quoteId로 주문 생성
+        const quote = (await orderAPI.createQuote(Number(productId), selectedAddress.id)).data.data;
         orderRes = await orderAPI.createOrder({
           postId: Number(productId),
-          amount: productPrice,
+          amount: quote.pricing.totalAmount,
           paymentMethod: method.backendEnum,
           shippingAddressId: selectedAddress.id,
+          quoteId: quote.quoteId,
         });
       } catch (error: any) {
         console.error('[결제] 주문 생성 실패:', JSON.stringify(error?.response?.data));
@@ -291,7 +294,7 @@ ${extraParamsJs}
       const html = buildTossHtml(
         clientKey,
         tossOrderId,
-        productPrice,
+        totalPrice,
         productName,
         TOSS_SUCCESS_URL,
         TOSS_FAIL_URL,

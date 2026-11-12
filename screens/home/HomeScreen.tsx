@@ -25,6 +25,10 @@ import KitschcatchIcon from '../../assets/kitschcatch.svg';
 import AlarmIcon from '../../assets/alarm.svg';
 import SearchIcon from '../../assets/search.svg';
 import NextIcon from '../../assets/next.svg';
+import Banner1 from '../../assets/banner1.svg';
+import Banner2 from '../../assets/banner2.svg';
+import Banner3 from '../../assets/banner3.svg';
+import Banner4 from '../../assets/banner4.svg';
 import FloatingAddButton from '../../components/FloatingAddButton';
 import AnimationLogo1 from '../../assets/animation_logo_1.svg';
 import AnimationLogo2 from '../../assets/animation_logo_2.svg';
@@ -53,13 +57,10 @@ import { styles } from './HomeScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-// 배너 이미지 (mock)
-const BANNER_IMAGES = [
-  'https://picsum.photos/id/301/800/400',
-  'https://picsum.photos/id/302/800/400',
-  'https://picsum.photos/id/303/800/400',
-  'https://picsum.photos/id/304/800/400',
-];
+// 배너 이미지
+const BANNER_IMAGES = [Banner1, Banner2, Banner3, Banner4];
+// 배너 SVG 원본 비율 (390x240) — 화면 폭에 맞춰 높이를 비례 계산
+const BANNER_RATIO = 240 / 390;
 
 const INITIAL_BANNER_WIDTH = Dimensions.get('window').width;
 
@@ -206,7 +207,7 @@ const HomeScreen = ({ navigation }: Props) => {
   const { isMockMode } = useMockMode();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [bannerWidth, setBannerWidth] = useState(INITIAL_BANNER_WIDTH);
-  const bannerListRef = useRef<FlatList<string>>(null);
+  const bannerListRef = useRef<FlatList<React.ComponentType<SvgProps>>>(null);
   const scrollRef = useRef<ScrollView>(null);
   const bannerWidthRef = useRef(INITIAL_BANNER_WIDTH);
   const [selectedProductCategory, setSelectedProductCategory] = useState('ALL');
@@ -436,17 +437,13 @@ const HomeScreen = ({ navigation }: Props) => {
             <FlatList
               ref={bannerListRef}
               data={BANNER_IMAGES}
-              keyExtractor={(item) => item}
+              keyExtractor={(_, i) => String(i)}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={handleBannerScrollEnd}
-              renderItem={({ item }) => (
-                <Image
-                  source={{ uri: item }}
-                  style={[styles.bannerImage, { width: bannerWidth }]}
-                  resizeMode="cover"
-                />
+              renderItem={({ item: BannerSvg }) => (
+                <BannerSvg width={bannerWidth} height={bannerWidth * BANNER_RATIO} />
               )}
             />
             <View style={styles.bannerPagination}>

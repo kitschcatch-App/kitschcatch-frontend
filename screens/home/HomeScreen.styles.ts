@@ -56,9 +56,6 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.gray02,
   },
-  bannerImage: {
-    height: 240,
-  },
   bannerPagination: {
     position: 'absolute',
     right: 12,
